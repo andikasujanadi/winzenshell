@@ -1,0 +1,12 @@
+{
+  "id": "community.zen-clock-pill",
+  "name": "Zen Clock & Date",
+  "version": "1.0.0",
+  "author": "WinZen Community",
+  "description": "Displays crisp digital time and date in the right taskbar dock.",
+  "slot": "right",
+  "order": 4,
+  "entry": "index.html",
+  "width": 140,
+  "enabled": true
+}

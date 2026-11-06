@@ -1,0 +1,12 @@
+{
+  "id": "community.zen-system-monitor",
+  "name": "Zen CPU & RAM Telemetry",
+  "version": "1.0.0",
+  "author": "WinZen Community",
+  "description": "Displays live CPU load and Memory utilization bars in the taskbar.",
+  "slot": "right",
+  "order": 3,
+  "entry": "index.html",
+  "width": 190,
+  "enabled": true
+}

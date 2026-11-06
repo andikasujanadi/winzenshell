@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WinZenShell Taskbar</title>
+  <link rel="stylesheet" href="taskbar.css" />
+</head>
+<body>
+  <div class="taskbar-bar" id="taskbarBar">
+    <!-- Left Widget Zone -->
+    <div class="taskbar-zone zone-left" id="slot-left"></div>
+
+    <!-- Center Widget Zone -->
+    <div class="taskbar-zone zone-center" id="slot-center"></div>
+
+    <!-- Right Widget Zone + Quick Studio Trigger -->
+    <div class="right-wrapper">
+      <div class="taskbar-zone zone-right" id="slot-right"></div>
+      <button id="btnOpenStudio" class="studio-btn" title="Open WinZenShell Studio &amp; Settings">
+        <span>⚙</span>
+        <span>Studio</span>
+      </button>
+    </div>
+  </div>
+
+  <script src="bridge.js"></script>
+  <script src="taskbar.js"></script>
+</body>
+</html>

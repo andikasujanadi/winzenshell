@@ -1,0 +1,310 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Text.Json;
+using System.Threading.Tasks;
+using WinZenShell.Native;
+
+namespace WinZenShell.Services;
+
+public class ShellSettings
+{
+    public bool HideNativeTaskbar { get; set; } = false;
+    public bool EnableWinZenTaskbar { get; set; } = true;
+    public bool RespectDesktopWorkArea { get; set; } = true;
+    public string DockEdge { get; set; } = "Bottom"; // "Bottom" or "Top"
+    public int TaskbarHeightPx { get; set; } = 48;
+    public int FloatingMarginPx { get; set; } = 0;
+    public Dictionary<string, WidgetStateOverride> WidgetOverrides { get; set; } = new();
+}
+
+public class ShellFullStatePayload
+{
+    public ShellSettings Settings { get; set; } = new();
+    public NativeTaskbarStatus NativeTaskbar { get; set; } = new();
+    public WorkAreaTelemetry WorkArea { get; set; } = new();
+    public List<WidgetManifest> Widgets { get; set; } = new();
+    public List<HiddenAppEntry> HiddenApps { get; set; } = new();
+    public string WidgetsFolderPath { get; set; } = "";
+    public string StatusBanner { get; set; } = "Ready";
+}
+
+public class ShellStateService
+{
+    private readonly NativeTaskbarService _nativeTaskbarService;
+    private readonly WorkAreaAppBarService _workAreaService;
+    private readonly WidgetManagerService _widgetManager;
+    private readonly SystemMetricsService? _systemMetricsService;
+    private readonly string _settingsFilePath;
+
+    private ShellSettings _settings = new();
+    private string _statusBanner = "WinZenShell Active — Ready";
+
+    public event Action<ShellFullStatePayload>? StateChanged;
+    public event Action<bool>? TaskbarVisibilityRequested;
+    public event Action<Win32Api.RECT>? TaskbarBoundsUpdated;
+
+    public Func<IntPtr>? GetTaskbarHwnd { get; set; }
+
+    public ShellSettings Settings => _settings;
+    public NativeTaskbarService NativeTaskbar => _nativeTaskbarService;
+    public WorkAreaAppBarService WorkArea => _workAreaService;
+    public WidgetManagerService WidgetManager => _widgetManager;
+
+    public ShellStateService(
+        NativeTaskbarService nativeTaskbarService,
+        WorkAreaAppBarService workAreaService,
+        WidgetManagerService widgetManager,
+        SystemMetricsService? systemMetricsService = null)
+    {
+        _nativeTaskbarService = nativeTaskbarService;
+        _workAreaService = workAreaService;
+        _widgetManager = widgetManager;
+        _systemMetricsService = systemMetricsService;
+
+        string configDir = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "WinZenShell");
+        Directory.CreateDirectory(configDir);
+        _settingsFilePath = Path.Combine(configDir, "settings.json");
+
+        LoadSettings();
+    }
+
+    public void LoadSettings()
+    {
+        try
+        {
+            if (File.Exists(_settingsFilePath))
+            {
+                string json = File.ReadAllText(_settingsFilePath);
+                var loaded = JsonSerializer.Deserialize<ShellSettings>(json);
+                if (loaded != null)
+                {
+                    _settings = loaded;
+                    // On fresh app start, always start with native taskbar visible until user toggles or we apply safely
+                    _settings.HideNativeTaskbar = false;
+                }
+            }
+        }
+        catch
+        {
+            _settings = new ShellSettings();
+        }
+    }
+
+    public void SaveSettings()
+    {
+        try
+        {
+            string json = JsonSerializer.Serialize(_settings, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(_settingsFilePath, json);
+        }
+        catch
+        {
+            // Ignore write errors
+        }
+    }
+
+    public async Task ToggleHideNativeTaskbarAsync(bool hide)
+    {
+        _settings.HideNativeTaskbar = hide;
+        SaveSettings();
+
+        if (hide)
+        {
+            await _nativeTaskbarService.HideNativeTaskbarAsync(stepMsg =>
+            {
+                _statusBanner = stepMsg;
+                BroadcastState();
+            });
+            _statusBanner = "Native Taskbar Hidden (Auto-Hide applied first -> Working Area cleared -> Concealed)";
+        }
+        else
+        {
+            _nativeTaskbarService.RestoreNativeTaskbar();
+            _statusBanner = "Native Taskbar Restored (Visible & Docked)";
+        }
+
+        // Re-apply custom taskbar bounds and Respected Desktop Working Area
+        SyncTaskbarAndWorkArea();
+        BroadcastState();
+    }
+
+    public void ToggleWinZenTaskbar(bool enable)
+    {
+        _settings.EnableWinZenTaskbar = enable;
+        SaveSettings();
+
+        TaskbarVisibilityRequested?.Invoke(enable);
+        SyncTaskbarAndWorkArea();
+
+        _statusBanner = enable
+            ? "WinZenShell Taskbar Enabled"
+            : "WinZenShell Taskbar Hidden (Desktop Working Area Released)";
+        BroadcastState();
+    }
+
+    public void UpdateWorkAreaConfig(bool respectWorkArea, string dockEdge, int heightPx, int marginPx)
+    {
+        _settings.RespectDesktopWorkArea = respectWorkArea;
+        if (!string.IsNullOrWhiteSpace(dockEdge))
+            _settings.DockEdge = dockEdge;
+        _settings.TaskbarHeightPx = Math.Clamp(heightPx, 32, 96);
+        _settings.FloatingMarginPx = Math.Clamp(marginPx, 0, 24);
+        SaveSettings();
+
+        SyncTaskbarAndWorkArea();
+
+        _statusBanner = respectWorkArea
+            ? $"Respected Desktop Working Area Updated ({_settings.DockEdge}, {_settings.TaskbarHeightPx}px)"
+            : "Desktop Working Area Reservation Disabled (Overlay Mode)";
+        BroadcastState();
+    }
+
+    public void UpdateWidgetState(
+        string widgetId,
+        bool enabled,
+        string slot,
+        int width,
+        bool autoWidth = true,
+        bool showAppName = true,
+        int? order = null,
+        bool combineApps = false,
+        string? startIcon = null,
+        string? startText = null,
+        bool showStartText = false)
+    {
+        int? existingOrder = _settings.WidgetOverrides.TryGetValue(widgetId, out var prev) ? prev.Order : null;
+        var existing = _settings.WidgetOverrides.TryGetValue(widgetId, out var existingOv) ? existingOv : null;
+
+        _settings.WidgetOverrides[widgetId] = new WidgetStateOverride
+        {
+            Enabled = enabled,
+            Slot = slot,
+            Order = order ?? existingOrder,
+            Width = Math.Clamp(width, 36, 720),
+            AutoWidth = autoWidth,
+            ShowAppName = showAppName,
+            CombineApps = combineApps,
+            StartIcon = !string.IsNullOrWhiteSpace(startIcon) ? startIcon : (existing?.StartIcon ?? "windows"),
+            StartText = startText != null ? startText : (existing?.StartText ?? "Start"),
+            ShowStartText = showStartText
+        };
+        SaveSettings();
+        _statusBanner = $"Updated widget '{widgetId}' ({slot}, {(autoWidth ? "Dynamic Width" : $"{width}px")})";
+        BroadcastState();
+    }
+
+    public void ReorderWidgets(List<WidgetOrderUpdate> updates)
+    {
+        if (updates == null || updates.Count == 0) return;
+
+        var discovered = _widgetManager.DiscoverWidgets(_settings.WidgetOverrides);
+        foreach (var item in updates)
+        {
+            if (string.IsNullOrWhiteSpace(item.Id)) continue;
+            var current = discovered.Find(w => w.Id == item.Id);
+            if (!_settings.WidgetOverrides.TryGetValue(item.Id, out var ov))
+            {
+                ov = new WidgetStateOverride
+                {
+                    Enabled = current?.Enabled ?? true,
+                    Slot = current?.Slot ?? "right",
+                    Width = current?.Width ?? 160,
+                    AutoWidth = current?.AutoWidth ?? true,
+                    ShowAppName = current?.ShowAppName ?? true,
+                    CombineApps = current?.CombineApps ?? false,
+                    StartIcon = current?.StartIcon ?? "windows",
+                    StartText = current?.StartText ?? "Start",
+                    ShowStartText = current?.ShowStartText ?? false
+                };
+                _settings.WidgetOverrides[item.Id] = ov;
+            }
+            if (!string.IsNullOrWhiteSpace(item.Slot))
+                ov.Slot = item.Slot.ToLowerInvariant();
+            ov.Order = item.Order;
+        }
+
+        SaveSettings();
+        _statusBanner = "Widget arrangement updated across Left, Center, and Right regions";
+        BroadcastState();
+    }
+
+    public void HideApp(long hwnd, string? processName, string? title)
+    {
+        _systemMetricsService?.HideAppByIdentity(hwnd, processName, title);
+        _statusBanner = $"Hidden all windows of '{(string.IsNullOrWhiteSpace(title) ? processName : title)}'";
+        BroadcastState();
+    }
+
+    public void UnhideApp(string appId)
+    {
+        _systemMetricsService?.UnhideAppByIdentity(appId);
+        _statusBanner = "Restored hidden app to Active Window Switcher";
+        BroadcastState();
+    }
+
+    public void UnhideAllApps()
+    {
+        _systemMetricsService?.UnhideAllApps();
+        _statusBanner = "Restored all hidden apps to Active Window Switcher";
+        BroadcastState();
+    }
+
+    public void CloseWindow(long hwnd)
+    {
+        _systemMetricsService?.CloseWindow(hwnd);
+    }
+
+    public void CreateNewCommunityWidget(string name, string author, string slot, int width)
+    {
+        var manifest = _widgetManager.CreateCommunityWidgetScaffold(name, author, slot, width);
+        _statusBanner = $"Created community widget '{manifest.Name}' in Widgets/{manifest.FolderName}";
+        BroadcastState();
+    }
+
+    public void SyncTaskbarAndWorkArea()
+    {
+        IntPtr taskbarHwnd = GetTaskbarHwnd?.Invoke() ?? IntPtr.Zero;
+        var rect = _workAreaService.ApplyTaskbarBoundsAndWorkArea(
+            taskbarHwnd,
+            _settings.EnableWinZenTaskbar,
+            _settings.RespectDesktopWorkArea,
+            _settings.DockEdge,
+            _settings.TaskbarHeightPx,
+            _settings.FloatingMarginPx,
+            _settings.HideNativeTaskbar);
+        TaskbarBoundsUpdated?.Invoke(rect);
+    }
+
+    public void EmergencyRestoreAll()
+    {
+        IntPtr taskbarHwnd = GetTaskbarHwnd?.Invoke() ?? IntPtr.Zero;
+        _workAreaService.UnregisterAppBar(taskbarHwnd);
+        _nativeTaskbarService.RestoreNativeTaskbar();
+        _settings.HideNativeTaskbar = false;
+        SaveSettings();
+        _statusBanner = "Emergency Restore Executed: Native Windows Taskbar & Working Area Restored";
+        BroadcastState();
+    }
+
+    public ShellFullStatePayload BuildPayload()
+    {
+        return new ShellFullStatePayload
+        {
+            Settings = _settings,
+            NativeTaskbar = _nativeTaskbarService.GetCurrentStatus(),
+            WorkArea = _workAreaService.GetTelemetry(_settings.DockEdge),
+            Widgets = _widgetManager.DiscoverWidgets(_settings.WidgetOverrides),
+            HiddenApps = _systemMetricsService?.GetHiddenApps() ?? new(),
+            WidgetsFolderPath = _widgetManager.WidgetsRootPath,
+            StatusBanner = _statusBanner
+        };
+    }
+
+    public void BroadcastState()
+    {
+        StateChanged?.Invoke(BuildPayload());
+    }
+}

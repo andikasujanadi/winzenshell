@@ -1,0 +1,1009 @@
+/* WinZenShell Settings — Authentic Windows 11 Dark Theme (WinUI 3 Design Language) */
+:root {
+  color-scheme: dark;
+  --win11-bg-page: #202020;
+  --win11-bg-card: #2b2b2b;
+  --win11-bg-card-sub: #262626;
+  --win11-bg-control: #2d2d2d;
+  --win11-bg-control-hover: #323232;
+  --win11-bg-control-active: #272727;
+  --win11-bg-well: #191919;
+
+  --win11-stroke-card: rgba(255, 255, 255, 0.055);
+  --win11-stroke-divider: rgba(255, 255, 255, 0.07);
+  --win11-stroke-control: rgba(255, 255, 255, 0.08);
+  --win11-stroke-control-bottom: rgba(255, 255, 255, 0.14);
+
+  --win11-text-primary: #ffffff;
+  --win11-text-secondary: #c5c5c5;
+  --win11-text-tertiary: #8a8a8a;
+
+  --win11-accent: #60cdff;
+  --win11-accent-hover: #56b9e6;
+  --win11-accent-ink: #000000;
+  --win11-danger: #ff99a4;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Authentic Windows 11 Dark Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--win11-bg-page);
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #4f4f4f;
+  border-radius: 8px;
+  border: 2px solid var(--win11-bg-page);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #6e6e6e;
+}
+
+::-webkit-scrollbar-thumb:active {
+  background-color: #858585;
+}
+
+::-webkit-scrollbar-corner {
+  background: var(--win11-bg-page);
+}
+
+html,
+body {
+  color-scheme: dark;
+  background: var(--win11-bg-page);
+  color: var(--win11-text-primary);
+  font-family: 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  height: 100vh;
+  overflow: hidden;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+.win11-shell {
+  display: grid;
+  grid-template-columns: 250px 1fr;
+  height: 100vh;
+}
+
+/* Windows 11 NavigationView Left Pane */
+.nav-pane {
+  background: var(--win11-bg-page);
+  display: flex;
+  flex-direction: column;
+  padding: 16px 8px 16px 12px;
+  border-right: 1px solid var(--win11-stroke-divider);
+}
+
+.pane-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px 18px;
+}
+
+.pane-logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  background: var(--win11-bg-card);
+  border: 1px solid var(--win11-stroke-control);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.win-quad {
+  display: grid;
+  grid-template-columns: 7px 7px;
+  grid-template-rows: 7px 7px;
+  gap: 2px;
+}
+
+.win-quad i {
+  display: block;
+  width: 7px;
+  height: 7px;
+  background: var(--win11-accent);
+  border-radius: 1px;
+}
+
+.pane-title {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--win11-text-primary);
+}
+
+.pane-sub {
+  display: block;
+  font-size: 12px;
+  color: var(--win11-text-secondary);
+}
+
+.pane-items {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.pane-item {
+  position: relative;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--win11-text-primary);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 400;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.08s ease;
+}
+
+.pane-item:hover {
+  background: rgba(255, 255, 255, 0.0605);
+}
+
+.pane-item.active {
+  background: rgba(255, 255, 255, 0.0605);
+}
+
+.pane-pill {
+  display: none;
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 16px;
+  border-radius: 1.5px;
+  background: var(--win11-accent);
+}
+
+.pane-item.active .pane-pill {
+  display: block;
+}
+
+.pane-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--win11-text-primary);
+  flex-shrink: 0;
+}
+
+.pane-footer {
+  margin-top: auto;
+  padding: 0 4px;
+}
+
+.pane-footer-card {
+  background: var(--win11-bg-card);
+  border: 1px solid var(--win11-stroke-card);
+  border-radius: 6px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pf-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--win11-text-secondary);
+}
+
+.pf-key {
+  font-family: Consolas, monospace;
+  font-size: 12px;
+  color: var(--win11-text-primary);
+  background: var(--win11-bg-well);
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--win11-stroke-card);
+}
+
+.pf-hint {
+  font-size: 11px;
+  color: var(--win11-text-tertiary);
+  line-height: 1.3;
+}
+
+/* Main Settings Page & Sticky Header */
+.settings-page {
+  height: 100vh;
+  overflow-y: auto;
+  padding: 0;
+  max-width: 1080px;
+}
+
+.sticky-page-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--win11-bg-page);
+  padding: 18px 36px 12px 24px;
+  border-bottom: 1px solid var(--win11-stroke-divider);
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Segoe UI Variable Display', 'Segoe UI', sans-serif;
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-bottom: 12px;
+}
+
+.bc-root {
+  color: var(--win11-text-secondary);
+  font-weight: 400;
+}
+
+.bc-sep {
+  color: var(--win11-text-tertiary);
+  font-size: 20px;
+}
+
+.bc-current {
+  color: var(--win11-text-primary);
+}
+
+.header-command-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.cmd-buttons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.win11-tool-btn {
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 4px;
+  background: var(--win11-bg-control);
+  color: var(--win11-text-primary);
+  border: 1px solid var(--win11-stroke-control);
+  border-bottom-color: var(--win11-stroke-control-bottom);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 400;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.08s ease;
+}
+
+.win11-tool-btn svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: var(--win11-accent);
+}
+
+.win11-tool-btn:hover {
+  background: var(--win11-bg-control-hover);
+}
+
+.win11-tool-btn:active {
+  background: var(--win11-bg-control-active);
+}
+
+.win11-tool-btn-accent {
+  background: var(--win11-accent);
+  color: var(--win11-accent-ink);
+  font-weight: 600;
+  border: 1px solid var(--win11-accent);
+}
+
+.win11-tool-btn-accent svg {
+  color: #000000;
+}
+
+.win11-tool-btn-accent:hover {
+  background: var(--win11-accent-hover);
+}
+
+.win11-tool-btn-danger {
+  background: rgba(255, 153, 164, 0.12);
+  color: var(--win11-danger);
+  border: 1px solid rgba(255, 153, 164, 0.28);
+}
+
+.win11-tool-btn-danger svg {
+  color: var(--win11-danger);
+}
+
+.win11-tool-btn-danger:hover {
+  background: rgba(255, 153, 164, 0.22);
+  border-color: rgba(255, 153, 164, 0.45);
+}
+
+.live-status {
+  font-size: 12px;
+  color: var(--win11-text-secondary);
+  background: var(--win11-bg-card);
+  border: 1px solid var(--win11-stroke-card);
+  padding: 5px 12px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 380px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--win11-accent);
+  flex-shrink: 0;
+  box-shadow: 0 0 6px var(--win11-accent);
+}
+
+.page-scroll-content {
+  padding: 16px 36px 40px 24px;
+}
+
+.tab-view {
+  display: none;
+  flex-direction: column;
+}
+
+.tab-view.active {
+  display: flex;
+}
+
+.section-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--win11-text-primary);
+  margin: 18px 0 8px;
+}
+
+.section-label:first-child,
+.section-label.no-margin {
+  margin-top: 0;
+}
+
+/* Windows 11 SettingsExpander & SettingsCard */
+.win11-expander {
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--win11-stroke-card);
+  background: var(--win11-bg-card);
+  margin-bottom: 6px;
+}
+
+.win11-card {
+  min-height: 60px;
+  padding: 12px 18px;
+  background: var(--win11-bg-card);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.card-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.card-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--win11-text-primary);
+  flex-shrink: 0;
+}
+
+.card-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.card-title {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--win11-text-primary);
+  cursor: pointer;
+}
+
+.card-subtitle {
+  font-size: 12px;
+  color: var(--win11-text-secondary);
+  line-height: 1.35;
+}
+
+.card-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.toggle-state-text {
+  font-size: 14px;
+  color: var(--win11-text-primary);
+  min-width: 24px;
+  text-align: right;
+}
+
+/* Authentic Windows 11 ToggleSwitch */
+.win11-toggle {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 20px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.win11-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-track {
+  position: absolute;
+  inset: 0;
+  background: #202020;
+  border: 1px solid #9e9e9e;
+  border-radius: 20px;
+  transition: background-color 0.12s ease, border-color 0.12s ease;
+}
+
+.toggle-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #cecece;
+  transition: transform 0.14s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.12s ease;
+}
+
+.win11-toggle:hover .toggle-track {
+  border-color: #ffffff;
+}
+
+.win11-toggle input:checked + .toggle-track {
+  background: var(--win11-accent);
+  border-color: var(--win11-accent);
+}
+
+.win11-toggle input:checked + .toggle-track .toggle-thumb {
+  transform: translateX(20px);
+  background: #000000;
+}
+
+/* Expander Sub-rows */
+.expander-subrow {
+  background: var(--win11-bg-card-sub);
+  border-top: 1px solid var(--win11-stroke-divider);
+  padding: 12px 18px 12px 52px;
+}
+
+.setting-subrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.hidden-apps-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.hidden-app-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 4px;
+  background: var(--win11-bg-control);
+  border: 1px solid var(--win11-stroke-control);
+  color: var(--win11-text-primary);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.hidden-app-chip:hover {
+  background: var(--win11-bg-control-hover);
+  border-color: var(--win11-accent);
+}
+
+.hidden-app-chip .unhide-tag {
+  color: var(--win11-accent);
+  font-weight: 600;
+  font-size: 11px;
+}
+
+.meta-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+
+.meta-pair {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--win11-text-secondary);
+}
+
+.meta-pair strong {
+  color: var(--win11-text-primary);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.controls-subrow {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 18px;
+}
+
+.subrow-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.subrow-field label {
+  font-size: 12px;
+  color: var(--win11-text-secondary);
+}
+
+/* Windows 11 Controls (Buttons, ComboBox, Slider, TextBox) */
+.win11-btn,
+.win11-btn-accent,
+.win11-btn-danger {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 400;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.08s ease;
+}
+
+.win11-btn {
+  background: var(--win11-bg-control);
+  color: var(--win11-text-primary);
+  border: 1px solid var(--win11-stroke-control);
+  border-bottom-color: var(--win11-stroke-control-bottom);
+}
+
+.win11-btn:hover {
+  background: var(--win11-bg-control-hover);
+}
+
+.win11-btn:active {
+  background: var(--win11-bg-control-active);
+  color: var(--win11-text-secondary);
+}
+
+.win11-btn-accent {
+  background: var(--win11-accent);
+  color: var(--win11-accent-ink);
+  font-weight: 600;
+  border: 1px solid var(--win11-accent);
+}
+
+.win11-btn-accent:hover {
+  background: var(--win11-accent-hover);
+}
+
+.win11-btn-danger {
+  background: rgba(255, 153, 164, 0.12);
+  color: var(--win11-danger);
+  border: 1px solid rgba(255, 153, 164, 0.28);
+}
+
+.win11-btn-danger:hover {
+  background: rgba(255, 153, 164, 0.22);
+  border-color: rgba(255, 153, 164, 0.45);
+}
+
+.win11-select,
+.win11-input {
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 4px;
+  background: var(--win11-bg-control);
+  color: var(--win11-text-primary);
+  border: 1px solid var(--win11-stroke-control);
+  border-bottom-color: var(--win11-stroke-control-bottom);
+  font-family: inherit;
+  font-size: 13px;
+  outline: none;
+}
+
+.win11-select:hover,
+.win11-input:hover {
+  background: var(--win11-bg-control-hover);
+}
+
+.win11-select:focus,
+.win11-input:focus {
+  border-bottom: 2px solid var(--win11-accent);
+  background: #1f1f1f;
+}
+
+.win11-slider {
+  accent-color: var(--win11-accent);
+  height: 32px;
+  cursor: pointer;
+}
+
+/* Windows 11 System > Display Style Monitor Preview */
+.workarea-layout {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 20px;
+  align-items: center;
+}
+
+.win11-display-well {
+  background: var(--win11-bg-well);
+  border: 1px solid var(--win11-stroke-card);
+  border-radius: 6px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.display-monitor-box {
+  width: 240px;
+  height: 136px;
+  background: #2b2b2b;
+  border: 2px solid var(--win11-accent);
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.mon-bar {
+  height: 22px;
+  background: #1c1c1c;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--win11-accent);
+  font-size: 10px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mon-bar.hidden {
+  display: none;
+}
+
+.mon-workarea {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.mon-number {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--win11-text-primary);
+  line-height: 1;
+}
+
+.mon-dims {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--win11-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-coords {
+  font-size: 11px;
+  color: var(--win11-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.workarea-specs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.spec-row {
+  background: var(--win11-bg-card);
+  border: 1px solid var(--win11-stroke-card);
+  border-radius: 4px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.spec-row span {
+  font-size: 12px;
+  color: var(--win11-text-secondary);
+}
+
+.spec-row strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--win11-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.spec-row strong.accent-text {
+  color: var(--win11-accent);
+}
+
+/* Widgets Tab & Region Arrangement */
+.region-preview-bar {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr 1fr;
+  gap: 12px;
+  background: #1c1c1c;
+  border: 1px solid var(--win11-stroke-control);
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+}
+
+.rp-zone {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 48px;
+}
+
+.rp-zone-center {
+  align-items: center;
+  border-left: 1px solid var(--win11-stroke-divider);
+  border-right: 1px solid var(--win11-stroke-divider);
+  padding: 0 12px;
+}
+
+.rp-zone-right {
+  align-items: flex-end;
+}
+
+.rp-zone-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--win11-text-tertiary);
+}
+
+.rp-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.rp-chip {
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 4px;
+  background: var(--win11-bg-control);
+  border: 1px solid var(--win11-stroke-control);
+  font-size: 12px;
+  color: var(--win11-text-primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rp-chip.disabled {
+  opacity: 0.4;
+}
+
+.rp-chip-order {
+  font-size: 10px;
+  color: var(--win11-accent);
+  font-weight: 600;
+}
+
+.regions-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.region-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.region-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2px;
+}
+
+.region-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--win11-accent);
+}
+
+.region-count {
+  font-size: 12px;
+  color: var(--win11-text-tertiary);
+}
+
+.region-dropzone {
+  min-height: 44px;
+  border-radius: 6px;
+  transition: outline-color 0.12s ease, background-color 0.12s ease;
+}
+
+.region-dropzone.drag-over {
+  outline: 1px dashed var(--win11-accent);
+  background: rgba(96, 205, 255, 0.05);
+}
+
+.region-empty {
+  padding: 12px 16px;
+  border: 1px dashed var(--win11-stroke-control);
+  border-radius: 6px;
+  color: var(--win11-text-tertiary);
+  font-size: 12px;
+  text-align: center;
+}
+
+.widgets-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.widget-expander[draggable="true"] {
+  cursor: grab;
+}
+
+.widget-expander.dragging {
+  opacity: 0.5;
+}
+
+.drag-grip {
+  color: var(--win11-text-tertiary);
+  font-size: 16px;
+  line-height: 1;
+  cursor: grab;
+  padding: 0 4px;
+}
+
+.arrange-btns {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: 6px;
+}
+
+.arrange-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  background: var(--win11-bg-control);
+  border: 1px solid var(--win11-stroke-control);
+  color: var(--win11-text-primary);
+  font-size: 13px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.arrange-btn:hover:not(:disabled) {
+  background: var(--win11-bg-control-hover);
+  border-color: var(--win11-accent);
+}
+
+.arrange-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.widget-row-options {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding-left: 18px;
+}
+
+.inline-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--win11-text-secondary);
+  cursor: pointer;
+}
+
+.inline-check input {
+  accent-color: var(--win11-accent);
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+
+.create-card {
+  border-radius: 6px;
+  border: 1px solid var(--win11-stroke-card);
+}
+
+.create-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr 90px auto;
+  gap: 8px;
+}
+
+.sdk-card {
+  border-radius: 6px;
+  border: 1px solid var(--win11-stroke-card);
+  margin-bottom: 8px;
+}
+
+.win11-code {
+  width: 100%;
+  background: var(--win11-bg-well);
+  border: 1px solid var(--win11-stroke-card);
+  border-radius: 4px;
+  padding: 12px;
+  font-family: Consolas, monospace;
+  font-size: 12px;
+  color: var(--win11-text-primary);
+  overflow-x: auto;
+  user-select: text;
+}

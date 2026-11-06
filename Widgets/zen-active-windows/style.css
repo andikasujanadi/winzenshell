@@ -1,0 +1,241 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+}
+
+.win-strip {
+  position: relative;
+  width: max-content;
+  height: 36px;
+  max-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-family: 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+.win-pill {
+  position: relative;
+  height: 36px;
+  max-height: 36px;
+  max-width: 172px;
+  padding: 0 10px;
+  border-radius: 4px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 400;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: background-color 0.1s ease, border-color 0.1s ease;
+}
+
+.win-pill.icon-only {
+  width: 38px;
+  min-width: 38px;
+  max-width: 38px;
+  padding: 0;
+  gap: 0;
+}
+
+.win-pill:hover {
+  background: rgba(255, 255, 255, 0.0605);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.win-pill.active {
+  background: rgba(255, 255, 255, 0.0837);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.win-pill:active {
+  background: rgba(255, 255, 255, 0.0419);
+}
+
+/* Windows 11 Taskbar Running / Active Bottom Indicator Pill */
+.win-pill::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6px;
+  height: 3px;
+  border-radius: 1.5px;
+  background: #8a8a8a;
+  transition: width 0.14s ease, background-color 0.14s ease;
+}
+
+.win-pill.active::after {
+  width: 16px;
+  background: #60cdff;
+}
+
+.win-pill.minimized {
+  color: #c5c5c5;
+}
+
+/* Multi-window combined stacked indicator */
+.win-pill.combined::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  right: 4px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #60cdff;
+}
+
+.win-badge {
+  font-size: 10px;
+  font-weight: 600;
+  color: #60cdff;
+  background: rgba(96, 205, 255, 0.15);
+  border-radius: 8px;
+  padding: 1px 5px;
+  margin-left: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+.win-icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  flex-shrink: 0;
+  display: block;
+}
+
+.win-fallback-icon {
+  width: 16px;
+  height: 16px;
+  color: #60cdff;
+  flex-shrink: 0;
+  display: block;
+}
+
+.win-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #ffffff;
+  line-height: 1;
+}
+
+.win-pill.minimized .win-title {
+  color: #c5c5c5;
+}
+
+/* Authentic Windows 11 Dark Taskbar Context Menu */
+.win11-menu {
+  position: fixed;
+  z-index: 99999;
+  background: #2b2b2b;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 6px;
+  padding: 4px;
+  min-width: 190px;
+  max-width: 280px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.3);
+  font-family: 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  animation: menuIn 0.1s ease-out;
+}
+
+@keyframes menuIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.menu-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #c5c5c5;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 2px;
+}
+
+.menu-header-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.menu-item {
+  width: 100%;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.08s ease;
+}
+
+.menu-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.menu-item:active {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.menu-item svg {
+  width: 14px;
+  height: 14px;
+  color: #60cdff;
+  flex-shrink: 0;
+}
+
+.menu-item.danger {
+  color: #ff99a4;
+}
+
+.menu-item.danger svg {
+  color: #ff99a4;
+}
+
+.menu-item.danger:hover {
+  background: rgba(255, 153, 164, 0.15);
+}
+
+.menu-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.07);
+  margin: 3px 0;
+}
+
+.menu-item-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

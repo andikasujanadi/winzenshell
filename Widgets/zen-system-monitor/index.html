@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="sys-pill" id="sysPill" title="Live System Telemetry">
+    <div class="stat-col">
+      <div class="stat-head"><span>CPU</span><strong id="cpuVal">8%</strong></div>
+      <div class="bar-track"><div class="bar-fill cpu" id="cpuBar" style="width: 8%"></div></div>
+    </div>
+    <div class="stat-col">
+      <div class="stat-head"><span>RAM</span><strong id="ramVal">42%</strong></div>
+      <div class="bar-track"><div class="bar-fill ram" id="ramBar" style="width: 42%"></div></div>
+    </div>
+  </div>
+  <script src="../bridge.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

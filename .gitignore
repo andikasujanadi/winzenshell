@@ -1,0 +1,11 @@
+# Build and publish outputs
+bin/
+obj/
+publish/
+
+# IDE and temporary files
+*.user
+*.suo
+*.log
+.vs/
+.vscode/

@@ -1,0 +1,12 @@
+{
+  "id": "community.zen-start-button",
+  "name": "Zen Start Launcher",
+  "version": "1.0.0",
+  "author": "WinZen Community",
+  "description": "Sleek Windows 11 Start button widget that opens the native Start Menu on click.",
+  "slot": "left",
+  "order": 1,
+  "entry": "index.html",
+  "width": 120,
+  "enabled": true
+}
