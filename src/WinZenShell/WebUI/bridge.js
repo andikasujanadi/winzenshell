@@ -25,6 +25,9 @@
       },
       quit() {
         postToNative({ action: 'quit_app' });
+      },
+      setTheme(theme) {
+        postToNative({ action: 'set_theme', theme: String(theme || 'dark') });
       }
     },
     tasks: {
@@ -61,6 +64,129 @@
       },
       unhideAllApps() {
         postToNative({ action: 'unhide_all_apps' });
+      },
+      showContextMenu(itemPayload) {
+        postToNative({
+          action: 'show_window_context_menu',
+          ...itemPayload
+        });
+      }
+    },
+    brightness: {
+      get() {
+        return window.winzen.metrics && typeof window.winzen.metrics.brightnessPercent === 'number'
+          ? window.winzen.metrics.brightnessPercent
+          : 100;
+      },
+      set(val) {
+        postToNative({ action: 'set_brightness', value: Number(val) });
+      },
+      toggle(x, y, width, height) {
+        postToNative({
+          action: 'toggle_brightness_flyout',
+          x: Number(x || 0),
+          y: Number(y || 0),
+          width: Number(width || 34),
+          height: Number(height || 34)
+        });
+      }
+    },
+    volume: {
+      get() {
+        return window.winzen.metrics && typeof window.winzen.metrics.volumePercent === 'number'
+          ? window.winzen.metrics.volumePercent
+          : 50;
+      },
+      isMuted() {
+        return window.winzen.metrics ? !!window.winzen.metrics.isMuted : false;
+      },
+      set(val) {
+        postToNative({ action: 'set_volume', value: Number(val) });
+      },
+      toggleMute() {
+        postToNative({ action: 'toggle_mute' });
+      },
+      toggle(x, y, width, height) {
+        postToNative({
+          action: 'toggle_volume_flyout',
+          x: Number(x || 0),
+          y: Number(y || 0),
+          width: Number(width || 34),
+          height: Number(height || 34)
+        });
+      }
+    },
+    desktops: {
+      get() {
+        return (window.winzen.metrics && window.winzen.metrics.virtualDesktops) || [];
+      },
+      getCurrentIndex() {
+        return window.winzen.metrics ? (window.winzen.metrics.currentVirtualDesktopIndex || 0) : 0;
+      },
+      getCurrentName() {
+        return window.winzen.metrics ? (window.winzen.metrics.currentVirtualDesktopName || 'Desktop 1') : 'Desktop 1';
+      },
+      switch(index) {
+        postToNative({ action: 'switch_desktop', index: Number(index) });
+      },
+      next() {
+        postToNative({ action: 'next_desktop' });
+      },
+      previous() {
+        postToNative({ action: 'previous_desktop' });
+      },
+      create() {
+        postToNative({ action: 'create_desktop' });
+      },
+      openTaskView() {
+        postToNative({ action: 'open_task_view' });
+      }
+    },
+    controlCenter: {
+      toggle(x, y, width, height) {
+        postToNative({
+          action: 'toggle_control_center',
+          x: Number(x || 0),
+          y: Number(y || 0),
+          width: Number(width || 34),
+          height: Number(height || 34)
+        });
+      },
+      close() {
+        postToNative({ action: 'close_control_center' });
+      }
+    },
+    clock: {
+      toggle(x, y, width, height) {
+        postToNative({
+          action: 'toggle_clock_flyout',
+          x: Number(x || 0),
+          y: Number(y || 0),
+          width: Number(width || 34),
+          height: Number(height || 34)
+        });
+      }
+    },
+    appLauncher: {
+      toggle(x, y, width, height) {
+        postToNative({
+          action: 'toggle_app_launcher',
+          x: Number(x || 0),
+          y: Number(y || 0),
+          width: Number(width || 34),
+          height: Number(height || 34)
+        });
+      }
+    },
+    systemMonitor: {
+      toggle(x, y, width, height) {
+        postToNative({
+          action: 'toggle_system_monitor_flyout',
+          x: Number(x || 0),
+          y: Number(y || 0),
+          width: Number(width || 34),
+          height: Number(height || 34)
+        });
       }
     }
   };
@@ -69,7 +195,19 @@
     if (!msg || typeof msg !== 'object') return;
     if (msg.type === 'state_update' && msg.payload) {
       window.winzen.state = msg.payload;
+      const theme = (msg.payload.settings && msg.payload.settings.theme) || 'dark';
+      document.documentElement.setAttribute('data-theme', theme);
+      if (document.body) {
+        if (theme === 'light') {
+          document.body.classList.add('theme-light');
+          document.body.classList.remove('theme-dark');
+        } else {
+          document.body.classList.add('theme-dark');
+          document.body.classList.remove('theme-light');
+        }
+      }
       window.dispatchEvent(new CustomEvent('winzen:state', { detail: msg.payload }));
+      window.dispatchEvent(new CustomEvent('winzen:theme', { detail: { theme } }));
     } else if (msg.type === 'metrics_update' && msg.payload) {
       window.winzen.metrics = msg.payload;
       window.dispatchEvent(new CustomEvent('winzen:metrics', { detail: msg.payload }));

@@ -1,0 +1,375 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  color: #f3f3f3;
+  font-family: 'Segoe UI Variable Display', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  overflow: hidden;
+  height: 100vh;
+}
+
+.launcher-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: transparent;
+  border: none;
+  overflow: hidden;
+}
+
+/* ChromeOS Search Bar */
+.search-box-wrap {
+  padding: 18px 20px 12px 20px;
+  flex-shrink: 0;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 46px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 23px;
+  padding: 0 18px;
+  transition: all 0.2s ease;
+}
+
+.search-box:focus-within {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: #60cdff;
+  box-shadow: 0 0 0 2px rgba(96, 205, 255, 0.25);
+}
+
+.search-icon {
+  width: 18px;
+  height: 18px;
+  color: #60cdff;
+  flex-shrink: 0;
+}
+
+.search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #ffffff;
+  font-size: 15px;
+  font-family: inherit;
+}
+
+.search-input::placeholder {
+  color: #8e8e8e;
+}
+
+.btn-clear-search {
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  outline: none;
+  color: #ccc;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.btn-clear-search:hover {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+}
+
+/* Scrollable Content */
+.launcher-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 6px 16px 14px 16px;
+}
+
+.launcher-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.launcher-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 3px;
+}
+
+.launcher-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Section Titles */
+.section-recent {
+  margin-bottom: 16px;
+}
+
+.section-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.section-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #8c8c8c;
+  padding-left: 6px;
+  margin-bottom: 8px;
+}
+
+.app-count-badge {
+  font-size: 11px;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 2px 7px;
+  border-radius: 10px;
+  color: #999;
+}
+
+/* Recent Row (ChromeOS style horizontal pills/circles) */
+.recent-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 10px 8px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* App Item Card (both in Recent and All Apps) */
+.app-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 10px 6px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  outline: none;
+  border: 1px solid transparent;
+}
+
+.app-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateY(-2px);
+}
+
+.app-item:active {
+  transform: scale(0.96);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.app-item.selected {
+  background: rgba(96, 205, 255, 0.18);
+  border-color: rgba(96, 205, 255, 0.4);
+}
+
+.app-icon-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+  transition: transform 0.16s ease;
+}
+
+.app-item:hover .app-icon-wrap {
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
+}
+
+.app-icon-img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.app-icon-fallback {
+  width: 28px;
+  height: 28px;
+  color: #60cdff;
+}
+
+.app-name {
+  font-size: 12px;
+  color: #e4e4e4;
+  line-height: 1.25;
+  width: 100%;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: normal;
+  overflow-wrap: break-word;
+}
+
+/* All Apps Grid */
+.apps-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+
+/* Empty State */
+.apps-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 36px 12px;
+  color: #888;
+  font-size: 13px;
+}
+
+/* Footer */
+.launcher-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+  background: rgba(0, 0, 0, 0.25);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+
+.footer-hint {
+  font-size: 11px;
+  color: #777;
+}
+
+.footer-hint kbd {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-family: inherit;
+  font-size: 10px;
+  color: #aaa;
+}
+
+.footer-icon-btn {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #888;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.footer-icon-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.footer-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+/* Light Theme Overrides */
+html[data-theme="light"],
+body.theme-light {
+  color: #1b1b1b;
+}
+
+html[data-theme="light"] .search-box,
+body.theme-light .search-box {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+html[data-theme="light"] .search-input,
+body.theme-light .search-input {
+  color: #1b1b1b;
+}
+
+html[data-theme="light"] .section-title,
+body.theme-light .section-title {
+  color: #5c5c5c;
+}
+
+html[data-theme="light"] .app-tile:hover,
+body.theme-light .app-tile:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+html[data-theme="light"] .app-item:hover,
+body.theme-light .app-item:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+html[data-theme="light"] .app-name,
+body.theme-light .app-name {
+  color: #1b1b1b;
+  font-weight: 500;
+}
+
+html[data-theme="light"] .app-icon-wrap,
+body.theme-light .app-icon-wrap {
+  background: #ffffff;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+html[data-theme="light"] .recent-row,
+body.theme-light .recent-row {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.06);
+}
+
+html[data-theme="light"] .launcher-footer,
+body.theme-light .launcher-footer {
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+html[data-theme="light"] .footer-hint,
+body.theme-light .footer-hint {
+  color: #3f3f46;
+}
+
+html[data-theme="light"] .footer-hint kbd,
+body.theme-light .footer-hint kbd {
+  background: rgba(0, 0, 0, 0.06);
+  color: #18181b;
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
+html[data-theme="light"] .footer-icon-btn,
+body.theme-light .footer-icon-btn {
+  color: #52525b;
+}
+
+html[data-theme="light"] .footer-icon-btn:hover,
+body.theme-light .footer-icon-btn:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: #18181b;
+}
+

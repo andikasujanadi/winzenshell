@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WinZen Control Center</title>
+  <link rel="stylesheet" href="universal-theme.css" />
+  <link rel="stylesheet" href="control-center.css" />
+</head>
+<body>
+  <div class="cc-container" id="ccContainer">
+    <!-- Header -->
+    <header class="cc-header">
+      <div class="cc-header-left">
+        <span class="cc-title">Control Center</span>
+        <span class="cc-time" id="ccTime">--:--</span>
+      </div>
+      <div class="cc-header-actions">
+        <button class="cc-action-btn cc-edit-btn" id="btnCcEdit" title="Edit Control Center Layout" aria-label="Edit">
+          <svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor" id="editIconPencil">
+            <path d="M12.146.146a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1 0 .708l-9.5 9.5a.5.5 0 0 1-.168.11l-4 1.5a.5.5 0 0 1-.65-.65l1.5-4a.5.5 0 0 1 .11-.168l9.5-9.5zm1.414 2.122-1.414-1.414L11 2.036l1.414 1.414 1.146-1.146zm-2.121.707-8.293 8.293-.854 2.276 2.276-.854 8.293-8.293-1.422-1.422z"/>
+          </svg>
+          <span class="edit-text" id="btnCcEditText">Edit</span>
+        </button>
+        <button class="cc-action-btn" id="btnCcSettings" title="WinZenShell Settings" aria-label="Settings">
+          <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
+            <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
+            <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319z"/>
+          </svg>
+        </button>
+        <button class="cc-action-btn" id="btnCcClose" title="Close" aria-label="Close">
+          <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor">
+            <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854Z"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Grid Layout for Widgets -->
+    <main class="cc-grid" id="ccGrid">
+      <!-- Widgets mounted here dynamically based on aspect ratio (1:2 wide or 1:1 square) -->
+    </main>
+
+    <!-- Edit Mode Bar -->
+    <footer class="cc-edit-footer" id="ccEditFooter" style="display: none;">
+      <select class="cc-add-select" id="ccAddSelect">
+        <option value="">+ Add widget to Control Center...</option>
+      </select>
+      <button class="cc-add-btn" id="btnCcAdd">+ Add</button>
+    </footer>
+  </div>
+
+  <script src="bridge.js"></script>
+  <script src="control-center.js"></script>
+</body>
+</html>

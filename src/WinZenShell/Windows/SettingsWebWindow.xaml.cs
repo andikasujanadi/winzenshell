@@ -165,7 +165,13 @@ public partial class SettingsWebWindow : Window
                     string dockEdge = root.TryGetProperty("dockEdge", out var dProp) ? dProp.GetString() ?? "Bottom" : "Bottom";
                     int heightPx = root.TryGetProperty("taskbarHeightPx", out var htProp) ? htProp.GetInt32() : 48;
                     int marginPx = root.TryGetProperty("floatingMarginPx", out var mgProp) ? mgProp.GetInt32() : 0;
-                    _shellState.UpdateWorkAreaConfig(respect, dockEdge, heightPx, marginPx);
+                    string? theme = root.TryGetProperty("theme", out var tmProp) ? tmProp.GetString() : null;
+                    _shellState.UpdateWorkAreaConfig(respect, dockEdge, heightPx, marginPx, theme);
+                    break;
+
+                case "set_theme":
+                    string newTheme = root.TryGetProperty("theme", out var nthProp) ? nthProp.GetString() ?? "dark" : "dark";
+                    _shellState.UpdateTheme(newTheme);
                     break;
 
                 case "update_widget_state":
@@ -179,6 +185,8 @@ public partial class SettingsWebWindow : Window
                     string? wStartIcon = root.TryGetProperty("startIcon", out var wsiProp) ? wsiProp.GetString() : null;
                     string? wStartText = root.TryGetProperty("startText", out var wstProp) ? wstProp.GetString() : null;
                     bool wShowStartText = root.TryGetProperty("showStartText", out var wsstProp) && wsstProp.GetBoolean();
+                    string? wDisplayMode = root.TryGetProperty("displayMode", out var wdmProp) ? wdmProp.GetString() : null;
+                    string? wAspectRatio = root.TryGetProperty("aspectRatio", out var warProp) ? warProp.GetString() : null;
                     int? wOrder = root.TryGetProperty("order", out var woProp) && woProp.ValueKind == JsonValueKind.Number
                         ? woProp.GetInt32()
                         : null;
@@ -195,7 +203,9 @@ public partial class SettingsWebWindow : Window
                             wCombineApps,
                             wStartIcon,
                             wStartText,
-                            wShowStartText);
+                            wShowStartText,
+                            wDisplayMode,
+                            wAspectRatio);
                     }
                     break;
 
@@ -208,6 +218,19 @@ public partial class SettingsWebWindow : Window
                         if (updates != null)
                         {
                             _shellState.ReorderWidgets(updates);
+                        }
+                    }
+                    break;
+
+                case "update_control_center_widgets":
+                    if (root.TryGetProperty("items", out var ccItemsProp) && ccItemsProp.ValueKind == JsonValueKind.Array)
+                    {
+                        var ccUpdates = JsonSerializer.Deserialize<List<ControlCenterItemConfig>>(
+                            ccItemsProp.GetRawText(),
+                            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                        if (ccUpdates != null)
+                        {
+                            _shellState.UpdateControlCenterWidgets(ccUpdates);
                         }
                     }
                     break;
@@ -247,13 +270,6 @@ public partial class SettingsWebWindow : Window
 
                 case "emergency_restore":
                     _shellState.EmergencyRestoreAll();
-                    break;
-
-                case "toggle_maximize_test":
-                    WindowState = WindowState == WindowState.Maximized
-                        ? WindowState.Normal
-                        : WindowState.Maximized;
-                    _shellState.BroadcastState();
                     break;
             }
         }

@@ -10,5 +10,6 @@
   "width": 420,
   "autoWidth": true,
   "showAppName": true,
+  "supportedModes": ["widget"],
   "enabled": true
 }

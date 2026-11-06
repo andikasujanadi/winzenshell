@@ -56,6 +56,15 @@ public class WidgetManifest
     [JsonPropertyName("showStartText")]
     public bool ShowStartText { get; set; } = false;
 
+    [JsonPropertyName("displayMode")]
+    public string DisplayMode { get; set; } = "widget"; // "icon" or "widget"
+
+    [JsonPropertyName("aspectRatio")]
+    public string AspectRatio { get; set; } = "1:1"; // "1:1" or "1:2"
+
+    [JsonPropertyName("supportedModes")]
+    public List<string> SupportedModes { get; set; } = new() { "widget" };
+
     [JsonPropertyName("enabled")]
     public bool Enabled { get; set; } = true;
 
@@ -155,7 +164,9 @@ public class WidgetManagerService
                     manifest.JsContent = File.ReadAllText(jsPath);
                 }
 
-                if (overrides != null && overrides.TryGetValue(manifest.Id, out var ov))
+                if (overrides != null && (overrides.TryGetValue(manifest.Id, out var ov) ||
+                    overrides.TryGetValue(folderName, out ov) ||
+                    overrides.TryGetValue($"community.{folderName}", out ov)))
                 {
                     manifest.Enabled = ov.Enabled;
                     if (!string.IsNullOrWhiteSpace(ov.Slot))
@@ -172,6 +183,10 @@ public class WidgetManagerService
                     if (ov.StartText != null)
                         manifest.StartText = ov.StartText;
                     manifest.ShowStartText = ov.ShowStartText;
+                    if (!string.IsNullOrWhiteSpace(ov.DisplayMode))
+                        manifest.DisplayMode = ov.DisplayMode;
+                    if (!string.IsNullOrWhiteSpace(ov.AspectRatio))
+                        manifest.AspectRatio = ov.AspectRatio;
                 }
 
                 result.Add(manifest);
@@ -350,6 +365,8 @@ public class WidgetStateOverride
     public string StartIcon { get; set; } = "windows";
     public string StartText { get; set; } = "Start";
     public bool ShowStartText { get; set; } = false;
+    public string DisplayMode { get; set; } = "widget";
+    public string AspectRatio { get; set; } = "1:1";
 }
 
 public class WidgetOrderUpdate
@@ -362,4 +379,7 @@ public class WidgetOrderUpdate
 
     [JsonPropertyName("order")]
     public int Order { get; set; }
+
+    [JsonPropertyName("enabled")]
+    public bool? Enabled { get; set; }
 }

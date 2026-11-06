@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>WinZenShell Taskbar</title>
+  <link rel="stylesheet" href="universal-theme.css" />
   <link rel="stylesheet" href="taskbar.css" />
 </head>
 <body>
@@ -17,9 +18,12 @@
     <!-- Right Widget Zone + Quick Studio Trigger -->
     <div class="right-wrapper">
       <div class="taskbar-zone zone-right" id="slot-right"></div>
-      <button id="btnOpenStudio" class="studio-btn" title="Open WinZenShell Studio &amp; Settings">
-        <span>⚙</span>
-        <span>Studio</span>
+      <button id="btnOpenStudio" class="studio-btn" title="WinZenShell Settings &amp; Studio" aria-label="Settings">
+        <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
+          <circle cx="8" cy="3" r="1.3"/>
+          <circle cx="8" cy="8" r="1.3"/>
+          <circle cx="8" cy="13" r="1.3"/>
+        </svg>
       </button>
     </div>
   </div>

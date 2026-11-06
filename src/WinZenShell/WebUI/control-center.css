@@ -1,0 +1,347 @@
+/* WinZenShell Control Center — Windows 11 Fluent Dark Tokens */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+}
+
+html,
+body {
+  color-scheme: dark;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: transparent;
+  font-family: 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  color: #ffffff;
+  -webkit-font-smoothing: antialiased;
+}
+
+.cc-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+  border: none;
+  overflow: hidden;
+}
+
+.cc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px 10px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.02);
+  flex-shrink: 0;
+}
+
+.cc-header-left {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.cc-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f3f4f6;
+  letter-spacing: 0.2px;
+}
+
+.cc-time {
+  font-size: 11px;
+  color: #9ca3af;
+  font-variant-numeric: tabular-nums;
+}
+
+.cc-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cc-action-btn {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: #9ca3af;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.cc-action-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.cc-action-btn:active {
+  background: rgba(255, 255, 255, 0.05);
+  transform: scale(0.96);
+}
+
+.cc-edit-btn {
+  width: auto;
+  padding: 0 8px;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.cc-edit-btn.is-active {
+  background: #60cdff;
+  color: #000000;
+  border-color: #60cdff;
+  font-weight: 600;
+}
+
+.cc-edit-btn.is-active:hover {
+  background: #78d5ff;
+  color: #000000;
+}
+
+/* Edit Mode Bar in Footer */
+.cc-edit-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #202020;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+.cc-add-select {
+  flex: 1;
+  height: 28px;
+  background: #2a2a2a;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  color: #f3f4f6;
+  font-size: 11px;
+  padding: 0 6px;
+  outline: none;
+}
+
+.cc-add-btn {
+  height: 28px;
+  padding: 0 10px;
+  background: #60cdff;
+  color: #000000;
+  border: none;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.cc-add-btn:hover {
+  background: #78d5ff;
+}
+
+/* Edit Mode Card Controls */
+.cc-card-actions {
+  display: none;
+  align-items: center;
+  gap: 6px;
+}
+
+.is-editing .cc-card-actions {
+  display: flex;
+}
+
+.cc-btn-resize,
+.cc-btn-delete {
+  background: #333333;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+  color: #ffffff;
+  font-size: 10px;
+  cursor: pointer;
+  padding: 2px 5px;
+  transition: all 0.1s ease;
+}
+
+.cc-btn-resize:hover {
+  background: #444444;
+  color: #60cdff;
+}
+
+.cc-btn-delete {
+  background: rgba(255, 80, 80, 0.2);
+  border-color: rgba(255, 80, 80, 0.4);
+  color: #ff99a4;
+}
+
+.cc-btn-delete:hover {
+  background: #ff5050;
+  color: #ffffff;
+}
+
+/* Jiggle effect on editing */
+.is-editing .cc-card {
+  outline: 1px dashed rgba(96, 205, 255, 0.5);
+  cursor: grab;
+}
+
+.is-editing .cc-card:active {
+  cursor: grabbing;
+}
+
+.cc-card.dragging {
+  opacity: 0.4;
+  outline: 2px dashed #60cdff;
+}
+
+.cc-card.drag-over {
+  border-color: #60cdff;
+  background: #2d2d2d;
+}
+
+.cc-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  padding: 10px;
+  overflow-y: auto;
+  align-content: start;
+}
+
+.cc-grid::-webkit-scrollbar {
+  width: 4px;
+}
+.cc-grid::-webkit-scrollbar-thumb {
+  background: #3e3e3e;
+  border-radius: 2px;
+}
+
+/* Control Center Card */
+.cc-card {
+  background: var(--winzen-surface, #252525);
+  border: 1px solid var(--winzen-border, #383838);
+  border-radius: var(--winzen-radius, 10px);
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  position: relative;
+  transition: background-color 0.14s ease, border-color 0.14s ease;
+  overflow: hidden;
+}
+
+.cc-card:hover {
+  background: var(--winzen-surface-hover, #303030);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Aspect ratio: 1:2 wide card (spans full 2 columns) */
+.cc-card[data-aspect-ratio="1:2"] {
+  grid-column: span 2;
+  min-height: 58px;
+}
+
+/* Aspect ratio: 1:1 square card (spans 1 column with 1:1 ratio) */
+.cc-card[data-aspect-ratio="1:1"] {
+  grid-column: span 1;
+  aspect-ratio: 1 / 1;
+  min-height: 96px;
+}
+
+.cc-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  flex-shrink: 0;
+  width: 100%;
+}
+
+.cc-card-label {
+  font-size: 9.5px;
+  font-weight: 600;
+  color: #8b929c;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cc-card-value {
+  font-size: 11px;
+  font-weight: 600;
+  color: #60cdff;
+}
+
+.cc-card-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+/* Light Theme Overrides */
+html[data-theme="light"],
+body.theme-light {
+  color-scheme: light;
+  color: #1b1b1b;
+}
+
+html[data-theme="light"] .cc-header,
+body.theme-light .cc-header {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+html[data-theme="light"] .cc-title,
+body.theme-light .cc-title {
+  color: #1b1b1b;
+}
+
+html[data-theme="light"] .cc-time,
+body.theme-light .cc-time {
+  color: #6b7280;
+}
+
+html[data-theme="light"] .cc-tool-btn,
+body.theme-light .cc-tool-btn {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.06);
+  color: #4b5563;
+}
+
+html[data-theme="light"] .cc-tool-btn:hover,
+body.theme-light .cc-tool-btn:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: #1b1b1b;
+}
+
+html[data-theme="light"] .cc-card,
+body.theme-light .cc-card {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+html[data-theme="light"] .cc-card:hover,
+body.theme-light .cc-card:hover {
+  background: #fbfbfb;
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
+html[data-theme="light"] .cc-card-label,
+body.theme-light .cc-card-label {
+  color: #6b7280;
+}
+

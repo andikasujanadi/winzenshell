@@ -1,0 +1,111 @@
+/* ==========================================================================
+   WinZenShell Universal Design System & Theme Tokens
+   Windows 11 Fluent 2 Design Specification (Dark & Light Palettes)
+   --------------------------------------------------------------------------
+   FOR WIDGET CREATORS:
+   1. Automatic: WinZenShell taskbar and control center automatically inject
+      these CSS tokens into your widget's shadow root.
+   2. Explicit Import: You can import this file into any widget CSS:
+      @import url("../universal-theme.css");
+   3. Custom overrides: You can override any token in your widget:
+      :host { --winzen-accent: #ff6b6b; }
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Windows 11 Fluent Dark Palette (Default)
+   -------------------------------------------------------------------------- */
+:root,
+:host,
+[data-theme="dark"] {
+  /* Surfaces & Backgrounds */
+  --winzen-bg: #1c1c1c;
+  --winzen-surface: #252525;
+  --winzen-surface-hover: rgba(255, 255, 255, 0.0605);
+  --winzen-surface-active: rgba(255, 255, 255, 0.04);
+  --winzen-surface-subtle: #202020;
+  --winzen-surface-card: #2b2b2b;
+  --winzen-surface-glass: rgba(30, 30, 30, 0.85);
+
+  /* Borders & Dividers */
+  --winzen-border: rgba(255, 255, 255, 0.08);
+  --winzen-border-subtle: rgba(255, 255, 255, 0.05);
+  --winzen-border-accent: #60cdff;
+
+  /* Typography / Text Colors */
+  --winzen-text: #ffffff;
+  --winzen-text-secondary: #c5c5c5;
+  --winzen-text-muted: #888888;
+  --winzen-text-disabled: #555555;
+
+  /* Accent Colors */
+  --winzen-accent: #60cdff;
+  --winzen-accent-hover: #78d4ff;
+  --winzen-accent-pressed: #0098e6;
+  --winzen-accent-subtle: rgba(96, 205, 255, 0.15);
+
+  /* Status & Palette Highlights */
+  --winzen-purple: #c084fc;
+  --winzen-danger: #f87171;
+  --winzen-success: #4ade80;
+  --winzen-warning: #fbbf24;
+
+  /* Geometry & Radii */
+  --winzen-radius-xs: 4px;
+  --winzen-radius-sm: 6px;
+  --winzen-radius: 10px;
+  --winzen-radius-lg: 14px;
+  --winzen-radius-xl: 16px;
+  --winzen-radius-pill: 9999px;
+
+  /* Typography */
+  --winzen-font: 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --winzen-font-display: 'Segoe UI Variable Display', 'Segoe UI', system-ui, -apple-system, sans-serif;
+
+  /* Shadows */
+  --winzen-shadow-flyout: 0 16px 36px rgba(0, 0, 0, 0.45), 0 2px 8px rgba(0, 0, 0, 0.25);
+  --winzen-shadow-card: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+/* --------------------------------------------------------------------------
+   Windows 11 Fluent Light Palette
+   -------------------------------------------------------------------------- */
+:root[data-theme="light"],
+:host([data-theme="light"]),
+body.theme-light,
+[data-theme="light"] {
+  /* Surfaces & Backgrounds */
+  --winzen-bg: #f3f3f3;
+  --winzen-surface: #ffffff;
+  --winzen-surface-hover: rgba(0, 0, 0, 0.045);
+  --winzen-surface-active: rgba(0, 0, 0, 0.075);
+  --winzen-surface-subtle: #f9f9f9;
+  --winzen-surface-card: #fcfcfc;
+  --winzen-surface-glass: rgba(243, 243, 243, 0.85);
+
+  /* Borders & Dividers */
+  --winzen-border: rgba(0, 0, 0, 0.082);
+  --winzen-border-subtle: rgba(0, 0, 0, 0.05);
+  --winzen-border-accent: #0067c0;
+
+  /* Typography / Text Colors */
+  --winzen-text: #1b1b1b;
+  --winzen-text-secondary: #5c5c5c;
+  --winzen-text-muted: #8a8a8a;
+  --winzen-text-disabled: #a0a0a0;
+
+  /* Accent Colors (Windows 11 Light Accent Blue) */
+  --winzen-accent: #0067c0;
+  --winzen-accent-hover: #1879cd;
+  --winzen-accent-pressed: #005aa3;
+  --winzen-accent-subtle: rgba(0, 103, 192, 0.12);
+
+  /* Status & Palette Highlights */
+  --winzen-purple: #7c3aed;
+  --winzen-danger: #dc2626;
+  --winzen-success: #16a34a;
+  --winzen-warning: #d97706;
+
+  /* Shadows */
+  --winzen-shadow-flyout: 0 16px 36px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.08);
+  --winzen-shadow-card: 0 4px 12px rgba(0, 0, 0, 0.06);
+}

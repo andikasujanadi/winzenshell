@@ -12,6 +12,20 @@ let lastSig = '';
 let activeMenuEl = null;
 
 const FALLBACK_SVG = `<svg class="win-fallback-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M2.5 2A1.5 1.5 0 0 0 1 3.5v9A1.5 1.5 0 0 0 2.5 14h11a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 13.5 2h-11zM2 3.5a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 .5.5V5H2V3.5zm0 2.5h12v6.5a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5V6z"/></svg>`;
+const STICKY_NOTES_SVG = `<svg class="win-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" fill="#FFC83B"/><path d="M15 15l6 6h-6v-6z" fill="#E5A823"/><line x1="7" y1="8" x2="17" y2="8" stroke="#7A5200" stroke-width="1.8" stroke-linecap="round"/><line x1="7" y1="12" x2="14" y2="12" stroke="#7A5200" stroke-width="1.8" stroke-linecap="round"/></svg>`;
+
+function getAppIconHtml(item) {
+  const id = (item.appId || '').toLowerCase();
+  const proc = (item.processName || '').toLowerCase();
+  const tit = (item.title || '').toLowerCase();
+  if (id.includes('notes') || proc.includes('notes') || proc.includes('sticky') || tit.includes('sticky')) {
+    return STICKY_NOTES_SVG;
+  }
+  if (item.iconDataUrl) {
+    return `<img class="win-icon" src="${item.iconDataUrl}" alt="" />`;
+  }
+  return FALLBACK_SVG;
+}
 
 // Dismiss context menu on click outside or Escape
 window.addEventListener('click', closeContextMenu);
@@ -123,9 +137,7 @@ window.addEventListener('winzen:metrics', (e) => {
       : `${item.processName} — ${item.title}\nLeft-click: Switch / Minimize\nRight-click: Menu`;
     btn.title = tooltip;
 
-    const iconHtml = item.iconDataUrl
-      ? `<img class="win-icon" src="${item.iconDataUrl}" alt="" />`
-      : FALLBACK_SVG;
+    const iconHtml = getAppIconHtml(item);
 
     let labelHtml = '';
     if (showAppName) {
@@ -173,6 +185,21 @@ window.addEventListener('winzen:metrics', (e) => {
 
 function openContextMenu(ev, item, anchorBtn) {
   closeContextMenu();
+
+  if (window.winzen && window.winzen.tasks && typeof window.winzen.tasks.showContextMenu === 'function') {
+    window.winzen.tasks.showContextMenu({
+      appId: item.appId || '',
+      processName: item.processName || '',
+      title: item.title || '',
+      windows: (item.windows || []).map((w) => ({
+        hwnd: Number(w.hwnd),
+        title: String(w.title || ''),
+        isActive: !!w.isActive,
+        isMinimized: !!w.isMinimized
+      }))
+    });
+    return;
+  }
 
   const menu = document.createElement('div');
   menu.className = 'win11-menu';

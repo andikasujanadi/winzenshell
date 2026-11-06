@@ -1,0 +1,16 @@
+{
+  "id": "community.zen-brightness",
+  "name": "Zen Brightness",
+  "version": "1.1.0",
+  "author": "WinZen Team",
+  "description": "Minimalist brightness control with taskbar icon mode and rich 1:2 slider widget mode.",
+  "slot": "right",
+  "order": 15,
+  "entry": "index.html",
+  "width": 34,
+  "autoWidth": true,
+  "displayMode": "icon",
+  "aspectRatio": "1:2",
+  "supportedModes": ["icon", "widget"],
+  "enabled": true
+}

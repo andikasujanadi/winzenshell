@@ -11,10 +11,17 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AssemblyName>WinZenShell</AssemblyName>
     <RootNamespace>WinZenShell</RootNamespace>
+    <Version>0.1.0-alpha</Version>
+    <AssemblyVersion>0.1.0.0</AssemblyVersion>
+    <FileVersion>0.1.0.0</FileVersion>
+    <InformationalVersion>0.1.0-alpha</InformationalVersion>
+    <Product>WinZenShell (Alpha)</Product>
+    <Description>Windows 11 Full-Web Custom Taskbar &amp; Community Widget Studio</Description>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2903.40" />
+    <PackageReference Include="System.Management" Version="10.0.14" />
   </ItemGroup>
 
   <ItemGroup>

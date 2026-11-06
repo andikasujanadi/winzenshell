@@ -1,17 +1,27 @@
+:host {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
   user-select: none;
 }
+
+/* Default Taskbar Pill */
 .clock-pill {
-  width: max-content;
+  width: 100%;
   height: 36px;
   max-height: 36px;
-  border-radius: 4px;
+  border-radius: var(--winzen-radius-xs, 4px);
   background: transparent;
   border: 1px solid transparent;
-  color: #ffffff;
+  color: var(--winzen-text, #ffffff);
   display: inline-flex;
   flex-direction: column;
   align-items: flex-end;
@@ -19,25 +29,84 @@
   padding: 0 10px;
   cursor: pointer;
   transition: background-color 0.1s ease, border-color 0.1s ease;
-  font-family: 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+  font-family: var(--winzen-font, 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif);
 }
+
 .clock-pill:hover {
-  background: rgba(255, 255, 255, 0.0605);
-  border-color: rgba(255, 255, 255, 0.07);
+  background: var(--winzen-surface-hover, rgba(255, 255, 255, 0.0605));
+  border-color: var(--winzen-border, rgba(255, 255, 255, 0.07));
 }
+
 .clock-pill:active {
-  background: rgba(255, 255, 255, 0.0326);
+  background: var(--winzen-surface-active, rgba(255, 255, 255, 0.0326));
 }
+
 .time {
-  font-size: 11.5px;
-  font-weight: 400;
+  font-size: 12px;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum' 1;
   line-height: 1.2;
+  color: var(--winzen-text, #ffffff);
+}
+
+.date {
+  font-size: 10.5px;
+  color: var(--winzen-accent, #60cdff);
+  line-height: 1.15;
+}
+
+/* CONTROL CENTER 1:1 Responsive Layout — Centered & Refined */
+.in-control-center.cc-aspect-1-1 .clock-pill,
+.in-control-center[data-aspect-ratio="1:1"] .clock-pill {
+  height: 100%;
+  max-height: 100%;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 3px;
+  padding: 4px;
+}
+
+.in-control-center.cc-aspect-1-1 .time,
+.in-control-center[data-aspect-ratio="1:1"] .time {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: 0.2px;
   color: #ffffff;
 }
-.date {
-  font-size: 11px;
-  color: #c5c5c5;
-  line-height: 1.15;
+
+.in-control-center.cc-aspect-1-1 .date,
+.in-control-center[data-aspect-ratio="1:1"] .date {
+  font-size: 11.5px;
+  font-weight: 400;
+  color: #9ca3af;
+  letter-spacing: 0.2px;
+}
+
+/* CONTROL CENTER 1:2 Wide Layout */
+.in-control-center.cc-aspect-1-2 .clock-pill,
+.in-control-center[data-aspect-ratio="1:2"] .clock-pill {
+  height: 100%;
+  max-height: 100%;
+  width: 100%;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-around;
+  padding: 6px 12px;
+}
+
+.in-control-center.cc-aspect-1-2 .time,
+.in-control-center[data-aspect-ratio="1:2"] .time {
+  font-size: 16px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.in-control-center.cc-aspect-1-2 .date,
+.in-control-center[data-aspect-ratio="1:2"] .date {
+  font-size: 11.5px;
+  color: #9ca3af;
 }

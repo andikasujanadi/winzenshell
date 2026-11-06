@@ -8,5 +8,6 @@
   "order": 4,
   "entry": "index.html",
   "width": 140,
+  "supportedModes": ["widget"],
   "enabled": true
 }
