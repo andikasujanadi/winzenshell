@@ -141,12 +141,119 @@
 .win-title {
   overflow: hidden;
   text-overflow: ellipsis;
-  color: #ffffff;
+  color: inherit;
   line-height: 1;
 }
 
 .win-pill.minimized .win-title {
-  color: #c5c5c5;
+  opacity: 0.65;
+}
+
+/* Light Theme Adaptations */
+:host([data-theme="light"]) .win-pill,
+:host(.theme-light) .win-pill,
+.theme-light .win-pill,
+[data-theme="light"] .win-pill,
+body.theme-light .win-pill {
+  color: #1b1b1b;
+}
+
+:host([data-theme="light"]) .win-title,
+:host(.theme-light) .win-title,
+.theme-light .win-title,
+[data-theme="light"] .win-title,
+body.theme-light .win-title {
+  color: #1b1b1b;
+}
+
+:host([data-theme="light"]) .win-pill:hover,
+:host(.theme-light) .win-pill:hover,
+.theme-light .win-pill:hover,
+[data-theme="light"] .win-pill:hover,
+body.theme-light .win-pill:hover {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+:host([data-theme="light"]) .win-pill.active,
+:host(.theme-light) .win-pill.active,
+.theme-light .win-pill.active,
+[data-theme="light"] .win-pill.active,
+body.theme-light .win-pill.active {
+  background: rgba(0, 0, 0, 0.08);
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
+:host([data-theme="light"]) .win-pill:active,
+:host(.theme-light) .win-pill:active,
+.theme-light .win-pill:active,
+[data-theme="light"] .win-pill:active,
+body.theme-light .win-pill:active {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+:host([data-theme="light"]) .win-pill.combined,
+:host(.theme-light) .win-pill.combined,
+.theme-light .win-pill.combined,
+[data-theme="light"] .win-pill.combined,
+body.theme-light .win-pill.combined {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 3px 0 0 -1px var(--winzen-bg, #f3f3f3), 4px 0 0 0 rgba(0, 0, 0, 0.12);
+}
+
+:host([data-theme="light"]) .win-pill.combined.active,
+:host(.theme-light) .win-pill.combined.active,
+.theme-light .win-pill.combined.active,
+[data-theme="light"] .win-pill.combined.active,
+body.theme-light .win-pill.combined.active {
+  background: rgba(0, 0, 0, 0.08);
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
+/* Light theme context menu */
+:host([data-theme="light"]) .win11-menu,
+:host(.theme-light) .win11-menu,
+.theme-light .win11-menu,
+[data-theme="light"] .win11-menu,
+body.theme-light .win11-menu {
+  background: #fbfbfb;
+  border-color: rgba(0, 0, 0, 0.12);
+  color: #1b1b1b;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15), 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+:host([data-theme="light"]) .menu-header,
+:host(.theme-light) .menu-header,
+.theme-light .menu-header,
+[data-theme="light"] .menu-header,
+body.theme-light .menu-header {
+  color: rgba(0, 0, 0, 0.65);
+  border-bottom-color: rgba(0, 0, 0, 0.08);
+}
+
+:host([data-theme="light"]) .menu-item,
+:host(.theme-light) .menu-item,
+.theme-light .menu-item,
+[data-theme="light"] .menu-item,
+body.theme-light .menu-item {
+  color: #1b1b1b;
+}
+
+:host([data-theme="light"]) .menu-item:hover,
+:host(.theme-light) .menu-item:hover,
+.theme-light .menu-item:hover,
+[data-theme="light"] .menu-item:hover,
+body.theme-light .menu-item:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+:host([data-theme="light"]) .menu-divider,
+:host(.theme-light) .menu-divider,
+.theme-light .menu-divider,
+[data-theme="light"] .menu-divider,
+body.theme-light .menu-divider {
+  background: rgba(0, 0, 0, 0.08);
 }
 
 /* Authentic Windows 11 Dark Taskbar Context Menu */
