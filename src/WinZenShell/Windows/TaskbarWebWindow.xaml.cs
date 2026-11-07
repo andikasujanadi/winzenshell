@@ -237,6 +237,35 @@ public partial class TaskbarWebWindow : Window
                 return;
             }
 
+            if (cmd.StartsWith("capture_cc", StringComparison.OrdinalIgnoreCase))
+            {
+                var parts = cmd.Split(' ');
+                string outPath = parts.Length > 1 ? parts[1] : Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "cc_capture.png");
+                Dispatcher.InvokeAsync(async () =>
+                {
+                    try
+                    {
+                        var mon = WorkAreaAppBarService.GetPrimaryMonitorInfo().rcMonitor;
+                        _controlCenterFlyout ??= new ControlCenterFlyoutWindow(_shellState, _metricsService, _brightnessService, _openSettingsCallback, _audioService);
+                        _controlCenterFlyout.ShowAt(mon.Right - 380, 34, Top, Height, _shellState.Settings.DockEdge);
+                        await System.Threading.Tasks.Task.Delay(600);
+                        if (_controlCenterFlyout.CcWebView?.CoreWebView2 != null)
+                        {
+                            using var fs = new FileStream(outPath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite);
+                            await _controlCenterFlyout.CcWebView.CoreWebView2.CapturePreviewAsync(
+                                Microsoft.Web.WebView2.Core.CoreWebView2CapturePreviewImageFormat.Png,
+                                fs);
+                            await fs.FlushAsync();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "capture_err.txt"), ex.ToString());
+                    }
+                });
+                return;
+            }
+
             if (cmd.StartsWith("capture_settings", StringComparison.OrdinalIgnoreCase))
             {
                 var parts = cmd.Split(' ');

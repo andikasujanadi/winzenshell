@@ -8,36 +8,41 @@ let currentMode = (typeof widgetConfig !== 'undefined' && widgetConfig && widget
 
 let lastMetrics = null;
 
-const BOLT_SVG = `<svg class="batt-bolt" viewBox="0 0 12 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path class="bolt-halo" d="M7 1L1 8.5H5.5L4 14.5L11 7H6.5L7 1Z" stroke="rgba(0,0,0,0.7)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-  <path class="bolt-core" d="M7 1L1 8.5H5.5L4 14.5L11 7H6.5L7 1Z" fill="#ffffff"/>
-</svg>`;
-
 function buildIconHtml(style) {
   switch (style) {
     case 'win10':
       return `
         <div class="batt-row">
-          <div class="batt-housing">
-            <div class="batt-fill-bar" id="fillBar"></div>
-            ${BOLT_SVG}
-            <span class="pct-inside" id="pctInside">--</span>
-          </div>
-          <div class="batt-cap"></div>
+          <svg class="batt-svg batt-win10" viewBox="0 0 28 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect class="batt-housing" x="1.5" y="2.5" width="22" height="11" rx="0" stroke="var(--batt-border)" stroke-width="1.2"/>
+            <rect class="batt-cap" x="23.5" y="5.5" width="2" height="5" rx="0" fill="var(--batt-border)"/>
+            <rect class="batt-fill-bar" id="fillBar" x="3" y="4" width="0" height="8" rx="0" fill="var(--batt-fill)"/>
+            <path class="batt-bolt" d="M12.5 3.5 L9 8 H12 L11 12.5 L15 7.5 H12 Z" fill="currentColor"/>
+          </svg>
+          <span class="pct-inside" id="pctInside">--</span>
         </div>
       `;
 
     case 'macos':
       return `
         <div class="batt-row">
-          <div class="batt-housing">
-            <div class="batt-fill-bar" id="fillBar"></div>
-            <svg class="batt-bolt batt-bolt-macos" viewBox="0 0 9 12" fill="none">
-              <path d="M5.5 0.5L0.5 6.5H4L3 11.5L8 5.5H4.5L5.5 0.5Z" fill="#ffffff"/>
-            </svg>
-            <span class="pct-inside" id="pctInside">--</span>
-          </div>
-          <div class="batt-cap"></div>
+          <svg class="batt-svg batt-macos" viewBox="0 0 29 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <clipPath id="macosPillClip">
+                <rect x="1.5" y="2" width="23" height="12" rx="4.5"/>
+              </clipPath>
+            </defs>
+            <rect class="batt-track" x="1.5" y="2" width="23" height="12" rx="4.5" fill="var(--batt-track)"/>
+            <path class="batt-cap" d="M25.7 5.7 C27.2 5.7 27.5 6.6 27.5 8 C27.5 9.4 27.2 10.3 25.7 10.3 Z" fill="var(--batt-track)"/>
+            <g clip-path="url(#macosPillClip)">
+              <rect class="batt-fill-bar" id="fillBar" x="1.5" y="2" width="0" height="12" fill="var(--batt-fill)"/>
+            </g>
+            <g class="batt-bolt">
+              <path d="M12.5 2.5 L8.5 7.5 H11.5 L10.5 13.5 L16.5 6.5 H12.5 Z" stroke="rgba(0,0,0,0.35)" stroke-width="1.2" stroke-linejoin="round" fill="none"/>
+              <path d="M12.5 2.5 L8.5 7.5 H11.5 L10.5 13.5 L16.5 6.5 H12.5 Z" fill="#ffffff"/>
+            </g>
+          </svg>
+          <span class="pct-inside" id="pctInside">--</span>
         </div>
       `;
 
@@ -45,12 +50,23 @@ function buildIconHtml(style) {
     default:
       return `
         <div class="batt-row">
-          <div class="batt-housing">
-            <div class="batt-fill-bar" id="fillBar"></div>
-            <span class="pct-inside" id="pctInside">--</span>
-          </div>
-          <div class="batt-cap"></div>
-          ${BOLT_SVG}
+          <svg class="batt-svg batt-win11" viewBox="0 0 28 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <clipPath id="win11CavityClip">
+                <rect x="3.5" y="4.5" width="18" height="7" rx="1.5"/>
+              </clipPath>
+            </defs>
+            <rect class="batt-housing" x="1.5" y="2.5" width="22" height="11" rx="3.5" stroke="var(--batt-border)" stroke-width="1.5"/>
+            <rect class="batt-cap" x="23.5" y="6" width="2" height="4" rx="1" fill="var(--batt-border)"/>
+            <g clip-path="url(#win11CavityClip)">
+              <rect class="batt-fill-bar" id="fillBar" x="3.5" y="4.5" width="0" height="7" fill="var(--batt-fill)"/>
+            </g>
+            <g class="batt-bolt">
+              <path class="bolt-halo" d="M10.5 0.5 L7.5 6.5 H10 L9 11.5 L13.5 5.5 H10.5 Z" stroke="var(--batt-bolt-halo)" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
+              <path class="bolt-core" d="M10.5 0.5 L7.5 6.5 H10 L9 11.5 L13.5 5.5 H10.5 Z" fill="var(--batt-bolt-fill)"/>
+            </g>
+          </svg>
+          <span class="pct-inside" id="pctInside">--</span>
         </div>
       `;
   }
@@ -102,8 +118,9 @@ function updateBatteryDisplay(m) {
   }
 
   if (fillBar) {
-    fillBar.style.width = `${pct}%`;
-    fillBar.style.height = '100%';
+    const maxW = currentStyle === 'macos' ? 23 : (currentStyle === 'win10' ? 19 : 18);
+    const fillW = Math.max(0, Math.min(maxW, (maxW * pct) / 100));
+    fillBar.setAttribute('width', fillW.toFixed(2));
   }
 
   if (batteryRoot) {
@@ -129,10 +146,20 @@ window.addEventListener('winzen:metrics', (e) => {
   updateBatteryDisplay(e.detail);
 });
 
+if (typeof widgetConfig !== 'undefined' && widgetConfig && widgetConfig.inControlCenter) {
+  if (batteryRoot) batteryRoot.classList.add('in-control-center');
+}
+
 window.addEventListener('winzen:state', (e) => {
   const state = e.detail;
-  if (!state || !Array.isArray(state.widgets)) return;
-  const cfg = state.widgets.find((w) => w.id === 'community.zen-battery');
+  if (!state) return;
+  let cfg = null;
+  if (Array.isArray(state.widgets)) {
+    cfg = state.widgets.find((w) => w.id === 'community.zen-battery' || w.id === 'zen-battery');
+  }
+  if (!cfg && Array.isArray(state.controlCenterWidgets)) {
+    cfg = state.controlCenterWidgets.find((w) => w.id === 'community.zen-battery' || w.id === 'zen-battery');
+  }
   if (!cfg) return;
 
   const newStyle = cfg.batteryIconStyle || 'win11';

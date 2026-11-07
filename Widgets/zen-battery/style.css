@@ -3,6 +3,7 @@
   align-items: center;
   justify-content: center;
   height: 100%;
+  width: 100%;
   font-family: var(--winzen-font, 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, sans-serif);
   color: var(--winzen-text, #ffffff);
   user-select: none;
@@ -32,6 +33,11 @@
   transition: background-color 0.12s ease, border-color 0.12s ease, transform 0.1s ease;
 }
 
+.in-control-center .battery-pill {
+  padding: 4px 6px;
+  height: auto;
+}
+
 .battery-pill:hover {
   background: var(--winzen-surface-hover, rgba(255, 255, 255, 0.0605));
   border-color: var(--winzen-border, rgba(255, 255, 255, 0.08));
@@ -47,6 +53,14 @@
   font-variant-numeric: tabular-nums;
   line-height: 1;
   color: var(--winzen-text, #ffffff);
+}
+
+:host([data-theme="light"]) .battery-pct,
+:host(.theme-light) .battery-pct,
+[data-theme="light"] .battery-pct,
+.theme-light .battery-pct,
+body.theme-light .battery-pct {
+  color: #1b1b1b;
 }
 
 /* Percentage Position Modes */
@@ -80,263 +94,124 @@
   --batt-border: #ffffff;
   --batt-cap: #ffffff;
   --batt-fill: #ffffff;
+  --batt-track: rgba(255, 255, 255, 0.3);
   --batt-charging: #6ccb5f;
   --batt-saver: #f59e0b;
   --batt-low: #ef4444;
+  --batt-bolt-fill: #ffffff;
+  --batt-bolt-halo: #202020;
 }
 
 :host([data-theme="light"]) .battery-icon-wrap,
-:host(.theme-light) .battery-icon-wrap {
-  --batt-border: #1b1b1b;
-  --batt-cap: #1b1b1b;
-  --batt-fill: #1b1b1b;
-  --batt-charging: #15803d;
+:host(.theme-light) .battery-icon-wrap,
+[data-theme="light"] .battery-icon-wrap,
+.theme-light .battery-icon-wrap,
+body.theme-light .battery-icon-wrap {
+  --batt-border: #000000;
+  --batt-cap: #000000;
+  --batt-fill: #000000;
+  --batt-track: rgba(0, 0, 0, 0.18);
+  --batt-charging: #107c10;
   --batt-saver: #d97706;
   --batt-low: #dc2626;
+  --batt-bolt-fill: #000000;
+  --batt-bolt-halo: #ffffff;
+}
+
+/* SVG Battery Sizing & Alignment */
+.batt-row {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.batt-svg {
+  width: 26px;
+  height: 14.5px;
+  display: block;
+  overflow: visible;
+}
+
+.batt-fill-bar {
+  transition: width 0.3s ease;
 }
 
 /* State Coloring */
 .is-charging .batt-fill-bar {
-  background: var(--batt-charging) !important;
+  fill: var(--batt-charging) !important;
 }
 .is-energy-saver:not(.is-charging) .batt-fill-bar {
-  background: var(--batt-saver) !important;
+  fill: var(--batt-saver) !important;
 }
 .is-low:not(.is-charging) .batt-fill-bar {
-  background: var(--batt-low) !important;
+  fill: var(--batt-low) !important;
 }
 
+/* macOS / iOS 27 Specific Colors */
+.style-macos.is-charging .batt-fill-bar {
+  fill: #30d158 !important;
+}
+:host([data-theme="light"]) .style-macos.is-charging .batt-fill-bar,
+:host(.theme-light) .style-macos.is-charging .batt-fill-bar,
+[data-theme="light"] .style-macos.is-charging .batt-fill-bar,
+.theme-light .style-macos.is-charging .batt-fill-bar,
+body.theme-light .style-macos.is-charging .batt-fill-bar {
+  fill: #34c759 !important;
+}
+
+.style-macos.is-energy-saver:not(.is-charging) .batt-fill-bar {
+  fill: #ffd60a !important;
+}
+:host([data-theme="light"]) .style-macos.is-energy-saver:not(.is-charging) .batt-fill-bar,
+:host(.theme-light) .style-macos.is-energy-saver:not(.is-charging) .batt-fill-bar,
+[data-theme="light"] .style-macos.is-energy-saver:not(.is-charging) .batt-fill-bar,
+.theme-light .style-macos.is-energy-saver:not(.is-charging) .batt-fill-bar,
+body.theme-light .style-macos.is-energy-saver:not(.is-charging) .batt-fill-bar {
+  fill: #ffcc00 !important;
+}
+
+.style-macos.is-low:not(.is-charging) .batt-fill-bar {
+  fill: #ff453a !important;
+}
+:host([data-theme="light"]) .style-macos.is-low:not(.is-charging) .batt-fill-bar,
+:host(.theme-light) .style-macos.is-low:not(.is-charging) .batt-fill-bar,
+[data-theme="light"] .style-macos.is-low:not(.is-charging) .batt-fill-bar,
+.theme-light .style-macos.is-low:not(.is-charging) .batt-fill-bar,
+body.theme-light .style-macos.is-low:not(.is-charging) .batt-fill-bar {
+  fill: #ff3b30 !important;
+}
+
+/* Bolt Visibility */
+.batt-bolt {
+  display: none;
+}
 .is-charging .batt-bolt {
   display: block !important;
 }
-
 .mode-inside.is-charging .batt-bolt {
   display: none !important;
 }
 
+/* Percentage Inside Mode */
 .mode-inside .pct-inside {
-  line-height: 1;
-  pointer-events: none;
-}
-
-/* 1. Windows 11 Fluent Style */
-.style-win11 .batt-row {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.style-win11 .batt-housing {
-  position: relative;
-  width: 25px;
-  height: 13px;
-  border-radius: 4px;
-  border: 1.5px solid var(--batt-border);
-  padding: 1.5px;
-  display: flex;
-  align-items: center;
-  overflow: hidden;
-  background: transparent;
-}
-
-.style-win11 .batt-cap {
-  width: 2px;
-  height: 5px;
-  border-radius: 0 1.5px 1.5px 0;
-  background: var(--batt-cap);
-  margin-left: 1px;
-}
-
-.style-win11 .batt-fill-bar {
-  height: 100%;
-  border-radius: 1.5px;
-  background: var(--batt-fill);
-  transition: width 0.3s ease;
-}
-
-.style-win11 .pct-inside {
   position: absolute;
   inset: 0;
-  display: flex;
+  display: flex !important;
   align-items: center;
   justify-content: center;
   font-size: 7.5px;
   font-weight: 700;
   color: var(--batt-fill);
-  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
-}
-
-:host([data-theme="light"]) .style-win11 .pct-inside,
-:host(.theme-light) .style-win11 .pct-inside {
-  color: #1b1b1b;
-  text-shadow: none;
-}
-
-.style-win11 .batt-bolt {
-  position: absolute;
-  top: -3px;
-  left: 7.5px;
-  width: 10px;
-  height: 15px;
-  z-index: 2;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
   pointer-events: none;
-  display: none;
 }
 
-/* 2. Windows 10 Metro Style */
-.style-win10 .batt-row {
-  display: flex;
-  align-items: center;
-}
-
-.style-win10 .batt-housing {
-  position: relative;
-  width: 22px;
-  height: 12px;
-  border-radius: 0;
-  border: 1.2px solid var(--batt-border);
-  padding: 1px;
-  display: flex;
-  align-items: center;
-  overflow: hidden;
-}
-
-.style-win10 .batt-cap {
-  width: 2px;
-  height: 5px;
-  border-radius: 0;
-  background: var(--batt-border);
-  margin-left: 1px;
-}
-
-.style-win10 .batt-fill-bar {
-  height: 100%;
-  border-radius: 0;
-  background: var(--batt-fill);
-  transition: width 0.3s ease;
-}
-
-.style-win10 .pct-inside {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 7.5px;
-  font-weight: 700;
-  color: #ffffff;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
-}
-
-.style-win10 .batt-bolt {
-  position: absolute;
-  inset: 0;
-  margin: auto;
-  width: 8px;
-  height: 8px;
-  fill: #ffffff;
-  display: none;
-}
-
-/* 3. macOS / iOS 27 Style */
-.style-macos .batt-row {
-  display: flex;
-  align-items: center;
-}
-
-.style-macos .batt-housing {
-  position: relative;
-  width: 25px;
-  height: 12.5px;
-  border-radius: 4.5px;
-  border: 1.2px solid rgba(255, 255, 255, 0.4);
-  background: rgba(255, 255, 255, 0.2);
-  padding: 1.5px;
-  display: flex;
-  align-items: center;
-  overflow: hidden;
-}
-
-:host([data-theme="light"]) .style-macos .batt-housing,
-:host(.theme-light) .style-macos .batt-housing {
-  border-color: rgba(0, 0, 0, 0.3);
-  background: rgba(0, 0, 0, 0.1);
-}
-
-.style-macos .batt-cap {
-  width: 2px;
-  height: 4.5px;
-  border-radius: 0 2px 2px 0;
-  background: rgba(255, 255, 255, 0.4);
-  margin-left: 1px;
-}
-
-:host([data-theme="light"]) .style-macos .batt-cap,
-:host(.theme-light) .style-macos .batt-cap {
-  background: rgba(0, 0, 0, 0.3);
-}
-
-.style-macos .batt-fill-bar {
-  height: 100%;
-  border-radius: 2.5px;
-  background: #ffffff;
-  transition: width 0.3s ease;
-}
-
-:host([data-theme="light"]) .style-macos .batt-fill-bar,
-:host(.theme-light) .style-macos .batt-fill-bar {
-  background: #000000;
-}
-
-.style-macos.is-charging .batt-fill-bar {
-  background: #30d158 !important;
-}
-
-:host([data-theme="light"]) .style-macos.is-charging .batt-fill-bar,
-:host(.theme-light) .style-macos.is-charging .batt-fill-bar {
-  background: #34c759 !important;
-}
-
-.style-macos.is-energy-saver:not(.is-charging) .batt-fill-bar {
-  background: #ffd60a !important;
-}
-
-.style-macos.is-low:not(.is-charging) .batt-fill-bar {
-  background: #ff453a !important;
-}
-
-.style-macos .batt-bolt {
-  position: absolute;
-  inset: 0;
-  margin: auto;
-  width: 7.5px;
-  height: 10px;
-  z-index: 2;
-  display: none;
-}
-
-.style-macos.is-charging .batt-bolt {
-  display: block !important;
-}
-
-.style-macos.mode-inside.is-charging .batt-bolt {
-  display: none !important;
-}
-
-.style-macos .pct-inside {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 7.5px;
-  font-weight: 700;
-  color: #ffffff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
-}
-
-:host([data-theme="light"]) .style-macos .pct-inside,
-:host(.theme-light) .style-macos .pct-inside {
+:host([data-theme="light"]) .mode-inside .pct-inside,
+:host(.theme-light) .mode-inside .pct-inside,
+[data-theme="light"] .mode-inside .pct-inside,
+.theme-light .mode-inside .pct-inside,
+body.theme-light .mode-inside .pct-inside {
   color: #1b1b1b;
   text-shadow: none;
 }

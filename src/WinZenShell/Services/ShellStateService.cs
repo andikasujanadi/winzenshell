@@ -48,6 +48,12 @@ public class ControlCenterItemPayload
 
     [JsonPropertyName("jsContent")]
     public string JsContent { get; set; } = "";
+
+    [JsonPropertyName("batteryIconStyle")]
+    public string? BatteryIconStyle { get; set; }
+
+    [JsonPropertyName("batteryPercentMode")]
+    public string? BatteryPercentMode { get; set; }
 }
 
 public class PinnedAppEntry
@@ -508,7 +514,9 @@ public class ShellStateService
                     Enabled = cc.Enabled,
                     HtmlContent = match.HtmlContent,
                     CssContent = match.CssContent,
-                    JsContent = match.JsContent
+                    JsContent = match.JsContent,
+                    BatteryIconStyle = match.BatteryIconStyle,
+                    BatteryPercentMode = match.BatteryPercentMode
                 });
             }
         }

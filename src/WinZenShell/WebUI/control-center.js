@@ -331,7 +331,9 @@ function initControlCenter() {
             ...w,
             displayMode: 'widget',
             inControlCenter: true,
-            aspectRatio: ratio
+            aspectRatio: ratio,
+            batteryIconStyle: w.batteryIconStyle,
+            batteryPercentMode: w.batteryPercentMode
           };
           const fn = new Function('root', 'document', 'winzen', 'widgetConfig', w.jsContent);
           fn(shadow, shadow, window.winzen, configCopy);
