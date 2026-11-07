@@ -11,7 +11,6 @@
   const appsGrid = document.getElementById('appsGrid');
   const allAppsTitle = document.getElementById('allAppsTitle');
   const appCountBadge = document.getElementById('appCountBadge');
-  const btnFooterSettings = document.getElementById('btnFooterSettings');
 
   function sendHost(action, payload = {}) {
     if (window.chrome && window.chrome.webview) {
@@ -201,12 +200,6 @@
     searchInput.focus();
     updateView();
   });
-
-  if (btnFooterSettings) {
-    btnFooterSettings.addEventListener('click', () => {
-      sendHost('open_settings');
-    });
-  }
 
   // Host WebMessage listener
   window.addEventListener('message', (event) => {

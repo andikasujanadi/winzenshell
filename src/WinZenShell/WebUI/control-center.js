@@ -4,7 +4,6 @@ function initControlCenter() {
   const ccTime = document.getElementById('ccTime');
   const btnEdit = document.getElementById('btnCcEdit');
   const btnEditText = document.getElementById('btnCcEditText');
-  const btnSettings = document.getElementById('btnCcSettings');
   const btnClose = document.getElementById('btnCcClose');
   const ccEditFooter = document.getElementById('ccEditFooter');
   const ccAddSelect = document.getElementById('ccAddSelect');
@@ -14,12 +13,6 @@ function initControlCenter() {
   let currentCcWidgets = [];
   let availableWidgets = [];
   let draggedCardId = null;
-
-  if (btnSettings) {
-    btnSettings.addEventListener('click', () => {
-      window.winzen.shell.openSettings();
-    });
-  }
 
   if (btnClose) {
     btnClose.addEventListener('click', () => {
