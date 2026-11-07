@@ -33,7 +33,6 @@ body {
   overflow: hidden;
   box-sizing: border-box;
   box-shadow: none;
-  transition: border-radius 0.12s ease;
 }
 
 .taskbar-bar.dock-top {
@@ -42,8 +41,8 @@ body {
 }
 
 .taskbar-bar.floating {
-  border-radius: var(--taskbar-radius, 12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0;
+  border: none;
   box-shadow: none;
 }
 
@@ -141,7 +140,7 @@ body.theme-light .taskbar-bar.dock-top {
 
 html[data-theme="light"] .taskbar-bar.floating,
 body.theme-light .taskbar-bar.floating {
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  border: none;
   box-shadow: none;
 }
 

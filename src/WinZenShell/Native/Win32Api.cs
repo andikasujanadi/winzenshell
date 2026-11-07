@@ -53,6 +53,7 @@ public static class Win32Api
     // Window Styles
     public const int GWL_EXSTYLE = -20;
     public const int GWL_STYLE = -16;
+    public const int WS_EX_TRANSPARENT = 0x00000020;
     public const int WS_EX_TOOLWINDOW = 0x00000080;
     public const int WS_EX_TOPMOST = 0x00000008;
     public const int WS_EX_NOACTIVATE = 0x08000000;
@@ -284,6 +285,38 @@ public static class Win32Api
     [DllImport("gdi32.dll")]
     public static extern IntPtr CreateRoundRectRgn(int nLeftRect, int nTopRect, int nRightRect, int nBottomRect, int nWidthEllipse, int nHeightEllipse);
 
+    [DllImport("gdi32.dll")]
+    public static extern IntPtr CreateRectRgn(int nLeftRect, int nTopRect, int nRightRect, int nBottomRect);
+
+    public const uint DWM_BB_ENABLE = 0x00000001;
+    public const uint DWM_BB_BLURREGION = 0x00000002;
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct DWM_BLURBEHIND
+    {
+        public uint dwFlags;
+        [MarshalAs(UnmanagedType.Bool)]
+        public bool fEnable;
+        public IntPtr hRgnBlur;
+        [MarshalAs(UnmanagedType.Bool)]
+        public bool fTransitionOnMaximized;
+    }
+
+    [DllImport("dwmapi.dll")]
+    public static extern int DwmEnableBlurBehindWindow(IntPtr hwnd, ref DWM_BLURBEHIND blurBehind);
+
+    [DllImport("user32.dll")]
+    public static extern IntPtr GetDC(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    public static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
+
+    [DllImport("gdi32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool BitBlt(IntPtr hdcDest, int nXDest, int nYDest, int nWidth, int nHeight, IntPtr hdcSrc, int nXSrc, int nYSrc, int dwRop);
+
+    public const int SRCCOPY = 0x00CC0020;
+
     [DllImport("user32.dll")]
     public static extern int SetWindowRgn(IntPtr hWnd, IntPtr hRgn, [MarshalAs(UnmanagedType.Bool)] bool bRedraw);
 
@@ -300,4 +333,97 @@ public static class Win32Api
     public static extern bool GetCursorPos(out POINT lpPoint);
 
     public const uint PW_RENDERFULLCONTENT = 0x00000002;
+
+    [DllImport("user32.dll")]
+    public static extern IntPtr GetThreadDesktop(uint dwThreadId);
+
+    [DllImport("kernel32.dll")]
+    public static extern uint GetCurrentThreadId();
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool GetUserObjectInformation(IntPtr hObj, int nIndex, StringBuilder pvInfo, int nLength, out int lpnLengthNeeded);
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    public struct STARTUPINFO
+    {
+        public int cb;
+        public string? lpReserved;
+        public string? lpDesktop;
+        public string? lpTitle;
+        public int dwX;
+        public int dwY;
+        public int dwXSize;
+        public int dwYSize;
+        public int dwXCountChars;
+        public int dwYCountChars;
+        public int dwFillAttribute;
+        public int dwFlags;
+        public short wShowWindow;
+        public short cbReserved2;
+        public IntPtr lpReserved2;
+        public IntPtr hStdInput;
+        public IntPtr hStdOutput;
+        public IntPtr hStdError;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct PROCESS_INFORMATION
+    {
+        public IntPtr hProcess;
+        public IntPtr hThread;
+        public int dwProcessId;
+        public int dwThreadId;
+    }
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool CreateProcess(
+        string? lpApplicationName,
+        string? lpCommandLine,
+        IntPtr lpProcessAttributes,
+        IntPtr lpThreadAttributes,
+        [MarshalAs(UnmanagedType.Bool)] bool bInheritHandles,
+        uint dwCreationFlags,
+        IntPtr lpEnvironment,
+        string? lpCurrentDirectory,
+        ref STARTUPINFO lpStartupInfo,
+        out PROCESS_INFORMATION lpProcessInformation);
+
+    public static bool EnsureInteractiveDefaultDesktop()
+    {
+        try
+        {
+            IntPtr hDesk = GetThreadDesktop(GetCurrentThreadId());
+            if (hDesk != IntPtr.Zero)
+            {
+                var sb = new StringBuilder(256);
+                if (GetUserObjectInformation(hDesk, 2, sb, sb.Capacity * 2, out _))
+                {
+                    string deskName = sb.ToString();
+                    if (!string.IsNullOrEmpty(deskName) &&
+                        !string.Equals(deskName, "Default", StringComparison.OrdinalIgnoreCase))
+                    {
+                        string? exePath = Environment.ProcessPath;
+                        if (!string.IsNullOrEmpty(exePath))
+                        {
+                            var si = new STARTUPINFO
+                            {
+                                cb = Marshal.SizeOf<STARTUPINFO>(),
+                                lpDesktop = "Winsta0\\Default"
+                            };
+                            if (CreateProcess(exePath, $"\"{exePath}\"", IntPtr.Zero, IntPtr.Zero, false, 0, IntPtr.Zero, AppDomain.CurrentDomain.BaseDirectory, ref si, out var pi))
+                            {
+                                if (pi.hProcess != IntPtr.Zero) CloseHandle(pi.hProcess);
+                                if (pi.hThread != IntPtr.Zero) CloseHandle(pi.hThread);
+                                return false;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        catch { }
+        return true;
+    }
 }

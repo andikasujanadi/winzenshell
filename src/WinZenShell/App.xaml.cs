@@ -28,6 +28,12 @@ public partial class App : System.Windows.Application
     {
         try
         {
+            if (!Win32Api.EnsureInteractiveDefaultDesktop())
+            {
+                Environment.Exit(0);
+                return;
+            }
+
             // Automatically terminate any previous instance of WinZenShell so the newest launch always takes over cleanly
             try
             {

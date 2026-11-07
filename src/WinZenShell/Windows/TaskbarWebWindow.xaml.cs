@@ -33,6 +33,7 @@ public partial class TaskbarWebWindow : Window
     private AppLauncherFlyoutWindow? _appLauncherFlyout;
     private SystemMonitorFlyoutWindow? _systemMonitorFlyout;
     private WindowSelectorFlyoutWindow? _windowSelectorFlyout;
+    private TaskbarBackdropWindow? _backdropWindow;
     private FileSystemWatcher? _triggerWatcher;
     private Forms.ContextMenuStrip? _activeNativeMenu;
     private IntPtr _hwnd = IntPtr.Zero;
@@ -51,6 +52,7 @@ public partial class TaskbarWebWindow : Window
     {
         InitializeComponent();
         TaskbarWebView.DefaultBackgroundColor = System.Drawing.Color.FromArgb(255, 28, 28, 28);
+        _backdropWindow = new TaskbarBackdropWindow();
         _shellState = shellState;
         _metricsService = metricsService;
         _brightnessService = brightnessService;
@@ -91,6 +93,7 @@ public partial class TaskbarWebWindow : Window
         {
             _metricsTimer.Stop();
             _fullscreenTimer.Stop();
+            try { _backdropWindow?.Close(); } catch { }
         };
     }
 
@@ -107,6 +110,11 @@ public partial class TaskbarWebWindow : Window
 
         var source = HwndSource.FromHwnd(_hwnd);
         source?.AddHook(WndProc);
+
+        if (_backdropWindow != null && !_backdropWindow.IsVisible)
+        {
+            _backdropWindow.Show();
+        }
 
         _shellState.SyncTaskbarAndWorkArea();
 
@@ -423,6 +431,28 @@ public partial class TaskbarWebWindow : Window
                         _shellState.BroadcastState();
                         BroadcastMetrics();
                     }
+                    else if (cmd.StartsWith("capture_screen_corner", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var parts = cmd.Split(' ');
+                        string outPath = parts.Length > 1 ? parts[1] : Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "corner_capture.png");
+                        if (Win32Api.GetWindowRect(_hwnd, out var wr))
+                        {
+                            int cx = Math.Max(0, wr.Left - 8);
+                            int cy = Math.Max(0, wr.Top - 8);
+                            int cw = Math.Min(360, wr.Width + 16);
+                            int ch = wr.Height + 16;
+                            using var bmp = new Bitmap(cw, ch, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+                            using (var g = Graphics.FromImage(bmp))
+                            {
+                                IntPtr destHdc = g.GetHdc();
+                                IntPtr screenHdc = Win32Api.GetDC(IntPtr.Zero);
+                                Win32Api.BitBlt(destHdc, 0, 0, cw, ch, screenHdc, cx, cy, Win32Api.SRCCOPY);
+                                Win32Api.ReleaseDC(IntPtr.Zero, screenHdc);
+                                g.ReleaseHdc(destHdc);
+                            }
+                            bmp.Save(outPath, System.Drawing.Imaging.ImageFormat.Png);
+                        }
+                    }
                     else if (cmd.StartsWith("capture_menu", StringComparison.OrdinalIgnoreCase))
                     {
                         var parts = cmd.Split(' ');
@@ -488,6 +518,7 @@ public partial class TaskbarWebWindow : Window
         int margin = _shellState.Settings.FloatingMarginPx;
         int radius = _shellState.Settings.TaskbarCornerRadiusPx;
         bool isLight = string.Equals(_shellState.Settings.Theme, "light", StringComparison.OrdinalIgnoreCase);
+        bool isTop = string.Equals(_shellState.Settings.DockEdge, "top", StringComparison.OrdinalIgnoreCase);
 
         OuterBorder.Background = isLight
             ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xF3, 0xF3, 0xF3))
@@ -512,20 +543,37 @@ public partial class TaskbarWebWindow : Window
         int borderColor = unchecked((int)0xFFFFFFFE); // DWMWA_COLOR_NONE
         Win32Api.DwmSetWindowAttribute(_hwnd, 34, ref borderColor, sizeof(int));
 
+        if (_backdropWindow != null)
+        {
+            if (IsVisible && !_backdropWindow.IsVisible)
+            {
+                _backdropWindow.Show();
+            }
+            _backdropWindow.SyncPositionBehind(_hwnd, Left, Top, Width, Height);
+            _backdropWindow.UpdateBackdropAppearance(isLight, margin > 0, isTop, radius);
+        }
+
         if (margin > 0 && radius > 0 && Win32Api.GetWindowRect(_hwnd, out var winRect))
         {
             int w = winRect.Width;
             int h = winRect.Height;
-            int effRadius = Math.Min(radius, Math.Min(w, h) / 2);
-            int diameter = effRadius * 2;
-            IntPtr hRgn = Win32Api.CreateRoundRectRgn(0, 0, w + 1, h + 1, diameter, diameter);
+            double dpiScale = System.Windows.Media.VisualTreeHelper.GetDpi(this).DpiScaleX;
+            if (dpiScale <= 0) dpiScale = 1.0;
+            int radiusPhysical = (int)Math.Round(radius * dpiScale);
+            int effRadius = Math.Min(Math.Max(0, radiusPhysical), Math.Min(w, h) / 2);
+
+            int inset = Math.Min(3, Math.Max(1, effRadius / 2));
+            int innerRadius = Math.Max(0, effRadius - inset);
+            int diameter = innerRadius * 2;
+
+            IntPtr hRgn = Win32Api.CreateRoundRectRgn(inset, inset, w - inset, h - inset, diameter, diameter);
             if (Win32Api.SetWindowRgn(_hwnd, hRgn, true) == 0)
             {
                 Win32Api.DeleteObject(hRgn);
             }
             if (TaskbarWebView.Handle != IntPtr.Zero)
             {
-                IntPtr childRgn = Win32Api.CreateRoundRectRgn(0, 0, w + 1, h + 1, diameter, diameter);
+                IntPtr childRgn = Win32Api.CreateRoundRectRgn(inset, inset, w - inset, h - inset, diameter, diameter);
                 if (Win32Api.SetWindowRgn(TaskbarWebView.Handle, childRgn, true) == 0)
                 {
                     Win32Api.DeleteObject(childRgn);
@@ -548,12 +596,14 @@ public partial class TaskbarWebWindow : Window
         {
             if (visible)
             {
+                _backdropWindow?.Show();
                 Show();
                 _shellState.SyncTaskbarAndWorkArea();
             }
             else
             {
                 Hide();
+                _backdropWindow?.Hide();
             }
         });
     }
@@ -1601,11 +1651,13 @@ public partial class TaskbarWebWindow : Window
                 _brightnessFlyout?.Hide();
                 _controlCenterFlyout?.Hide();
                 Visibility = Visibility.Hidden;
+                if (_backdropWindow != null) _backdropWindow.Visibility = Visibility.Hidden;
             }
             else
             {
                 if (_shellState.Settings.EnableWinZenTaskbar)
                 {
+                    if (_backdropWindow != null) _backdropWindow.Visibility = Visibility.Visible;
                     Visibility = Visibility.Visible;
                     _shellState.SyncTaskbarAndWorkArea();
                 }
