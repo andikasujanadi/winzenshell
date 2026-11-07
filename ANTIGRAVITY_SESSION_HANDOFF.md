@@ -94,16 +94,30 @@ This document serves as the complete handoff for another Antigravity AI pair pro
 
 | Widget Directory | Slot | Description | Flyout Companion |
 | :--- | :--- | :--- | :--- |
-| `zen-start-button` | `left` | Windows/App launcher button | `AppLauncherFlyoutWindow` (ChromeOS search) |
-| `zen-active-windows` | `center` | Running apps switcher, thumbnails & close | Context menu / Window management |
+| `zen-start-button` | `left` | Customizable Start / App launcher (ChromeOS, W11, W10, Apple) with dynamic theme tinting | `AppLauncherFlyoutWindow` (ChromeOS search) |
+| `zen-active-windows` | `center` | Running apps switcher, thumbnails, badges & close (full Dark/Light theme) | Window thumbnails & Win11 context menu |
 | `zen-virtual-desktops`| `left/center` | Windows 11 virtual desktop indicators | Native desktop switching |
 | `zen-clock-pill` | `right` | Time & date pill | `ClockFlyoutWindow` (analog + digital) |
 | `zen-brightness` | `right` | Brightness icon/meter with wheel scrolling | `BrightnessFlyoutWindow` |
 | `zen-volume` | `right` | Master audio volume & mute state | `VolumeFlyoutWindow` |
+| `zen-network` | `right` | Ethernet & Wi-Fi status, signal strength & IP | Network flyout with custom Fluent scrollbar |
+| `zen-battery` | `right` | W11, W10, M27 (iOS 27) battery styles & charging states | Power & Sleep settings shortcut |
 | `zen-system-monitor` | `right` | Real-time CPU & RAM usage | `SystemMonitorFlyoutWindow` |
-| `zen-control-center` | `right` | Control Center toggle button | `ControlCenterFlyoutWindow` |
+| `zen-control-center` | `right` | Authentic 2-switch toggle icon (SF Symbols `switch.2`) | `ControlCenterFlyoutWindow` (modular grid) |
 
-### 3.5 Universal Theme Engine (Windows 11 Fluent 2)
+### 3.5 Battery & Power Studio (`zen-battery`)
+- **Precision Vector SVG Geometry**:
+  - Uses vector SVGs with SVG `clipPath` elements, preventing browser subpixel rounding shifts and keeping fill margins strictly symmetrical.
+  - **M27 (iOS 27 / macOS)**: Translucent capsule track (`#30D158` / `#34C759` charging, `#FFD60A` energy saver, `#FF453A` low battery), straight vertical cut on partial charge, centered white bolt with drop shadow, and separate dome nub with authentic gap.
+  - **W11 (Windows 11 Fluent)**: Rounded housing with 1.5px border, deep emerald fill in light mode (`#107C10`) / mint fill in dark mode (`#6CCB5F`), and a crisp solid bolt (black with white halo in light mode; white with dark halo in dark mode) piercing through the top housing.
+  - **W10 (Windows 10 Metro)**: Sharp rectangular housing and inner fill bar.
+- **Settings & Placement**:
+  - Icon Style selector: `W11`, `W10`, `M27`.
+  - Percentage Position selector: `None`, `Left`, `Right`.
+- **Cross-Component Synchronization**:
+  - Taskbar widget overrides (`batteryIconStyle`, `batteryPercentMode`) automatically pass through `ShellStateService.cs` (`ControlCenterItemPayload`) into `control-center.js` and render matching styles inside the Control Center flyout grid.
+
+### 3.6 Universal Theme Engine (Windows 11 Fluent 2)
 - Specified in `Widgets/universal-theme.css` and `src/WinZenShell/WebUI/universal-theme.css`.
 - Injected directly into all widget shadow roots and flyout documents:
   - `--winzen-bg`: Solid backdrop (`#1e1e1e` dark / `#f3f3f3` light).
@@ -112,7 +126,10 @@ This document serves as the complete handoff for another Antigravity AI pair pro
   - `--winzen-border`: Edge borders (`rgba(255,255,255,0.08)` / `rgba(0,0,0,0.08)`).
   - `--winzen-text` & `--winzen-text-secondary`.
   - `--winzen-accent`: Focus & highlights (`#60cdff` dark / `#0067c0` light).
-- Live theme switching via Settings dropdown (`Windows 11 Dark` & `Windows 11 Light`), with real-time broadcast to all windows.
+- Complete Light Mode support across all surfaces:
+  - Active Window Switcher window title text (`color: inherit;` with light mode `#1b1b1b`).
+  - Settings studio: `Widgets & Layout` region arrangement containers, preview chips, and `Zen Control Center` preview tiles.
+  - Dynamic icon tinting (`currentColor`) for start button launcher icons (Apple, ChromeOS, Windows 10).
 
 ---
 
