@@ -1,0 +1,442 @@
+:host {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-family: var(--winzen-font, 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, sans-serif);
+  color: var(--winzen-text, #ffffff);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+.battery-pill {
+  height: 36px;
+  max-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 8px;
+  border-radius: var(--winzen-radius-xs, 4px);
+  background: transparent;
+  border: 1px solid transparent;
+  color: inherit;
+  cursor: pointer;
+  outline: none;
+  transition: background-color 0.12s ease, border-color 0.12s ease, transform 0.1s ease;
+}
+
+.battery-pill:hover {
+  background: var(--winzen-surface-hover, rgba(255, 255, 255, 0.0605));
+  border-color: var(--winzen-border, rgba(255, 255, 255, 0.08));
+}
+
+.battery-pill:active {
+  transform: scale(0.97);
+}
+
+.battery-pct {
+  font-size: 11.5px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--winzen-text, #ffffff);
+}
+
+/* Percentage Position Modes */
+.mode-outside-right .pct-left { display: none !important; }
+.mode-outside-right .pct-right { display: inline-block !important; }
+.mode-outside-right .pct-inside { display: none !important; }
+
+.mode-outside-left .pct-left { display: inline-block !important; }
+.mode-outside-left .pct-right { display: none !important; }
+.mode-outside-left .pct-inside { display: none !important; }
+
+.mode-inside .pct-left { display: none !important; }
+.mode-inside .pct-right { display: none !important; }
+.mode-inside .pct-inside { display: flex !important; }
+
+.mode-hide .pct-left { display: none !important; }
+.mode-hide .pct-right { display: none !important; }
+.mode-hide .pct-inside { display: none !important; }
+
+/* Battery Icon Container */
+.battery-icon-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Color Variables */
+.battery-icon-wrap {
+  --batt-border: rgba(255, 255, 255, 0.45);
+  --batt-fill: #ffffff;
+  --batt-charging: #22c55e;
+  --batt-low: #ef4444;
+}
+
+:host([data-theme="light"]) .battery-icon-wrap,
+:host(.theme-light) .battery-icon-wrap {
+  --batt-border: rgba(0, 0, 0, 0.5);
+  --batt-fill: #1a1a1a;
+  --batt-charging: #16a34a;
+  --batt-low: #dc2626;
+}
+
+/* State Coloring */
+.is-charging .batt-fill-bar {
+  background: var(--batt-charging) !important;
+}
+.is-charging .batt-bolt {
+  display: block !important;
+}
+
+.mode-inside.is-charging .batt-bolt {
+  display: none !important;
+}
+
+.mode-inside .pct-inside {
+  line-height: 1;
+  pointer-events: none;
+}
+
+.is-low:not(.is-charging) .batt-fill-bar {
+  background: var(--batt-low) !important;
+}
+
+/* 1. HyperOS 4 Style */
+.style-hyperos .batt-housing {
+  position: relative;
+  width: 32px;
+  height: 16px;
+  border-radius: 9999px;
+  border: 1.5px solid var(--batt-border);
+  padding: 1.5px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.style-hyperos .batt-fill-bar {
+  height: 100%;
+  border-radius: 9999px;
+  background: var(--batt-fill);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 4px;
+}
+
+.style-hyperos .pct-inside {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  font-weight: 800;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+  pointer-events: none;
+}
+
+.style-hyperos .batt-bolt {
+  position: absolute;
+  right: 4px;
+  width: 9px;
+  height: 9px;
+  fill: #ffffff;
+  filter: drop-shadow(0 0 2px rgba(0,0,0,0.8));
+  display: none;
+}
+
+/* 2. Windows 11 Fluent Style */
+.style-win11 .batt-row {
+  display: flex;
+  align-items: center;
+}
+
+.style-win11 .batt-housing {
+  position: relative;
+  width: 24px;
+  height: 13px;
+  border-radius: 3.5px;
+  border: 1.5px solid var(--batt-border);
+  padding: 1.5px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.style-win11 .batt-cap {
+  width: 2px;
+  height: 5px;
+  border-radius: 0 1.5px 1.5px 0;
+  background: var(--batt-border);
+  margin-left: 1px;
+}
+
+.style-win11 .batt-fill-bar {
+  height: 100%;
+  border-radius: 1.5px;
+  background: var(--batt-fill);
+  transition: width 0.3s ease;
+}
+
+.style-win11 .pct-inside {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 7.5px;
+  font-weight: 700;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+}
+
+.style-win11 .batt-bolt {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 9px;
+  height: 9px;
+  fill: #ffffff;
+  filter: drop-shadow(0 0 2px rgba(0,0,0,0.8));
+  display: none;
+}
+
+/* 3. Windows 10 Metro Style */
+.style-win10 .batt-row {
+  display: flex;
+  align-items: center;
+}
+
+.style-win10 .batt-housing {
+  position: relative;
+  width: 22px;
+  height: 12px;
+  border-radius: 0;
+  border: 1.2px solid var(--batt-border);
+  padding: 1px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.style-win10 .batt-cap {
+  width: 2px;
+  height: 5px;
+  border-radius: 0;
+  background: var(--batt-border);
+  margin-left: 1px;
+}
+
+.style-win10 .batt-fill-bar {
+  height: 100%;
+  border-radius: 0;
+  background: var(--batt-fill);
+  transition: width 0.3s ease;
+}
+
+.style-win10 .pct-inside {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 7.5px;
+  font-weight: 700;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+}
+
+.style-win10 .batt-bolt {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 8px;
+  height: 8px;
+  fill: #ffffff;
+  display: none;
+}
+
+/* 4. macOS Style */
+.style-macos .batt-row {
+  display: flex;
+  align-items: center;
+}
+
+.style-macos .batt-housing {
+  position: relative;
+  width: 25px;
+  height: 13px;
+  border-radius: 4.5px;
+  border: 1.5px solid var(--batt-border);
+  padding: 1.5px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.style-macos .batt-cap {
+  width: 2px;
+  height: 5px;
+  border-radius: 0 2px 2px 0;
+  background: var(--batt-border);
+  margin-left: 1px;
+}
+
+.style-macos .batt-fill-bar {
+  height: 100%;
+  border-radius: 2px;
+  background: #34c759;
+  transition: width 0.3s ease;
+}
+
+.style-macos:not(.is-charging) .is-low .batt-fill-bar {
+  background: #ff3b30 !important;
+}
+
+.style-macos .pct-inside {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  font-weight: 700;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+}
+
+.style-macos .batt-bolt {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 9px;
+  height: 9px;
+  fill: #ffffff;
+  filter: drop-shadow(0 0 2px rgba(0,0,0,0.8));
+  display: none;
+}
+
+/* 5. Vertical Classic Style */
+.style-vertical-classic .batt-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.style-vertical-classic .batt-cap {
+  width: 5px;
+  height: 2px;
+  border-radius: 1px 1px 0 0;
+  background: var(--batt-border);
+  margin-bottom: 1px;
+}
+
+.style-vertical-classic .batt-housing {
+  position: relative;
+  width: 13px;
+  height: 22px;
+  border-radius: 3px;
+  border: 1.5px solid var(--batt-border);
+  padding: 1.5px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+}
+
+.style-vertical-classic .batt-fill-bar {
+  width: 100%;
+  border-radius: 1px;
+  background: var(--batt-fill);
+  transition: height 0.3s ease;
+}
+
+.style-vertical-classic .pct-inside {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 7px;
+  font-weight: 700;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+}
+
+.style-vertical-classic .batt-bolt {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 8px;
+  height: 8px;
+  fill: #ffffff;
+  filter: drop-shadow(0 0 2px rgba(0,0,0,0.8));
+  display: none;
+}
+
+/* 6. Horizontal Classic AA Style */
+.style-horizontal-classic .batt-row {
+  display: flex;
+  align-items: center;
+}
+
+.style-horizontal-classic .batt-housing {
+  position: relative;
+  width: 26px;
+  height: 14px;
+  border-radius: 2.5px;
+  border: 1.5px solid var(--batt-border);
+  padding: 1.5px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.style-horizontal-classic .batt-cap {
+  width: 3px;
+  height: 7px;
+  border-radius: 0 2px 2px 0;
+  background: var(--batt-border);
+  margin-left: 1px;
+}
+
+.style-horizontal-classic .batt-fill-bar {
+  height: 100%;
+  border-radius: 1px;
+  background: var(--batt-fill);
+  transition: width 0.3s ease;
+}
+
+.style-horizontal-classic .pct-inside {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 7.5px;
+  font-weight: 700;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+}
+
+.style-horizontal-classic .batt-bolt {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 9px;
+  height: 9px;
+  fill: #ffffff;
+  filter: drop-shadow(0 0 2px rgba(0,0,0,0.8));
+  display: none;
+}

@@ -287,7 +287,9 @@ public class ShellStateService
         bool showStartText = false,
         string? displayMode = null,
         string? aspectRatio = null,
-        bool? showThumbnails = null)
+        bool? showThumbnails = null,
+        string? batteryIconStyle = null,
+        string? batteryPercentMode = null)
     {
         int? existingOrder = _settings.WidgetOverrides.TryGetValue(widgetId, out var prev) ? prev.Order : null;
         var existing = _settings.WidgetOverrides.TryGetValue(widgetId, out var existingOv) ? existingOv : null;
@@ -306,7 +308,9 @@ public class ShellStateService
             StartText = startText != null ? startText : (existing?.StartText ?? "Start"),
             ShowStartText = showStartText,
             DisplayMode = !string.IsNullOrWhiteSpace(displayMode) ? displayMode : (existing?.DisplayMode ?? "widget"),
-            AspectRatio = !string.IsNullOrWhiteSpace(aspectRatio) ? aspectRatio : (existing?.AspectRatio ?? "1:1")
+            AspectRatio = !string.IsNullOrWhiteSpace(aspectRatio) ? aspectRatio : (existing?.AspectRatio ?? "1:1"),
+            BatteryIconStyle = !string.IsNullOrWhiteSpace(batteryIconStyle) ? batteryIconStyle : (existing?.BatteryIconStyle ?? "hyperos"),
+            BatteryPercentMode = !string.IsNullOrWhiteSpace(batteryPercentMode) ? batteryPercentMode : (existing?.BatteryPercentMode ?? "outside-right")
         };
         SaveSettings();
         _statusBanner = "Widget updated";

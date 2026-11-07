@@ -59,6 +59,12 @@ public class WidgetManifest
     [JsonPropertyName("showStartText")]
     public bool ShowStartText { get; set; } = false;
 
+    [JsonPropertyName("batteryIconStyle")]
+    public string BatteryIconStyle { get; set; } = "hyperos";
+
+    [JsonPropertyName("batteryPercentMode")]
+    public string BatteryPercentMode { get; set; } = "outside-right";
+
     [JsonPropertyName("displayMode")]
     public string DisplayMode { get; set; } = "widget"; // "icon" or "widget"
 
@@ -191,6 +197,10 @@ public class WidgetManagerService
                         manifest.DisplayMode = ov.DisplayMode;
                     if (!string.IsNullOrWhiteSpace(ov.AspectRatio))
                         manifest.AspectRatio = ov.AspectRatio;
+                    if (!string.IsNullOrWhiteSpace(ov.BatteryIconStyle))
+                        manifest.BatteryIconStyle = ov.BatteryIconStyle;
+                    if (!string.IsNullOrWhiteSpace(ov.BatteryPercentMode))
+                        manifest.BatteryPercentMode = ov.BatteryPercentMode;
                 }
 
                 result.Add(manifest);
@@ -372,6 +382,8 @@ public class WidgetStateOverride
     public bool ShowStartText { get; set; } = false;
     public string DisplayMode { get; set; } = "widget";
     public string AspectRatio { get; set; } = "1:1";
+    public string BatteryIconStyle { get; set; } = "hyperos";
+    public string BatteryPercentMode { get; set; } = "outside-right";
 }
 
 public class WidgetOrderUpdate

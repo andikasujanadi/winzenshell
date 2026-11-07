@@ -203,6 +203,8 @@ public partial class SettingsWebWindow : Window
                     bool wShowStartText = root.TryGetProperty("showStartText", out var wsstProp) && wsstProp.GetBoolean();
                     string? wDisplayMode = root.TryGetProperty("displayMode", out var wdmProp) ? wdmProp.GetString() : null;
                     string? wAspectRatio = root.TryGetProperty("aspectRatio", out var warProp) ? warProp.GetString() : null;
+                    string? wBatteryIconStyle = root.TryGetProperty("batteryIconStyle", out var wbisProp) ? wbisProp.GetString() : null;
+                    string? wBatteryPercentMode = root.TryGetProperty("batteryPercentMode", out var wbpmProp) ? wbpmProp.GetString() : null;
                     int? wOrder = root.TryGetProperty("order", out var woProp) && woProp.ValueKind == JsonValueKind.Number
                         ? woProp.GetInt32()
                         : null;
@@ -222,7 +224,9 @@ public partial class SettingsWebWindow : Window
                             wShowStartText,
                             wDisplayMode,
                             wAspectRatio,
-                            wShowThumbnails);
+                            wShowThumbnails,
+                            wBatteryIconStyle,
+                            wBatteryPercentMode);
                     }
                     break;
 

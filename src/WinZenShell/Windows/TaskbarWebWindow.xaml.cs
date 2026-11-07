@@ -431,6 +431,30 @@ public partial class TaskbarWebWindow : Window
                         _shellState.BroadcastState();
                         BroadcastMetrics();
                     }
+                    else if (cmd.StartsWith("test_battery", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var parts = cmd.Split(' ');
+                        string bStyle = parts.Length > 1 ? parts[1] : "hyperos";
+                        string bMode = parts.Length > 2 ? parts[2] : "outside-right";
+                        _shellState.UpdateWidgetState(
+                            "community.zen-battery",
+                            true,
+                            "right",
+                            80,
+                            true,
+                            true,
+                            5,
+                            false,
+                            null,
+                            null,
+                            false,
+                            "widget",
+                            "1:1",
+                            true,
+                            bStyle,
+                            bMode);
+                        BroadcastMetrics();
+                    }
                     else if (cmd.StartsWith("capture_screen_corner", StringComparison.OrdinalIgnoreCase))
                     {
                         var parts = cmd.Split(' ');
@@ -727,6 +751,21 @@ public partial class TaskbarWebWindow : Window
 
                 case "open_start_menu":
                     _metricsService.TriggerWindowsStartMenu();
+                    break;
+
+                case "open_uri":
+                    if (root.TryGetProperty("uri", out var uriProp))
+                    {
+                        string uriStr = uriProp.GetString() ?? "";
+                        if (!string.IsNullOrWhiteSpace(uriStr))
+                        {
+                            try
+                            {
+                                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(uriStr) { UseShellExecute = true });
+                            }
+                            catch { }
+                        }
+                    }
                     break;
 
                 case "activate_window":

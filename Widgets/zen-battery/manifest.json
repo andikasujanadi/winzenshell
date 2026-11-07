@@ -1,0 +1,16 @@
+{
+  "id": "community.zen-battery",
+  "name": "Zen Battery",
+  "version": "1.0.0",
+  "author": "WinZen Community",
+  "description": "Displays live battery percentage and charging status with customizable icon styles and layout.",
+  "slot": "right",
+  "order": 5,
+  "entry": "index.html",
+  "width": 80,
+  "autoWidth": true,
+  "supportedModes": ["widget"],
+  "enabled": true,
+  "batteryIconStyle": "hyperos",
+  "batteryPercentMode": "outside-right"
+}

@@ -49,6 +49,10 @@ public class SystemMetricsSnapshot
     public List<RunningWindowItem> Windows { get; set; } = new();
     public List<HiddenAppEntry> HiddenApps { get; set; } = new();
     public List<PinnedAppEntry> PinnedApps { get; set; } = new();
+    public int BatteryPercent { get; set; } = 100;
+    public bool IsCharging { get; set; } = false;
+    public bool HasBattery { get; set; } = true;
+    public string BatteryStatusText { get; set; } = "Fully Charged";
 }
 
 public class SystemMetricsService
@@ -119,6 +123,32 @@ public class SystemMetricsService
         if (curIdx < 0 && desktops.Count > 0) curIdx = 0;
         string curName = curIdx >= 0 && curIdx < desktops.Count ? desktops[curIdx].Name : "Desktop 1";
 
+        bool hasBattery = false;
+        int batteryPercent = 100;
+        bool isCharging = false;
+        string batteryStatusText = "AC Connected";
+
+        if (Win32Api.GetSystemPowerStatus(out var powerStatus))
+        {
+            bool noBattery = (powerStatus.BatteryFlag & 128) != 0 || powerStatus.BatteryLifePercent == 255;
+            hasBattery = !noBattery;
+            batteryPercent = noBattery ? 100 : Math.Clamp((int)powerStatus.BatteryLifePercent, 0, 100);
+            isCharging = powerStatus.ACLineStatus == 1;
+
+            if (noBattery)
+            {
+                batteryStatusText = "Desktop (AC Power)";
+            }
+            else if (isCharging)
+            {
+                batteryStatusText = batteryPercent >= 100 ? "Fully Charged" : $"Charging ({batteryPercent}%)";
+            }
+            else
+            {
+                batteryStatusText = $"On Battery ({batteryPercent}%)";
+            }
+        }
+
         return new SystemMetricsSnapshot
         {
             CpuPercent = cpu,
@@ -134,7 +164,11 @@ public class SystemMetricsService
             TimeFormatted = now.ToString("HH:mm:ss"),
             DateFormatted = now.ToString("ddd, MMM d"),
             Windows = windows,
-            HiddenApps = GetHiddenApps()
+            HiddenApps = GetHiddenApps(),
+            BatteryPercent = batteryPercent,
+            IsCharging = isCharging,
+            HasBattery = hasBattery,
+            BatteryStatusText = batteryStatusText
         };
     }
 
