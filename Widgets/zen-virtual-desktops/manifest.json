@@ -11,6 +11,6 @@
   "autoWidth": true,
   "displayMode": "widget",
   "aspectRatio": "1:2",
-  "supportedModes": ["widget", "icon"],
+  "supportedModes": ["widget", "compact", "icon"],
   "enabled": true
 }

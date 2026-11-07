@@ -459,7 +459,7 @@ function initSettingsPage() {
       chip.dataset.region = regionKey;
 
       const orderText = isUnused ? '—' : `#${idx + 1}`;
-      const badgeText = isUnused ? 'Inactive' : (w.displayMode === 'icon' ? 'Icon' : 'Active');
+      const badgeText = isUnused ? 'Inactive' : (w.displayMode === 'icon' ? 'Icon' : (w.displayMode === 'compact' ? 'Compact' : 'Active'));
 
       chip.innerHTML = `
         <div class="rp-chip-left">
@@ -829,8 +829,17 @@ function initSettingsPage() {
       let displayModeHtml = '';
       if (hasMultipleModes) {
         const modes = w.supportedModes && w.supportedModes.length > 0 ? w.supportedModes : ['widget', 'icon'];
+        const modeLabels = {
+          widget: 'Full Mode',
+          compact: 'Compact Mode (1 2 3)',
+          icon: 'Icon Mode'
+        };
         const options = modes
-          .map((m) => `<option value="${m}" ${(w.displayMode || 'widget') === m ? 'selected' : ''}>${m === 'icon' ? 'Icon Mode' : 'Widget Mode'}</option>`)
+          .map((m) => {
+            const label = modeLabels[m] || (m.charAt(0).toUpperCase() + m.slice(1) + ' Mode');
+            const selected = (w.displayMode || 'widget') === m ? 'selected' : '';
+            return `<option value="${m}" ${selected}>${label}</option>`;
+          })
           .join('');
         displayModeHtml = `
           <div class="subrow-field">

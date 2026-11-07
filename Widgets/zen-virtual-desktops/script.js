@@ -1,65 +1,106 @@
 const widgetRoot = typeof root !== 'undefined' ? root : document;
 const widgetView = widgetRoot.getElementById('vdWidgetView');
+const compactView = widgetRoot.getElementById('vdCompactView');
 const iconView = widgetRoot.getElementById('vdIconView');
 const pillsContainer = widgetRoot.getElementById('vdPillsContainer');
+const compactNumbers = widgetRoot.getElementById('vdCompactNumbers');
 const btnTaskView = widgetRoot.getElementById('btnTaskView');
 const btnAddDesktop = widgetRoot.getElementById('btnAddDesktop');
 const btnIconMode = widgetRoot.getElementById('btnIconMode');
 const iconBadge = widgetRoot.getElementById('iconBadge');
 const iconLabel = widgetRoot.getElementById('iconLabel');
 
-const isWidgetMode = typeof widgetConfig === 'undefined' || !widgetConfig || widgetConfig.displayMode !== 'icon';
+const currentMode = (typeof widgetConfig !== 'undefined' && widgetConfig && widgetConfig.displayMode)
+  ? widgetConfig.displayMode
+  : 'widget';
 
-if (isWidgetMode) {
-  if (widgetView) widgetView.style.display = 'flex';
-  if (iconView) iconView.style.display = 'none';
-} else {
-  if (widgetView) widgetView.style.display = 'none';
-  if (iconView) iconView.style.display = 'inline-flex';
+function applyDisplayMode(mode) {
+  if (mode === 'compact') {
+    if (widgetView) widgetView.style.display = 'none';
+    if (compactView) compactView.style.display = 'inline-flex';
+    if (iconView) iconView.style.display = 'none';
+  } else if (mode === 'icon') {
+    if (widgetView) widgetView.style.display = 'none';
+    if (compactView) compactView.style.display = 'none';
+    if (iconView) iconView.style.display = 'inline-flex';
+  } else {
+    // 'widget' (large full mode)
+    if (widgetView) widgetView.style.display = 'flex';
+    if (compactView) compactView.style.display = 'none';
+    if (iconView) iconView.style.display = 'none';
+  }
+}
+
+applyDisplayMode(currentMode);
+
+function switchDesktop(idx) {
+  if (window.winzen && window.winzen.desktops) {
+    window.winzen.desktops.switch(idx);
+  } else if (window.winzen) {
+    window.winzen.send('switch_desktop', { index: idx });
+  }
 }
 
 function renderDesktops(desktops, currentIndex) {
-  if (!pillsContainer) return;
-  pillsContainer.innerHTML = '';
-
   if (!desktops || desktops.length === 0) {
     desktops = [{ index: 0, name: 'Desktop 1', isCurrent: true }];
   }
 
-  desktops.forEach((d) => {
-    const pill = document.createElement('button');
-    pill.className = `vd-pill ${d.isCurrent ? 'active' : ''}`;
-    pill.title = `${d.name} (Click to switch)`;
-    pill.setAttribute('aria-label', d.name);
+  // 1. Render Large Mode (pills with numbers + names)
+  if (pillsContainer) {
+    pillsContainer.innerHTML = '';
+    desktops.forEach((d) => {
+      const pill = document.createElement('button');
+      pill.className = `vd-pill ${d.isCurrent ? 'active' : ''}`;
+      pill.title = `${d.name} (Click to switch)`;
+      pill.setAttribute('aria-label', d.name);
 
-    const numSpan = document.createElement('span');
-    numSpan.className = 'vd-pill-num';
-    numSpan.textContent = String(d.index + 1);
+      const numSpan = document.createElement('span');
+      numSpan.className = 'vd-pill-num';
+      numSpan.textContent = String(d.index + 1);
 
-    const nameSpan = document.createElement('span');
-    nameSpan.className = 'vd-pill-name';
-    nameSpan.textContent = d.name || `Desktop ${d.index + 1}`;
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'vd-pill-name';
+      nameSpan.textContent = d.name || `Desktop ${d.index + 1}`;
 
-    pill.appendChild(numSpan);
-    pill.appendChild(nameSpan);
+      pill.appendChild(numSpan);
+      pill.appendChild(nameSpan);
 
-    pill.addEventListener('click', (ev) => {
-      ev.stopPropagation();
-      if (window.winzen && window.winzen.desktops) {
-        window.winzen.desktops.switch(d.index);
-      } else if (window.winzen) {
-        window.winzen.send('switch_desktop', { index: d.index });
-      }
+      pill.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        switchDesktop(d.index);
+      });
+
+      pillsContainer.appendChild(pill);
     });
+  }
 
-    pillsContainer.appendChild(pill);
-  });
+  // 2. Render Compact Mode (clean numbers 1  2  3)
+  if (compactNumbers) {
+    compactNumbers.innerHTML = '';
+    desktops.forEach((d) => {
+      const numBtn = document.createElement('button');
+      numBtn.className = `vd-compact-num ${d.isCurrent ? 'active' : ''}`;
+      numBtn.textContent = String(d.index + 1);
+      numBtn.title = `${d.name || 'Desktop ' + (d.index + 1)} (Click to switch)`;
+      numBtn.setAttribute('aria-label', d.name || `Desktop ${d.index + 1}`);
 
+      numBtn.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        switchDesktop(d.index);
+      });
+
+      compactNumbers.appendChild(numBtn);
+    });
+  }
+
+  // 3. Update Icon Mode (badge and label)
   const cur = desktops.find((d) => d.isCurrent) || desktops[0];
-  if (iconBadge) iconBadge.textContent = String((cur ? cur.index : currentIndex) + 1);
-  if (iconLabel) iconLabel.textContent = cur ? cur.name : 'Desktop 1';
+  const idx = cur ? cur.index : currentIndex;
+  if (iconBadge) iconBadge.textContent = String(idx + 1);
+  if (iconLabel) iconLabel.textContent = cur ? cur.name : `Desktop ${idx + 1}`;
   if (btnIconMode) {
-    btnIconMode.title = `Virtual Desktop: ${cur ? cur.name : 'Desktop 1'} (Scroll to switch, click for Task View)`;
+    btnIconMode.title = `Virtual Desktop: ${cur ? cur.name : 'Desktop ' + (idx + 1)} (Scroll to switch, click for Task View)`;
   }
 }
 
@@ -96,7 +137,7 @@ if (btnIconMode) {
   });
 }
 
-// Mouse wheel capture: scroll wheel over widget switches desktops smoothly!
+// Mouse wheel capture: scroll wheel over any view cycles desktops smoothly
 function onDesktopWheel(ev) {
   ev.preventDefault();
   ev.stopPropagation();

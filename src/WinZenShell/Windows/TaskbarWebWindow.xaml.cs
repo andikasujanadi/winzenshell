@@ -171,6 +171,33 @@ public partial class TaskbarWebWindow : Window
             string cmd = File.ReadAllText(triggerPath).Trim();
             try { File.Delete(triggerPath); } catch { }
 
+            if (cmd.StartsWith("capture_taskbar", StringComparison.OrdinalIgnoreCase))
+            {
+                var parts = cmd.Split(' ');
+                string outPath = parts.Length > 1 ? parts[1] : Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "taskbar_capture.png");
+                Dispatcher.InvokeAsync(async () =>
+                {
+                    try
+                    {
+                        if (TaskbarWebView != null && TaskbarWebView.CoreWebView2 != null)
+                        {
+                            using (var fs = new FileStream(outPath, FileMode.Create, FileAccess.Write, FileShare.None))
+                            {
+                                await TaskbarWebView.CoreWebView2.CapturePreviewAsync(
+                                    Microsoft.Web.WebView2.Core.CoreWebView2CapturePreviewImageFormat.Png,
+                                    fs);
+                                await fs.FlushAsync();
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "capture_err.txt"), ex.ToString());
+                    }
+                });
+                return;
+            }
+
             Dispatcher.Invoke(() =>
             {
                 try

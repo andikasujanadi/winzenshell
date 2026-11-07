@@ -5,12 +5,13 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <!-- Widget Mode: Full Interactive Virtual Desktop Switcher -->
+  <!-- Widget Mode: Full Interactive Virtual Desktop Switcher with Names -->
   <div class="vd-widget-view" id="vdWidgetView">
     <button class="vd-btn-taskview" id="btnTaskView" title="Task View (Win + Tab)" aria-label="Task View">
-      <svg class="vd-icon" viewBox="0 0 16 16" fill="currentColor">
-        <path d="M2 3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3zm1 0v10h10V3H3z"/>
-        <path d="M4.5 4.5h7v3h-7v-3zm0 4h7v3h-7v-3z" opacity="0.6"/>
+      <svg class="vd-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="4.5" y="1.5" width="9.5" height="8.5" rx="1.5" opacity="0.6"/>
+        <rect x="1.5" y="5" width="9.5" height="8.5" rx="1.5" fill="var(--winzen-surface, rgba(255,255,255,0.12))"/>
+        <line x1="1.5" y1="7.5" x2="11" y2="7.5" opacity="0.4"/>
       </svg>
     </button>
 
@@ -25,11 +26,20 @@
     </button>
   </div>
 
-  <!-- Icon Mode: Compact Single Pill with Current Desktop Name/Index -->
+  <!-- Compact Mode: Minimalist Numbers Only (1  2  3) in a Unified Pill -->
+  <div class="vd-compact-view" id="vdCompactView">
+    <div class="vd-compact-numbers" id="vdCompactNumbers">
+      <!-- Dynamically populated 1  2  3 buttons -->
+    </div>
+  </div>
+
+  <!-- Icon Mode: Task View Dual Desktop Icon + Badge + Name -->
   <div class="vd-icon-view" id="vdIconView">
     <button class="vd-icon-btn" id="btnIconMode" title="Virtual Desktops (Scroll to switch, click for Task View)" aria-label="Virtual Desktops">
-      <svg class="vd-icon" viewBox="0 0 16 16" fill="currentColor">
-        <path d="M2 3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3zm1 0v10h10V3H3z"/>
+      <svg class="vd-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="4.5" y="1.5" width="9.5" height="8.5" rx="1.5" opacity="0.6"/>
+        <rect x="1.5" y="5" width="9.5" height="8.5" rx="1.5" fill="var(--winzen-surface, rgba(255,255,255,0.12))"/>
+        <line x1="1.5" y1="7.5" x2="11" y2="7.5" opacity="0.4"/>
       </svg>
       <span class="vd-icon-badge" id="iconBadge">1</span>
       <span class="vd-icon-label" id="iconLabel">Work</span>

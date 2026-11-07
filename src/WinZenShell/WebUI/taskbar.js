@@ -66,11 +66,11 @@ function initTaskbar() {
 
       const host = document.createElement('div');
       host.className = `widget-host theme-${currentTheme}`;
-      host.dataset.mode = isIconMode ? 'icon' : 'widget';
+      host.dataset.mode = w.displayMode || 'widget';
       host.dataset.inControlCenter = 'false';
       host.dataset.theme = currentTheme;
       host.setAttribute('data-theme', currentTheme);
-      host.style.width = isIconMode ? '34px' : (isAutoWidth ? 'auto' : `${w.width || 160}px`);
+      host.style.width = isAutoWidth ? 'auto' : (isIconMode ? '34px' : `${w.width || 160}px`);
       host.dataset.widgetId = w.id;
 
       const shadow = host.attachShadow({ mode: 'open' });
@@ -158,7 +158,7 @@ function initTaskbar() {
             ...w,
             inControlCenter: false,
             aspectRatio: 'taskbar',
-            displayMode: isIconMode ? 'icon' : (w.displayMode || 'widget')
+            displayMode: w.displayMode || 'widget'
           };
           const fn = new Function('root', 'document', 'winzen', 'widgetConfig', w.jsContent);
           fn(shadow, shadow, window.winzen, taskbarConfig);

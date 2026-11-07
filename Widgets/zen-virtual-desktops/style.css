@@ -19,25 +19,33 @@ html, body {
   align-items: center;
 }
 
-/* Widget Mode View */
+/* ==========================================================================
+   1. Large / Full Mode View (.vd-widget-view)
+   ========================================================================== */
 .vd-widget-view {
   display: flex;
   align-items: center;
   gap: 4px;
-  height: 38px;
+  height: 32px;
   padding: 0 4px;
   background: var(--winzen-surface-hover, rgba(255, 255, 255, 0.04));
   border: 1px solid var(--winzen-border, rgba(255, 255, 255, 0.06));
   border-radius: var(--winzen-radius-sm, 8px);
-  width: 100%;
+  width: auto;
+  transition: all 0.15s ease;
+}
+
+.vd-widget-view:hover {
+  background: var(--winzen-surface-active, rgba(255, 255, 255, 0.06));
+  border-color: var(--winzen-border, rgba(255, 255, 255, 0.08));
 }
 
 .vd-btn-taskview {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   border-radius: 6px;
   background: transparent;
   border: none;
@@ -58,11 +66,17 @@ html, body {
 }
 
 .vd-icon {
-  width: 15px;
-  height: 15px;
+  width: 16px;
+  height: 16px;
+  color: var(--winzen-accent, #60cdff);
 }
 
-/* Pills Container */
+:host([data-theme="light"]) .vd-icon,
+:host(.theme-light) .vd-icon {
+  color: var(--winzen-accent, #0067c0);
+}
+
+/* Pills Container in Large Mode */
 .vd-pills-container {
   display: flex;
   align-items: center;
@@ -71,23 +85,23 @@ html, body {
   flex: 1;
 }
 
-/* Individual Desktop Pill */
 .vd-pill {
   position: relative;
   display: flex;
   align-items: center;
   gap: 5px;
-  height: 28px;
+  height: 26px;
   padding: 0 8px;
   border-radius: 6px;
   background: transparent;
   border: 1px solid transparent;
   color: var(--winzen-text-secondary, #cccccc);
+  font-family: inherit;
   font-size: 11.5px;
   font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
-  max-width: 110px;
+  max-width: 120px;
   transition: all 0.15s ease;
 }
 
@@ -115,7 +129,6 @@ html, body {
   white-space: nowrap;
 }
 
-/* Active State Pill */
 .vd-pill.active {
   background: var(--winzen-surface-active, rgba(255, 255, 255, 0.14));
   border-color: var(--winzen-border-accent, rgba(255, 255, 255, 0.18));
@@ -127,39 +140,45 @@ html, body {
   color: var(--winzen-accent, #60cdff);
 }
 
-/* Bottom Active Accent Indicator */
+:host([data-theme="light"]) .vd-pill.active .vd-pill-num,
+:host(.theme-light) .vd-pill.active .vd-pill-num {
+  color: var(--winzen-accent, #0067c0);
+}
+
 .vd-pill.active::after {
   content: '';
   position: absolute;
-  bottom: 2px;
+  bottom: 1.5px;
   left: 20%;
   right: 20%;
-  height: 2.5px;
+  height: 2px;
   background: var(--winzen-accent, #60cdff);
-  border-radius: 2px;
-  box-shadow: 0 0 6px var(--winzen-accent, #60cdff);
+  border-radius: 1px;
 }
 
-/* Add Desktop Button */
+:host([data-theme="light"]) .vd-pill.active::after,
+:host(.theme-light) .vd-pill.active::after {
+  background: var(--winzen-accent, #0067c0);
+}
+
 .vd-btn-add {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 28px;
+  width: 22px;
+  height: 26px;
   border-radius: 6px;
   background: transparent;
   border: 1px solid transparent;
-  color: var(--winzen-text-tertiary, #888888);
+  color: var(--winzen-text-secondary, #cccccc);
   cursor: pointer;
   transition: all 0.15s ease;
   flex-shrink: 0;
 }
 
 .vd-btn-add:hover {
-  background: rgba(255, 255, 255, 0.09);
-  color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.06);
+  background: var(--winzen-surface-hover, rgba(255, 255, 255, 0.09));
+  color: var(--winzen-text, #ffffff);
 }
 
 .vd-btn-add:active {
@@ -171,7 +190,94 @@ html, body {
   height: 13px;
 }
 
-/* Icon Mode View */
+/* ==========================================================================
+   2. Compact Mode View (.vd-compact-view: 1  2  3)
+   ========================================================================== */
+.vd-compact-view {
+  display: none;
+  align-items: center;
+  height: 32px;
+  padding: 0 6px;
+  background: var(--winzen-surface-hover, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--winzen-border, rgba(255, 255, 255, 0.06));
+  border-radius: var(--winzen-radius-sm, 8px);
+  width: auto;
+  transition: all 0.15s ease;
+}
+
+.vd-compact-view:hover {
+  background: var(--winzen-surface-active, rgba(255, 255, 255, 0.06));
+  border-color: var(--winzen-border, rgba(255, 255, 255, 0.08));
+}
+
+.vd-compact-numbers {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 2px;
+}
+
+.vd-compact-num {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 24px;
+  padding: 0 5px;
+  border-radius: 5px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--winzen-text-secondary, #cccccc);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.vd-compact-num:hover {
+  color: var(--winzen-text, #ffffff);
+  background: var(--winzen-surface-hover, rgba(255, 255, 255, 0.08));
+  border-color: var(--winzen-border, rgba(255, 255, 255, 0.06));
+}
+
+.vd-compact-num:active {
+  transform: scale(0.92);
+}
+
+.vd-compact-num.active {
+  color: var(--winzen-accent, #60cdff);
+  font-weight: 700;
+  background: var(--winzen-surface-active, rgba(255, 255, 255, 0.12));
+  border-color: var(--winzen-border-accent, rgba(255, 255, 255, 0.16));
+}
+
+.vd-compact-num.active::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  left: 20%;
+  right: 20%;
+  height: 2px;
+  background: var(--winzen-accent, #60cdff);
+  border-radius: 1px;
+}
+
+:host([data-theme="light"]) .vd-compact-num.active,
+:host(.theme-light) .vd-compact-num.active {
+  color: var(--winzen-accent, #0067c0);
+}
+
+:host([data-theme="light"]) .vd-compact-num.active::after,
+:host(.theme-light) .vd-compact-num.active::after {
+  background: var(--winzen-accent, #0067c0);
+}
+
+/* ==========================================================================
+   3. Icon Mode View (.vd-icon-view: Task View Icon + Badge + Name)
+   ========================================================================== */
 .vd-icon-view {
   display: none;
   align-items: center;
@@ -182,35 +288,49 @@ html, body {
   display: flex;
   align-items: center;
   gap: 6px;
-  height: 34px;
-  padding: 0 9px;
-  border-radius: 7px;
-  background: transparent;
-  border: 1px solid transparent;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: var(--winzen-radius-sm, 8px);
+  background: var(--winzen-surface-hover, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--winzen-border, rgba(255, 255, 255, 0.06));
   color: var(--winzen-text, #ffffff);
   cursor: pointer;
-  font-size: 11.5px;
+  font-family: inherit;
+  font-size: 12px;
   font-weight: 500;
   transition: all 0.15s ease;
+  white-space: nowrap;
 }
 
 .vd-icon-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.06);
+  background: var(--winzen-surface-active, rgba(255, 255, 255, 0.08));
+  border-color: var(--winzen-border, rgba(255, 255, 255, 0.08));
+}
+
+.vd-icon-btn:active {
+  transform: scale(0.96);
 }
 
 .vd-icon-badge {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--winzen-accent, #60cdff);
   background: rgba(96, 205, 255, 0.15);
-  padding: 1px 5px;
+  padding: 1px 6px;
   border-radius: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+:host([data-theme="light"]) .vd-icon-badge,
+:host(.theme-light) .vd-icon-badge {
+  color: var(--winzen-accent, #0067c0);
+  background: rgba(0, 103, 192, 0.12);
 }
 
 .vd-icon-label {
-  max-width: 80px;
+  max-width: 90px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: var(--winzen-text, #ffffff);
 }
