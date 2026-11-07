@@ -11,6 +11,6 @@
   "autoWidth": true,
   "supportedModes": ["widget"],
   "enabled": true,
-  "batteryIconStyle": "win11",
+  "batteryIconStyle": "macos",
   "batteryPercentMode": "outside-right"
 }

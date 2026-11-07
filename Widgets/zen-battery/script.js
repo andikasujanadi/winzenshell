@@ -8,7 +8,10 @@ let currentMode = (typeof widgetConfig !== 'undefined' && widgetConfig && widget
 
 let lastMetrics = null;
 
-const BOLT_SVG = `<svg class="batt-bolt" viewBox="0 0 16 16"><path d="M9.5 1L3 8.5h4.5L6.5 15l6.5-7.5H8.5L9.5 1z"/></svg>`;
+const BOLT_SVG = `<svg class="batt-bolt" viewBox="0 0 12 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path class="bolt-halo" d="M7 1L1 8.5H5.5L4 14.5L11 7H6.5L7 1Z" stroke="rgba(0,0,0,0.7)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+  <path class="bolt-core" d="M7 1L1 8.5H5.5L4 14.5L11 7H6.5L7 1Z" fill="#ffffff"/>
+</svg>`;
 
 function buildIconHtml(style) {
   switch (style) {
@@ -29,7 +32,9 @@ function buildIconHtml(style) {
         <div class="batt-row">
           <div class="batt-housing">
             <div class="batt-fill-bar" id="fillBar"></div>
-            ${BOLT_SVG}
+            <svg class="batt-bolt batt-bolt-macos" viewBox="0 0 9 12" fill="none">
+              <path d="M5.5 0.5L0.5 6.5H4L3 11.5L8 5.5H4.5L5.5 0.5Z" fill="#ffffff"/>
+            </svg>
             <span class="pct-inside" id="pctInside">--</span>
           </div>
           <div class="batt-cap"></div>
@@ -42,10 +47,10 @@ function buildIconHtml(style) {
         <div class="batt-row">
           <div class="batt-housing">
             <div class="batt-fill-bar" id="fillBar"></div>
-            ${BOLT_SVG}
             <span class="pct-inside" id="pctInside">--</span>
           </div>
           <div class="batt-cap"></div>
+          ${BOLT_SVG}
         </div>
       `;
   }
@@ -77,7 +82,9 @@ function updateBatteryDisplay(m) {
   const pct = typeof m.batteryPercent === 'number' ? Math.max(0, Math.min(100, m.batteryPercent)) : 100;
   const isCharging = !!m.isCharging;
   const hasBattery = m.hasBattery !== false;
-  const statusText = m.batteryStatusText || (isCharging ? 'Charging' : 'On Battery');
+  const isLow = pct <= 5 && !isCharging;
+  const isEnergySaver = pct > 5 && pct <= 20 && !isCharging;
+  const statusText = m.batteryStatusText || (isCharging ? 'Charging' : (isEnergySaver ? 'Energy Saver' : 'On Battery'));
 
   const fillBar = root.getElementById('fillBar');
   const pctInside = root.getElementById('pctInside');
@@ -101,7 +108,8 @@ function updateBatteryDisplay(m) {
 
   if (batteryRoot) {
     batteryRoot.classList.toggle('is-charging', isCharging);
-    batteryRoot.classList.toggle('is-low', pct <= 20 && !isCharging);
+    batteryRoot.classList.toggle('is-low', isLow);
+    batteryRoot.classList.toggle('is-energy-saver', isEnergySaver);
     batteryRoot.title = `Battery: ${pct}% • ${statusText} (Click to open Battery Settings)`;
   }
 }

@@ -910,7 +910,7 @@ function initSettingsPage() {
             <select class="win11-select w-batteryicon">
               <option value="win11" ${curStyle === 'win11' ? 'selected' : ''}>Windows 11 (Fluent)</option>
               <option value="win10" ${curStyle === 'win10' ? 'selected' : ''}>Windows 10</option>
-              <option value="macos" ${curStyle === 'macos' ? 'selected' : ''}>macOS</option>
+              <option value="macos" ${curStyle === 'macos' ? 'selected' : ''}>macOS (iOS 27)</option>
             </select>
           </div>
           <div class="subrow-field">

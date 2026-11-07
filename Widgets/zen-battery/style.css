@@ -77,17 +77,21 @@
 
 /* Color Variables */
 .battery-icon-wrap {
-  --batt-border: rgba(255, 255, 255, 0.45);
+  --batt-border: #ffffff;
+  --batt-cap: #ffffff;
   --batt-fill: #ffffff;
-  --batt-charging: #22c55e;
+  --batt-charging: #6ccb5f;
+  --batt-saver: #f59e0b;
   --batt-low: #ef4444;
 }
 
 :host([data-theme="light"]) .battery-icon-wrap,
 :host(.theme-light) .battery-icon-wrap {
-  --batt-border: rgba(0, 0, 0, 0.5);
-  --batt-fill: #1a1a1a;
-  --batt-charging: #16a34a;
+  --batt-border: #1b1b1b;
+  --batt-cap: #1b1b1b;
+  --batt-fill: #1b1b1b;
+  --batt-charging: #15803d;
+  --batt-saver: #d97706;
   --batt-low: #dc2626;
 }
 
@@ -95,6 +99,13 @@
 .is-charging .batt-fill-bar {
   background: var(--batt-charging) !important;
 }
+.is-energy-saver:not(.is-charging) .batt-fill-bar {
+  background: var(--batt-saver) !important;
+}
+.is-low:not(.is-charging) .batt-fill-bar {
+  background: var(--batt-low) !important;
+}
+
 .is-charging .batt-bolt {
   display: block !important;
 }
@@ -108,33 +119,31 @@
   pointer-events: none;
 }
 
-.is-low:not(.is-charging) .batt-fill-bar {
-  background: var(--batt-low) !important;
-}
-
 /* 1. Windows 11 Fluent Style */
 .style-win11 .batt-row {
+  position: relative;
   display: flex;
   align-items: center;
 }
 
 .style-win11 .batt-housing {
   position: relative;
-  width: 24px;
+  width: 25px;
   height: 13px;
-  border-radius: 3.5px;
+  border-radius: 4px;
   border: 1.5px solid var(--batt-border);
   padding: 1.5px;
   display: flex;
   align-items: center;
   overflow: hidden;
+  background: transparent;
 }
 
 .style-win11 .batt-cap {
   width: 2px;
   height: 5px;
   border-radius: 0 1.5px 1.5px 0;
-  background: var(--batt-border);
+  background: var(--batt-cap);
   margin-left: 1px;
 }
 
@@ -153,18 +162,24 @@
   justify-content: center;
   font-size: 7.5px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--batt-fill);
   text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+}
+
+:host([data-theme="light"]) .style-win11 .pct-inside,
+:host(.theme-light) .style-win11 .pct-inside {
+  color: #1b1b1b;
+  text-shadow: none;
 }
 
 .style-win11 .batt-bolt {
   position: absolute;
-  inset: 0;
-  margin: auto;
-  width: 9px;
-  height: 9px;
-  fill: #ffffff;
-  filter: drop-shadow(0 0 2px rgba(0,0,0,0.8));
+  top: -3px;
+  left: 7.5px;
+  width: 10px;
+  height: 15px;
+  z-index: 2;
+  pointer-events: none;
   display: none;
 }
 
@@ -223,7 +238,7 @@
   display: none;
 }
 
-/* 3. macOS Style */
+/* 3. macOS / iOS 27 Style */
 .style-macos .batt-row {
   display: flex;
   align-items: center;
@@ -232,32 +247,80 @@
 .style-macos .batt-housing {
   position: relative;
   width: 25px;
-  height: 13px;
+  height: 12.5px;
   border-radius: 4.5px;
-  border: 1.5px solid var(--batt-border);
+  border: 1.2px solid rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.2);
   padding: 1.5px;
   display: flex;
   align-items: center;
   overflow: hidden;
 }
 
+:host([data-theme="light"]) .style-macos .batt-housing,
+:host(.theme-light) .style-macos .batt-housing {
+  border-color: rgba(0, 0, 0, 0.3);
+  background: rgba(0, 0, 0, 0.1);
+}
+
 .style-macos .batt-cap {
   width: 2px;
-  height: 5px;
+  height: 4.5px;
   border-radius: 0 2px 2px 0;
-  background: var(--batt-border);
+  background: rgba(255, 255, 255, 0.4);
   margin-left: 1px;
+}
+
+:host([data-theme="light"]) .style-macos .batt-cap,
+:host(.theme-light) .style-macos .batt-cap {
+  background: rgba(0, 0, 0, 0.3);
 }
 
 .style-macos .batt-fill-bar {
   height: 100%;
-  border-radius: 2px;
-  background: #34c759;
+  border-radius: 2.5px;
+  background: #ffffff;
   transition: width 0.3s ease;
 }
 
-.style-macos:not(.is-charging) .is-low .batt-fill-bar {
-  background: #ff3b30 !important;
+:host([data-theme="light"]) .style-macos .batt-fill-bar,
+:host(.theme-light) .style-macos .batt-fill-bar {
+  background: #000000;
+}
+
+.style-macos.is-charging .batt-fill-bar {
+  background: #30d158 !important;
+}
+
+:host([data-theme="light"]) .style-macos.is-charging .batt-fill-bar,
+:host(.theme-light) .style-macos.is-charging .batt-fill-bar {
+  background: #34c759 !important;
+}
+
+.style-macos.is-energy-saver:not(.is-charging) .batt-fill-bar {
+  background: #ffd60a !important;
+}
+
+.style-macos.is-low:not(.is-charging) .batt-fill-bar {
+  background: #ff453a !important;
+}
+
+.style-macos .batt-bolt {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 7.5px;
+  height: 10px;
+  z-index: 2;
+  display: none;
+}
+
+.style-macos.is-charging .batt-bolt {
+  display: block !important;
+}
+
+.style-macos.mode-inside.is-charging .batt-bolt {
+  display: none !important;
 }
 
 .style-macos .pct-inside {
@@ -266,21 +329,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 8px;
+  font-size: 7.5px;
   font-weight: 700;
   color: #ffffff;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
 }
 
-.style-macos .batt-bolt {
-  position: absolute;
-  inset: 0;
-  margin: auto;
-  width: 9px;
-  height: 9px;
-  fill: #ffffff;
-  filter: drop-shadow(0 0 2px rgba(0,0,0,0.8));
-  display: none;
+:host([data-theme="light"]) .style-macos .pct-inside,
+:host(.theme-light) .style-macos .pct-inside {
+  color: #1b1b1b;
+  text-shadow: none;
 }
 
 
