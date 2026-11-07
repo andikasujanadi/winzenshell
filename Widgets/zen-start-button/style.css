@@ -38,6 +38,39 @@
   background: var(--winzen-surface-active, rgba(255, 255, 255, 0.0326));
 }
 
+:host([data-theme="light"]) .start-pill,
+:host(.theme-light) .start-pill,
+.theme-light .start-pill,
+[data-theme="light"] .start-pill,
+body.theme-light .start-pill {
+  color: #1b1b1b;
+}
+
+:host([data-theme="light"]) .start-text,
+:host(.theme-light) .start-text,
+.theme-light .start-text,
+[data-theme="light"] .start-text,
+body.theme-light .start-text {
+  color: #1b1b1b;
+}
+
+:host([data-theme="light"]) .start-pill:hover,
+:host(.theme-light) .start-pill:hover,
+.theme-light .start-pill:hover,
+[data-theme="light"] .start-pill:hover,
+body.theme-light .start-pill:hover {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+:host([data-theme="light"]) .start-pill:active,
+:host(.theme-light) .start-pill:active,
+.theme-light .start-pill:active,
+[data-theme="light"] .start-pill:active,
+body.theme-light .start-pill:active {
+  background: rgba(0, 0, 0, 0.09);
+}
+
 .start-icon {
   display: inline-flex;
   align-items: center;

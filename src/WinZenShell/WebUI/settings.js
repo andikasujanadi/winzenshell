@@ -871,7 +871,7 @@ function initSettingsPage() {
             <label>Launcher icon</label>
             <select class="win11-select w-starticon">
               <option value="chromeos" ${curIcon === 'chromeos' ? 'selected' : ''}>ChromeOS</option>
-              <option value="windows" ${curIcon === 'windows' ? 'selected' : ''}>Windows 11 (Fluent)</option>
+              <option value="windows" ${curIcon === 'windows' ? 'selected' : ''}>Windows 11</option>
               <option value="win10" ${curIcon === 'win10' ? 'selected' : ''}>Windows 10</option>
               <option value="apple" ${curIcon === 'apple' ? 'selected' : ''}>Apple</option>
             </select>
@@ -908,18 +908,17 @@ function initSettingsPage() {
           <div class="subrow-field">
             <label>Battery icon style</label>
             <select class="win11-select w-batteryicon">
-              <option value="win11" ${curStyle === 'win11' ? 'selected' : ''}>Windows 11 (Fluent)</option>
-              <option value="win10" ${curStyle === 'win10' ? 'selected' : ''}>Windows 10</option>
-              <option value="macos" ${curStyle === 'macos' ? 'selected' : ''}>macOS (iOS 27)</option>
+              <option value="win11" ${curStyle === 'win11' ? 'selected' : ''}>W11</option>
+              <option value="win10" ${curStyle === 'win10' ? 'selected' : ''}>W10</option>
+              <option value="macos" ${curStyle === 'macos' ? 'selected' : ''}>M27</option>
             </select>
           </div>
           <div class="subrow-field">
             <label>Percentage position</label>
             <select class="win11-select w-batterypercent">
-              <option value="outside-right" ${curMode === 'outside-right' ? 'selected' : ''}>Outside (Right)</option>
-              <option value="outside-left" ${curMode === 'outside-left' ? 'selected' : ''}>Outside (Left)</option>
-              <option value="inside" ${curMode === 'inside' ? 'selected' : ''}>Inside Icon</option>
-              <option value="hide" ${curMode === 'hide' ? 'selected' : ''}>Hide Percentage</option>
+              <option value="hide" ${curMode === 'hide' || curMode === 'none' ? 'selected' : ''}>None</option>
+              <option value="outside-left" ${curMode === 'outside-left' || curMode === 'left' ? 'selected' : ''}>Left</option>
+              <option value="outside-right" ${curMode === 'outside-right' || curMode === 'right' ? 'selected' : ''}>Right</option>
             </select>
           </div>
         `;
