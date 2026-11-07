@@ -530,6 +530,8 @@ public partial class NetworkFlyoutWindow : Window
 
         if (isLight)
         {
+            Resources["ScrollBarThumbBrush"] = new SolidColorBrush(MediaColor.FromArgb(0x35, 0, 0, 0));
+            Resources["ScrollBarThumbHoverBrush"] = new SolidColorBrush(MediaColor.FromArgb(0x60, 0, 0, 0));
             OuterBorder.Background = new SolidColorBrush(MediaColor.FromRgb(0xF3, 0xF3, 0xF3));
             OuterBorder.BorderBrush = new SolidColorBrush(MediaColor.FromArgb(0x28, 0, 0, 0));
             TxtHeaderTitle.Foreground = new SolidColorBrush(MediaColor.FromRgb(0x1B, 0x1B, 0x1B));
@@ -541,6 +543,8 @@ public partial class NetworkFlyoutWindow : Window
         }
         else
         {
+            Resources["ScrollBarThumbBrush"] = new SolidColorBrush(MediaColor.FromArgb(0x4A, 0xFF, 0xFF, 0xFF));
+            Resources["ScrollBarThumbHoverBrush"] = new SolidColorBrush(MediaColor.FromArgb(0x7A, 0xFF, 0xFF, 0xFF));
             OuterBorder.Background = new SolidColorBrush(MediaColor.FromRgb(0x1E, 0x1E, 0x1E));
             OuterBorder.BorderBrush = new SolidColorBrush(MediaColor.FromRgb(0x3E, 0x3E, 0x3E));
             TxtHeaderTitle.Foreground = new SolidColorBrush(MediaColor.FromRgb(0xFF, 0xFF, 0xFF));
