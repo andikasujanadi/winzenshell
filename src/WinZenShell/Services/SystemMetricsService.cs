@@ -21,6 +21,7 @@ public class RunningWindowItem
     public bool IsActive { get; set; }
     public string IconDataUrl { get; set; } = "";
     public long OrderIndex { get; set; }
+    public string ExePath { get; set; } = "";
 }
 
 public class HiddenAppEntry
@@ -47,6 +48,7 @@ public class SystemMetricsSnapshot
     public string DateFormatted { get; set; } = "";
     public List<RunningWindowItem> Windows { get; set; } = new();
     public List<HiddenAppEntry> HiddenApps { get; set; } = new();
+    public List<PinnedAppEntry> PinnedApps { get; set; } = new();
 }
 
 public class SystemMetricsService
@@ -73,6 +75,8 @@ public class SystemMetricsService
     // Cache extracted PNG base64 icons by HWND and by executable path
     private readonly Dictionary<long, string> _hwndIconCache = new();
     private readonly Dictionary<string, string> _exeIconCache = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, string> _appExePathMap = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, string> _appIconMap = new(StringComparer.OrdinalIgnoreCase);
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
     private class MEMORYSTATUSEX
@@ -344,6 +348,24 @@ public class SystemMetricsService
         return _hiddenAppCatalog.Values.ToList();
     }
 
+    public string? GetExePathForApp(string appId, string? processName = null)
+    {
+        if (!string.IsNullOrWhiteSpace(appId) && _appExePathMap.TryGetValue(appId, out var ep))
+            return ep;
+        if (!string.IsNullOrWhiteSpace(processName) && _appExePathMap.TryGetValue(processName, out ep))
+            return ep;
+        return null;
+    }
+
+    public string? GetIconForApp(string appId, string? processName = null)
+    {
+        if (!string.IsNullOrWhiteSpace(appId) && _appIconMap.TryGetValue(appId, out var ic))
+            return ic;
+        if (!string.IsNullOrWhiteSpace(processName) && _appIconMap.TryGetValue(processName, out ic))
+            return ic;
+        return null;
+    }
+
     public void CloseWindow(long hwndVal)
     {
         IntPtr hWnd = new IntPtr(hwndVal);
@@ -508,6 +530,18 @@ public class SystemMetricsService
                 iconDataUrl = GetOrExtractWindowIcon(hWnd, pid);
             }
 
+            string? exePath = pid > 0 ? TryGetProcessExePath(pid) : null;
+            if (!string.IsNullOrWhiteSpace(exePath))
+            {
+                _appExePathMap[appId] = exePath;
+                _appExePathMap[procName] = exePath;
+            }
+            if (!string.IsNullOrWhiteSpace(iconDataUrl))
+            {
+                _appIconMap[appId] = iconDataUrl;
+                _appIconMap[procName] = iconDataUrl;
+            }
+
             string friendlyName = GetFriendlyAppName(procName, title);
 
             discovered.Add(new RunningWindowItem
@@ -519,7 +553,8 @@ public class SystemMetricsService
                 IsMinimized = Win32Api.IsIconic(hWnd),
                 IsActive = hWnd == foregroundWnd,
                 IconDataUrl = iconDataUrl,
-                OrderIndex = orderIdx
+                OrderIndex = orderIdx,
+                ExePath = exePath ?? ""
             });
 
             return discovered.Count < 14;

@@ -42,10 +42,13 @@ function closeContextMenu() {
 
 window.addEventListener('winzen:metrics', (e) => {
   const m = e.detail;
-  if (!m || !Array.isArray(m.windows) || !strip) return;
+  if (!m || !strip) return;
+
+  const rawWindows = Array.isArray(m.windows) ? m.windows : [];
+  const pinnedList = Array.isArray(m.pinnedApps) ? m.pinnedApps : [];
 
   const currentMap = new Map();
-  m.windows.forEach((w) => {
+  rawWindows.forEach((w) => {
     currentMap.set(w.hwnd, w);
     if (!seenOrder.includes(w.hwnd)) {
       seenOrder.push(w.hwnd);
@@ -62,39 +65,66 @@ window.addEventListener('winzen:metrics', (e) => {
     .map((hwnd) => currentMap.get(hwnd))
     .filter(Boolean);
 
-  let itemsToRender = [];
+  // Group running windows by appId / processName
+  const appGroups = new Map();
+  rawOrdered.forEach((w) => {
+    const key = (w.appId || w.processName).toLowerCase();
+    if (!appGroups.has(key)) {
+      appGroups.set(key, {
+        key,
+        appId: w.appId || key,
+        processName: w.processName,
+        title: w.title,
+        exePath: w.exePath || '',
+        iconDataUrl: w.iconDataUrl || '',
+        isPinned: false,
+        isClosedPinned: false,
+        windows: []
+      });
+    }
+    const grp = appGroups.get(key);
+    grp.windows.push(w);
+    if (!grp.iconDataUrl && w.iconDataUrl) grp.iconDataUrl = w.iconDataUrl;
+    if (!grp.exePath && w.exePath) grp.exePath = w.exePath;
+  });
 
-  if (combineApps) {
-    // Group windows by appId or processName while maintaining discovery order
-    const appGroups = new Map();
-    rawOrdered.forEach((w) => {
-      const key = w.appId || w.processName.toLowerCase();
-      if (!appGroups.has(key)) {
-        appGroups.set(key, {
-          key,
-          appId: w.appId || key,
-          processName: w.processName,
-          title: w.title,
-          iconDataUrl: w.iconDataUrl,
-          windows: []
-        });
-      }
-      const grp = appGroups.get(key);
-      grp.windows.push(w);
-      if (!grp.iconDataUrl && w.iconDataUrl) grp.iconDataUrl = w.iconDataUrl;
-    });
+  const orderedItems = [];
+  const usedRunningKeys = new Set();
 
-    itemsToRender = Array.from(appGroups.values()).slice(0, 8);
-  } else {
-    itemsToRender = rawOrdered.slice(0, 8).map((w) => ({
-      key: String(w.hwnd),
-      appId: w.appId,
-      processName: w.processName,
-      title: w.title,
-      iconDataUrl: w.iconDataUrl,
-      windows: [w]
-    }));
+  // 1. Process Pinned Apps first (Windows 11 pinned sequence)
+  pinnedList.forEach((pin) => {
+    const pKey = (pin.appId || pin.processName).toLowerCase();
+    const runningMatch = appGroups.get(pKey);
+
+    if (runningMatch) {
+      runningMatch.isPinned = true;
+      if (!runningMatch.exePath && pin.exePath) runningMatch.exePath = pin.exePath;
+      if (!runningMatch.iconDataUrl && pin.iconDataUrl) runningMatch.iconDataUrl = pin.iconDataUrl;
+      orderedItems.push(runningMatch);
+      usedRunningKeys.add(pKey);
+    } else {
+      orderedItems.push({
+        key: `pinned:${pKey}`,
+        appId: pin.appId,
+        processName: pin.processName,
+        title: pin.title || pin.processName,
+        exePath: pin.exePath || '',
+        iconDataUrl: pin.iconDataUrl || '',
+        isPinned: true,
+        isClosedPinned: true,
+        windows: []
+      });
+    }
+  });
+
+  // 2. Append unpinned running apps in discovery order
+  for (const [key, grp] of appGroups.entries()) {
+    if (!usedRunningKeys.has(key)) {
+      orderedItems.push(grp);
+    }
   }
+
+  const itemsToRender = orderedItems.slice(0, 10);
 
   const sig = JSON.stringify({
     showAppName,
@@ -102,8 +132,10 @@ window.addEventListener('winzen:metrics', (e) => {
     items: itemsToRender.map((it) => ({
       k: it.key,
       count: it.windows.length,
+      isClosed: !!it.isClosedPinned,
+      isPinned: !!it.isPinned,
       hasActive: it.windows.some((w) => w.isActive),
-      allMin: it.windows.every((w) => w.isMinimized),
+      allMin: it.windows.length > 0 && it.windows.every((w) => w.isMinimized),
       t: it.title,
       i: !!it.iconDataUrl
     }))
@@ -121,10 +153,11 @@ window.addEventListener('winzen:metrics', (e) => {
   itemsToRender.forEach((item) => {
     const isMulti = item.windows.length > 1;
     const hasActive = item.windows.some((w) => w.isActive);
-    const allMinimized = item.windows.every((w) => w.isMinimized);
+    const allMinimized = item.windows.length > 0 && item.windows.every((w) => w.isMinimized);
 
     const btn = document.createElement('button');
     const classes = ['win-pill'];
+    if (item.isClosedPinned) classes.push('pinned');
     if (hasActive) classes.push('active');
     if (allMinimized) classes.push('minimized');
     if (isMulti) classes.push('combined');
@@ -132,9 +165,11 @@ window.addEventListener('winzen:metrics', (e) => {
 
     btn.className = classes.join(' ');
 
-    const tooltip = isMulti
-      ? `${item.processName} (${item.windows.length} windows)\nLeft-click: Cycle windows\nRight-click: Menu`
-      : `${item.processName} — ${item.title}\nLeft-click: Switch / Minimize\nRight-click: Menu`;
+    const tooltip = item.isClosedPinned
+      ? `${item.processName}\nLeft-click: Open\nRight-click: Options`
+      : (isMulti
+          ? `${item.processName} (${item.windows.length} windows)\nLeft-click: Cycle windows\nRight-click: Options`
+          : `${item.processName} — ${item.title}\nLeft-click: Switch / Minimize\nRight-click: Options`);
     btn.title = tooltip;
 
     const iconHtml = getAppIconHtml(item);
@@ -143,7 +178,7 @@ window.addEventListener('winzen:metrics', (e) => {
     if (showAppName) {
       const displayTitle = isMulti
         ? `${escapeHtml(item.processName)}`
-        : escapeHtml(item.title);
+        : escapeHtml(item.title || item.processName);
       const badgeHtml = isMulti ? `<span class="win-badge">${item.windows.length}</span>` : '';
       labelHtml = `<span class="win-title">${displayTitle}</span>${badgeHtml}`;
     } else if (isMulti) {
@@ -152,10 +187,19 @@ window.addEventListener('winzen:metrics', (e) => {
 
     btn.innerHTML = `${iconHtml}${labelHtml}`;
 
-    // Left-click: Activate or Cycle
+    // Left-click: Launch if closed pinned, or Activate / Cycle
     btn.addEventListener('click', (ev) => {
       ev.stopPropagation();
       closeContextMenu();
+
+      if (item.isClosedPinned) {
+        if (window.winzen && window.winzen.tasks && typeof window.winzen.tasks.launchApp === 'function') {
+          window.winzen.tasks.launchApp(item.exePath, item.processName);
+        } else if (window.winzen && typeof window.winzen.send === 'function') {
+          window.winzen.send('launch_app', { exePath: item.exePath, processName: item.processName });
+        }
+        return;
+      }
 
       if (!isMulti) {
         window.winzen.tasks.activateWindow(item.windows[0].hwnd);
@@ -191,6 +235,9 @@ function openContextMenu(ev, item, anchorBtn) {
       appId: item.appId || '',
       processName: item.processName || '',
       title: item.title || '',
+      exePath: item.exePath || '',
+      iconDataUrl: item.iconDataUrl || '',
+      isPinned: !!item.isPinned,
       windows: (item.windows || []).map((w) => ({
         hwnd: Number(w.hwnd),
         title: String(w.title || ''),
@@ -209,97 +256,172 @@ function openContextMenu(ev, item, anchorBtn) {
     ? `${item.processName} (${item.windows.length} windows)`
     : item.title || item.processName;
 
-  let windowEntriesHtml = '';
-  if (isMulti) {
-    windowEntriesHtml = item.windows
-      .map(
-        (w, i) => `
-        <button class="menu-item btn-switch-win" data-hwnd="${w.hwnd}">
-          <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3zm1 1v8h10V4H3z"/></svg>
-          <span class="menu-item-text">${w.isActive ? '● ' : ''}${escapeHtml(w.title || `Window ${i + 1}`)}</span>
-        </button>
-      `
-      )
-      .join('') + `<div class="menu-divider"></div>`;
-  }
+  if (item.isClosedPinned) {
+    // Closed pinned app context menu
+    menu.innerHTML = `
+      <div class="menu-header">
+        ${item.iconDataUrl ? `<img class="win-icon" src="${item.iconDataUrl}" style="width:16px;height:16px;"/>` : ''}
+        <span class="menu-header-title">${escapeHtml(headerTitle)}</span>
+      </div>
+      <button class="menu-item btn-launch">
+        <svg viewBox="0 0 16 16" fill="none" stroke="#60cdff" stroke-width="1.25" stroke-linecap="round"><path d="M7.5 8.5L13 3M9.5 3H13V6.5M6.5 3.5H3V13H12.5V9.5"/></svg>
+        <span>Open</span>
+      </button>
+      <div class="menu-divider"></div>
+      <button class="menu-item btn-unpin">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"><path d="M6 10L2.5 13.5M4.5 8.5L7.5 11.5M5.5 7.5L8.5 10.5L11 8L8 5Z"/><line x1="2.5" y1="2.5" x2="13.5" y2="13.5" stroke="#ff7887" stroke-width="1.4"/></svg>
+        <span>Unpin from taskbar</span>
+      </button>
+    `;
 
-  menu.innerHTML = `
-    <div class="menu-header">
-      <span class="menu-header-title">${escapeHtml(headerTitle)}</span>
-    </div>
-    ${windowEntriesHtml}
-    ${
-      !isMulti
-        ? `<button class="menu-item btn-focus">
-            <svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1a.5.5 0 0 0-.5.5v4a.5.5 0 0 1-1 0v-4A1.5 1.5 0 0 1 1.5 0h4a.5.5 0 0 1 0 1h-4zM10 .5a.5.5 0 0 1 .5-.5h4A1.5 1.5 0 0 1 16 1.5v4a.5.5 0 0 1-1 0v-4a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 1-.5-.5zM.5 10a.5.5 0 0 1 .5.5v4a.5.5 0 0 0 .5.5h4a.5.5 0 0 1 0 1h-4A1.5 1.5 0 0 1 0 14.5v-4a.5.5 0 0 1 .5-.5zm15 0a.5.5 0 0 1 .5.5v4a1.5 1.5 0 0 1-1.5 1.5h-4a.5.5 0 0 1 0-1h4a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 1 .5-.5z"/></svg>
-            <span>Switch to window</span>
-          </button>`
-        : ''
+    const btnLaunch = menu.querySelector('.btn-launch');
+    if (btnLaunch) {
+      btnLaunch.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (window.winzen && window.winzen.tasks) {
+          window.winzen.tasks.launchApp(item.exePath, item.processName);
+        }
+        closeContextMenu();
+      });
     }
-    <button class="menu-item btn-minimize">
-      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 8a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11A.5.5 0 0 1 2 8z"/></svg>
-      <span>${isMulti ? 'Minimize all' : 'Minimize'}</span>
-    </button>
-    <div class="menu-divider"></div>
-    <button class="menu-item btn-hide-app">
-      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7.028 7.028 0 0 0-2.79.588l.77.771A5.944 5.944 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.134 13.134 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755-.165.165-.337.328-.517.486l.708.709zM11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829l.822.822zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829zM3.35 5.47c-.18.16-.353.322-.518.487A13.134 13.134 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7.029 7.029 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.709zm10.296 8.884-12-12 .708-.708 12 12-.708.708z"/></svg>
-      <span>Hide app from taskbar</span>
-    </button>
-    <button class="menu-item danger btn-close-win">
-      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/></svg>
-      <span>${isMulti ? 'Close all windows' : 'Close window'}</span>
-    </button>
-  `;
 
-  // Attach actions
-  menu.querySelectorAll('.btn-switch-win').forEach((btn) => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const hwnd = Number(btn.dataset.hwnd);
-      window.winzen.tasks.activateWindow(hwnd);
-      closeContextMenu();
-    });
-  });
-
-  const btnFocus = menu.querySelector('.btn-focus');
-  if (btnFocus) {
-    btnFocus.addEventListener('click', (e) => {
-      e.stopPropagation();
-      window.winzen.tasks.activateWindow(item.windows[0].hwnd);
-      closeContextMenu();
-    });
-  }
-
-  const btnMin = menu.querySelector('.btn-minimize');
-  if (btnMin) {
-    btnMin.addEventListener('click', (e) => {
-      e.stopPropagation();
-      item.windows.forEach((w) => {
-        if (!w.isMinimized) window.winzen.tasks.activateWindow(w.hwnd);
+    const btnUnpin = menu.querySelector('.btn-unpin');
+    if (btnUnpin) {
+      btnUnpin.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (window.winzen && window.winzen.tasks) {
+          window.winzen.tasks.unpinApp(item.appId, item.processName);
+        }
+        closeContextMenu();
       });
-      closeContextMenu();
-    });
-  }
+    }
+  } else {
+    // Running app context menu
+    let windowEntriesHtml = '';
+    if (isMulti) {
+      windowEntriesHtml = item.windows
+        .map(
+          (w, i) => `
+          <button class="menu-item btn-switch-win" data-hwnd="${w.hwnd}">
+            <svg viewBox="0 0 16 16" fill="none" stroke="${w.isActive ? '#60cdff' : '#c5c5c5'}" stroke-width="1.2"><rect x="2" y="2.5" width="12" height="10.5" rx="1.5"/><line x1="2" y1="5.5" x2="14" y2="5.5"/></svg>
+            <span class="menu-item-text">${w.isActive ? '● ' : ''}${escapeHtml(w.title || `Window ${i + 1}`)}</span>
+          </button>
+        `
+        )
+        .join('') + `<div class="menu-divider"></div>`;
+    }
 
-  const btnHide = menu.querySelector('.btn-hide-app');
-  if (btnHide) {
-    btnHide.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const first = item.windows[0];
-      window.winzen.tasks.hideApp(first.hwnd, item.processName, item.title);
-      closeContextMenu();
-    });
-  }
+    menu.innerHTML = `
+      <div class="menu-header">
+        ${item.iconDataUrl ? `<img class="win-icon" src="${item.iconDataUrl}" style="width:16px;height:16px;"/>` : ''}
+        <span class="menu-header-title">${escapeHtml(headerTitle)}</span>
+      </div>
+      ${windowEntriesHtml}
+      ${
+        !isMulti
+          ? `<button class="menu-item btn-focus">
+              <svg viewBox="0 0 16 16" fill="none" stroke="#60cdff" stroke-width="1.3"><rect x="2" y="2" width="9" height="8" stroke="#8ca0b4" stroke-width="1.1"/><rect x="5" y="5" width="9" height="8" fill="#2c2c2c"/><line x1="5" y1="7.5" x2="14" y2="7.5"/></svg>
+              <span>Switch to window</span>
+            </button>`
+          : ''
+      }
+      <button class="menu-item btn-minimize">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3.5" y1="8" x2="12.5" y2="8"/></svg>
+        <span>${isMulti ? 'Minimize all' : 'Minimize'}</span>
+      </button>
+      <div class="menu-divider"></div>
+      ${
+        item.isPinned
+          ? `<button class="menu-item btn-unpin">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"><path d="M6 10L2.5 13.5M4.5 8.5L7.5 11.5M5.5 7.5L8.5 10.5L11 8L8 5Z"/><line x1="2.5" y1="2.5" x2="13.5" y2="13.5" stroke="#ff7887" stroke-width="1.4"/></svg>
+              <span>Unpin from taskbar</span>
+            </button>`
+          : `<button class="menu-item btn-pin">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"><path d="M6 10L2.5 13.5M4.5 8.5L7.5 11.5M5.5 7.5L8.5 10.5L11 8L8 5Z"/><line x1="10" y1="3.5" x2="12.5" y2="6"/></svg>
+              <span>Pin to taskbar</span>
+            </button>`
+      }
+      <button class="menu-item btn-hide-app">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"><path d="M2.5 8C4.5 4.5 11.5 4.5 13.5 8M2.5 8C4.5 11.5 11.5 11.5 13.5 8"/><circle cx="8" cy="8" r="1.3" fill="currentColor"/><line x1="3" y1="3" x2="13" y2="13"/></svg>
+        <span>Hide app from taskbar</span>
+      </button>
+      <button class="menu-item danger btn-close-win">
+        <svg viewBox="0 0 16 16" fill="none" stroke="#ff7382" stroke-width="1.5" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg>
+        <span>${isMulti ? 'Close all windows' : 'Close window'}</span>
+      </button>
+    `;
 
-  const btnClose = menu.querySelector('.btn-close-win');
-  if (btnClose) {
-    btnClose.addEventListener('click', (e) => {
-      e.stopPropagation();
-      item.windows.forEach((w) => {
-        window.winzen.tasks.closeWindow(w.hwnd);
+    menu.querySelectorAll('.btn-switch-win').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const hwnd = Number(btn.dataset.hwnd);
+        window.winzen.tasks.activateWindow(hwnd);
+        closeContextMenu();
       });
-      closeContextMenu();
     });
+
+    const btnFocus = menu.querySelector('.btn-focus');
+    if (btnFocus) {
+      btnFocus.addEventListener('click', (e) => {
+        e.stopPropagation();
+        window.winzen.tasks.activateWindow(item.windows[0].hwnd);
+        closeContextMenu();
+      });
+    }
+
+    const btnMin = menu.querySelector('.btn-minimize');
+    if (btnMin) {
+      btnMin.addEventListener('click', (e) => {
+        e.stopPropagation();
+        item.windows.forEach((w) => {
+          if (!w.isMinimized) window.winzen.tasks.activateWindow(w.hwnd);
+        });
+        closeContextMenu();
+      });
+    }
+
+    const btnPin = menu.querySelector('.btn-pin');
+    if (btnPin) {
+      btnPin.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (window.winzen && window.winzen.tasks) {
+          window.winzen.tasks.pinApp(item.appId, item.processName, item.title, item.exePath, item.iconDataUrl);
+        }
+        closeContextMenu();
+      });
+    }
+
+    const btnUnpin = menu.querySelector('.btn-unpin');
+    if (btnUnpin) {
+      btnUnpin.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (window.winzen && window.winzen.tasks) {
+          window.winzen.tasks.unpinApp(item.appId, item.processName);
+        }
+        closeContextMenu();
+      });
+    }
+
+    const btnHide = menu.querySelector('.btn-hide-app');
+    if (btnHide) {
+      btnHide.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const first = item.windows[0];
+        window.winzen.tasks.hideApp(first.hwnd, item.processName, item.title);
+        closeContextMenu();
+      });
+    }
+
+    const btnClose = menu.querySelector('.btn-close-win');
+    if (btnClose) {
+      btnClose.addEventListener('click', (e) => {
+        e.stopPropagation();
+        item.windows.forEach((w) => {
+          window.winzen.tasks.closeWindow(w.hwnd);
+        });
+        closeContextMenu();
+      });
+    }
   }
 
   // Position above the anchor button on taskbar

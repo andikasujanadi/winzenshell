@@ -70,6 +70,30 @@
           action: 'show_window_context_menu',
           ...itemPayload
         });
+      },
+      pinApp(appId, processName, title, exePath, iconDataUrl) {
+        postToNative({
+          action: 'pin_app',
+          appId: String(appId || ''),
+          processName: String(processName || ''),
+          title: String(title || ''),
+          exePath: String(exePath || ''),
+          iconDataUrl: String(iconDataUrl || '')
+        });
+      },
+      unpinApp(appId, processName) {
+        postToNative({
+          action: 'unpin_app',
+          appId: String(appId || ''),
+          processName: String(processName || '')
+        });
+      },
+      launchApp(exePath, processName) {
+        postToNative({
+          action: 'launch_app',
+          exePath: String(exePath || ''),
+          processName: String(processName || '')
+        });
       }
     },
     brightness: {

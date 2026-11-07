@@ -76,6 +76,10 @@
   transition: width 0.14s ease, background-color 0.14s ease;
 }
 
+.win-pill.pinned::after {
+  display: none !important;
+}
+
 .win-pill.active::after {
   width: 16px;
   background: var(--winzen-accent, #60cdff);

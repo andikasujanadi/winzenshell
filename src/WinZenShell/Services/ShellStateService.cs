@@ -50,6 +50,24 @@ public class ControlCenterItemPayload
     public string JsContent { get; set; } = "";
 }
 
+public class PinnedAppEntry
+{
+    [JsonPropertyName("appId")]
+    public string AppId { get; set; } = "";
+
+    [JsonPropertyName("processName")]
+    public string ProcessName { get; set; } = "";
+
+    [JsonPropertyName("title")]
+    public string Title { get; set; } = "";
+
+    [JsonPropertyName("exePath")]
+    public string ExePath { get; set; } = "";
+
+    [JsonPropertyName("iconDataUrl")]
+    public string IconDataUrl { get; set; } = "";
+}
+
 public class ShellSettings
 {
     public bool HideNativeTaskbar { get; set; } = false;
@@ -61,6 +79,7 @@ public class ShellSettings
     public string Theme { get; set; } = "dark"; // "dark" or "light"
     public Dictionary<string, WidgetStateOverride> WidgetOverrides { get; set; } = new();
     public List<ControlCenterItemConfig> ControlCenterWidgets { get; set; } = new();
+    public List<PinnedAppEntry> PinnedApps { get; set; } = new();
 }
 
 public class ShellFullStatePayload
@@ -339,6 +358,57 @@ public class ShellStateService
     public void CloseWindow(long hwnd)
     {
         _systemMetricsService?.CloseWindow(hwnd);
+    }
+
+    public bool IsAppPinned(string appId, string? processName = null)
+    {
+        if (_settings.PinnedApps == null) return false;
+        return _settings.PinnedApps.Any(p =>
+            (!string.IsNullOrWhiteSpace(appId) && string.Equals(p.AppId, appId, StringComparison.OrdinalIgnoreCase)) ||
+            (!string.IsNullOrWhiteSpace(processName) && string.Equals(p.ProcessName, processName, StringComparison.OrdinalIgnoreCase)));
+    }
+
+    public void PinApp(string appId, string processName, string title, string? exePath = null, string? iconDataUrl = null)
+    {
+        if (_settings.PinnedApps == null) _settings.PinnedApps = new();
+        if (IsAppPinned(appId, processName)) return;
+
+        if (string.IsNullOrWhiteSpace(exePath) && _systemMetricsService != null)
+        {
+            exePath = _systemMetricsService.GetExePathForApp(appId, processName);
+        }
+        if (string.IsNullOrWhiteSpace(iconDataUrl) && _systemMetricsService != null)
+        {
+            iconDataUrl = _systemMetricsService.GetIconForApp(appId, processName);
+        }
+
+        _settings.PinnedApps.Add(new PinnedAppEntry
+        {
+            AppId = appId,
+            ProcessName = processName,
+            Title = string.IsNullOrWhiteSpace(title) ? processName : title,
+            ExePath = exePath ?? "",
+            IconDataUrl = iconDataUrl ?? ""
+        });
+
+        SaveSettings();
+        _statusBanner = $"Pinned {processName} to taskbar";
+        BroadcastState();
+    }
+
+    public void UnpinApp(string appId, string? processName = null)
+    {
+        if (_settings.PinnedApps == null) return;
+        int removed = _settings.PinnedApps.RemoveAll(p =>
+            (!string.IsNullOrWhiteSpace(appId) && string.Equals(p.AppId, appId, StringComparison.OrdinalIgnoreCase)) ||
+            (!string.IsNullOrWhiteSpace(processName) && string.Equals(p.ProcessName, processName, StringComparison.OrdinalIgnoreCase)));
+
+        if (removed > 0)
+        {
+            SaveSettings();
+            _statusBanner = "Unpinned app from taskbar";
+            BroadcastState();
+        }
     }
 
     public void CreateNewCommunityWidget(string name, string author, string slot, int width)

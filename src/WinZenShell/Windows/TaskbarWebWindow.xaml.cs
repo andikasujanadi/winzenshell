@@ -33,6 +33,7 @@ public partial class TaskbarWebWindow : Window
     private AppLauncherFlyoutWindow? _appLauncherFlyout;
     private SystemMonitorFlyoutWindow? _systemMonitorFlyout;
     private FileSystemWatcher? _triggerWatcher;
+    private Forms.ContextMenuStrip? _activeNativeMenu;
     private IntPtr _hwnd = IntPtr.Zero;
     private bool _webViewReady;
     private bool _isApplyingWorkArea;
@@ -312,6 +313,27 @@ public partial class TaskbarWebWindow : Window
                             BroadcastMetrics();
                         }
                     }
+                    else if (cmd.StartsWith("trigger_menu", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var sampleDoc = JsonDocument.Parse("{\"appId\":\"firefox\",\"processName\":\"Firefox\",\"title\":\"Mozilla Firefox\",\"windows\":[{\"hwnd\":12345,\"title\":\"Mozilla Firefox\",\"isActive\":true,\"isMinimized\":false}]}");
+                        ShowNativeWindowContextMenu(sampleDoc.RootElement);
+                    }
+                    else if (cmd.StartsWith("reload_settings", StringComparison.OrdinalIgnoreCase))
+                    {
+                        _shellState.LoadSettings();
+                        BroadcastMetrics();
+                    }
+                    else if (cmd.StartsWith("capture_menu", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var parts = cmd.Split(' ');
+                        string outPath = parts.Length > 1 ? parts[1] : Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "menu_capture.png");
+                        if (_activeNativeMenu != null)
+                        {
+                            using var bmp = new Bitmap(_activeNativeMenu.Width, _activeNativeMenu.Height);
+                            _activeNativeMenu.DrawToBitmap(bmp, new Rectangle(0, 0, bmp.Width, bmp.Height));
+                            bmp.Save(outPath, System.Drawing.Imaging.ImageFormat.Png);
+                        }
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -402,6 +424,7 @@ public partial class TaskbarWebWindow : Window
         if (!_webViewReady || TaskbarWebView.CoreWebView2 == null || !IsVisible) return;
 
         var snapshot = _metricsService.GetSnapshot(_hwnd, IntPtr.Zero);
+        snapshot.PinnedApps = _shellState.Settings.PinnedApps ?? new();
         string json = JsonSerializer.Serialize(new
         {
             type = "metrics_update",
@@ -489,6 +512,36 @@ public partial class TaskbarWebWindow : Window
                     {
                         _shellState.CloseWindow(cwHwnd);
                         BroadcastMetrics();
+                    }
+                    break;
+
+                case "pin_app":
+                    string pAppId = root.TryGetProperty("appId", out var pai) ? pai.GetString() ?? "" : "";
+                    string pProc = root.TryGetProperty("processName", out var ppn) ? ppn.GetString() ?? "" : "";
+                    string pTitle = root.TryGetProperty("title", out var ppt) ? ppt.GetString() ?? "" : "";
+                    string pExe = root.TryGetProperty("exePath", out var ppe) ? ppe.GetString() ?? "" : "";
+                    string pIcon = root.TryGetProperty("iconDataUrl", out var ppi) ? ppi.GetString() ?? "" : "";
+                    _shellState.PinApp(pAppId, pProc, pTitle, pExe, pIcon);
+                    BroadcastMetrics();
+                    break;
+
+                case "unpin_app":
+                    string uAppId = root.TryGetProperty("appId", out var uai) ? uai.GetString() ?? "" : "";
+                    string uProc = root.TryGetProperty("processName", out var upn) ? upn.GetString() ?? "" : "";
+                    _shellState.UnpinApp(uAppId, uProc);
+                    BroadcastMetrics();
+                    break;
+
+                case "launch_app":
+                    string lExe = root.TryGetProperty("exePath", out var lei) ? lei.GetString() ?? "" : "";
+                    string lName = root.TryGetProperty("processName", out var lpn) ? lpn.GetString() ?? "" : "";
+                    if (!string.IsNullOrWhiteSpace(lExe))
+                    {
+                        _appLauncherService.Launch(lExe, lName);
+                    }
+                    else if (!string.IsNullOrWhiteSpace(lName))
+                    {
+                        _appLauncherService.Launch(lName, lName);
                     }
                     break;
 
@@ -707,11 +760,42 @@ public partial class TaskbarWebWindow : Window
         }
     }
 
+    public static Bitmap? GetBitmapFromDataUrl(string? dataUrl)
+    {
+        if (string.IsNullOrWhiteSpace(dataUrl)) return null;
+        try
+        {
+            int commaIdx = dataUrl.IndexOf(',');
+            string base64 = commaIdx >= 0 ? dataUrl[(commaIdx + 1)..] : dataUrl;
+            byte[] bytes = Convert.FromBase64String(base64);
+            using var ms = new MemoryStream(bytes);
+            using var orig = Image.FromStream(ms);
+            return new Bitmap(orig, new System.Drawing.Size(16, 16));
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     private void ShowNativeWindowContextMenu(JsonElement root)
     {
         string appId = root.TryGetProperty("appId", out var appIdProp) ? appIdProp.GetString() ?? "" : "";
         string processName = root.TryGetProperty("processName", out var pn) ? pn.GetString() ?? "App" : "App";
         string title = root.TryGetProperty("title", out var tt) ? tt.GetString() ?? processName : processName;
+        string iconDataUrl = root.TryGetProperty("iconDataUrl", out var ic) ? ic.GetString() ?? "" : "";
+        string exePath = root.TryGetProperty("exePath", out var ep) ? ep.GetString() ?? "" : "";
+
+        if (string.IsNullOrWhiteSpace(iconDataUrl))
+        {
+            iconDataUrl = _metricsService.GetIconForApp(appId, processName) ?? "";
+        }
+        if (string.IsNullOrWhiteSpace(exePath))
+        {
+            exePath = _metricsService.GetExePathForApp(appId, processName) ?? "";
+        }
+
+        bool isPinned = _shellState.IsAppPinned(appId, processName);
 
         var windows = new List<(long Hwnd, string Title, bool IsActive, bool IsMinimized)>();
         if (root.TryGetProperty("windows", out var winArr) && winArr.ValueKind == JsonValueKind.Array)
@@ -729,9 +813,6 @@ public partial class TaskbarWebWindow : Window
             }
         }
 
-        if (windows.Count == 0) return;
-
-        bool isMulti = windows.Count > 1;
         var menu = new Forms.ContextMenuStrip
         {
             Renderer = new Win11DarkContextMenuRenderer(),
@@ -752,20 +833,61 @@ public partial class TaskbarWebWindow : Window
             Win32Api.DwmSetWindowAttribute(menu.Handle, 20, ref dark, sizeof(int));
         };
 
+        bool isMulti = windows.Count > 1;
         string headerText = isMulti
             ? $"{processName} ({windows.Count} windows)"
             : (!string.IsNullOrWhiteSpace(title) ? title : processName);
 
+        Bitmap? appIcon = GetBitmapFromDataUrl(iconDataUrl);
         var headerItem = new Forms.ToolStripMenuItem(headerText)
         {
             Enabled = false,
             ForeColor = Color.FromArgb(170, 170, 170),
             Font = new Font("Segoe UI", 9.0f, System.Drawing.FontStyle.Bold),
             Padding = new Forms.Padding(6, 6, 10, 5),
-            Image = CreateFluentIcon("window")
+            Image = appIcon ?? CreateFluentIcon("window")
         };
         menu.Items.Add(headerItem);
         menu.Items.Add(new Forms.ToolStripSeparator());
+
+        if (windows.Count == 0)
+        {
+            // Closed pinned app context menu
+            var launchItem = new Forms.ToolStripMenuItem("Open")
+            {
+                ForeColor = Color.FromArgb(245, 245, 245),
+                Padding = new Forms.Padding(6, 5, 10, 5),
+                Image = CreateFluentIcon("launch")
+            };
+            launchItem.Click += (_, _) =>
+            {
+                if (!string.IsNullOrWhiteSpace(exePath))
+                    _appLauncherService.Launch(exePath, processName);
+                else
+                    _appLauncherService.Launch(processName, processName);
+            };
+            menu.Items.Add(launchItem);
+
+            menu.Items.Add(new Forms.ToolStripSeparator());
+
+            var unpinClosedItem = new Forms.ToolStripMenuItem("Unpin from taskbar")
+            {
+                ForeColor = Color.FromArgb(245, 245, 245),
+                Padding = new Forms.Padding(6, 5, 10, 5),
+                Image = CreateFluentIcon("unpin")
+            };
+            unpinClosedItem.Click += (_, _) =>
+            {
+                _shellState.UnpinApp(appId, processName);
+                BroadcastMetrics();
+            };
+            menu.Items.Add(unpinClosedItem);
+
+            var cPos = Forms.Cursor.Position;
+            _activeNativeMenu = menu;
+            menu.Show(cPos, Forms.ToolStripDropDownDirection.AboveRight);
+            return;
+        }
 
         if (isMulti)
         {
@@ -827,6 +949,38 @@ public partial class TaskbarWebWindow : Window
 
         menu.Items.Add(new Forms.ToolStripSeparator());
 
+        // Pin to taskbar / Unpin from taskbar
+        if (isPinned)
+        {
+            var unpinItem = new Forms.ToolStripMenuItem("Unpin from taskbar")
+            {
+                ForeColor = Color.FromArgb(245, 245, 245),
+                Padding = new Forms.Padding(6, 5, 10, 5),
+                Image = CreateFluentIcon("unpin")
+            };
+            unpinItem.Click += (_, _) =>
+            {
+                _shellState.UnpinApp(appId, processName);
+                BroadcastMetrics();
+            };
+            menu.Items.Add(unpinItem);
+        }
+        else
+        {
+            var pinItem = new Forms.ToolStripMenuItem("Pin to taskbar")
+            {
+                ForeColor = Color.FromArgb(245, 245, 245),
+                Padding = new Forms.Padding(6, 5, 10, 5),
+                Image = CreateFluentIcon("pin")
+            };
+            pinItem.Click += (_, _) =>
+            {
+                _shellState.PinApp(appId, processName, title, exePath, iconDataUrl);
+                BroadcastMetrics();
+            };
+            menu.Items.Add(pinItem);
+        }
+
         var hideItem = new Forms.ToolStripMenuItem("Hide app from taskbar")
         {
             ForeColor = Color.FromArgb(220, 220, 220),
@@ -858,6 +1012,7 @@ public partial class TaskbarWebWindow : Window
         menu.Items.Add(closeItem);
 
         var cursorPos = Forms.Cursor.Position;
+        _activeNativeMenu = menu;
         menu.Show(cursorPos, Forms.ToolStripDropDownDirection.AboveRight);
     }
 
@@ -874,49 +1029,132 @@ public partial class TaskbarWebWindow : Window
                 Color winColor = isActive ? Color.FromArgb(96, 205, 255) : Color.FromArgb(200, 200, 200);
                 using (var pen = new Pen(winColor, 1.25f))
                 {
-                    g.DrawRectangle(pen, 2, 2, 11, 10);
-                    g.DrawLine(pen, 2, 5, 13, 5);
+                    g.DrawRectangle(pen, 2f, 2.5f, 12f, 10.5f);
+                    g.DrawLine(pen, 2f, 5.5f, 14f, 5.5f);
                 }
                 if (isActive)
                 {
                     using var dotBrush = new SolidBrush(Color.FromArgb(96, 205, 255));
-                    g.FillEllipse(dotBrush, 5, 7, 3, 3);
+                    g.FillEllipse(dotBrush, 4f, 7.5f, 2.5f, 2.5f);
                 }
                 break;
 
             case "focus":
-                using (var pen = new Pen(Color.FromArgb(96, 205, 255), 1.35f))
+                // Layered windows indicating "Switch to window"
+                using (var backPen = new Pen(Color.FromArgb(140, 160, 180), 1.1f))
                 {
-                    g.DrawRectangle(pen, 2, 2, 11, 11);
-                    g.DrawLine(pen, 2, 5, 13, 5);
+                    g.DrawRectangle(backPen, 2f, 2f, 9f, 8f);
                 }
-                using (var fillBrush = new SolidBrush(Color.FromArgb(96, 205, 255)))
+                using (var frontBrush = new SolidBrush(Color.FromArgb(44, 44, 44)))
                 {
-                    g.FillRectangle(fillBrush, 5, 7, 5, 4);
+                    g.FillRectangle(frontBrush, 5f, 5f, 9f, 8f);
+                }
+                using (var frontPen = new Pen(Color.FromArgb(96, 205, 255), 1.3f))
+                {
+                    g.DrawRectangle(frontPen, 5f, 5f, 9f, 8f);
+                    g.DrawLine(frontPen, 5f, 7.5f, 14f, 7.5f);
                 }
                 break;
 
             case "minimize":
-                using (var pen = new Pen(Color.FromArgb(220, 220, 220), 1.8f))
+                // Centered rounded bar
+                using (var pen = new Pen(Color.FromArgb(230, 230, 230), 2.0f))
                 {
-                    g.DrawLine(pen, 2, 11, 13, 11);
+                    pen.StartCap = System.Drawing.Drawing2D.LineCap.Round;
+                    pen.EndCap = System.Drawing.Drawing2D.LineCap.Round;
+                    g.DrawLine(pen, 3.5f, 8.0f, 12.5f, 8.0f);
+                }
+                break;
+
+            case "pin":
+                // Windows 11 Fluent angled pushpin
+                using (var pen = new Pen(Color.FromArgb(220, 220, 220), 1.25f))
+                using (var brush = new SolidBrush(Color.FromArgb(220, 220, 220)))
+                using (var needlePen = new Pen(Color.FromArgb(180, 180, 180), 1.25f))
+                {
+                    g.DrawLine(needlePen, 6.0f, 10.0f, 2.5f, 13.5f);
+                    g.DrawLine(pen, 4.5f, 8.5f, 7.5f, 11.5f);
+                    var pts = new PointF[]
+                    {
+                        new(5.5f, 7.5f),
+                        new(8.5f, 10.5f),
+                        new(11.0f, 8.0f),
+                        new(8.0f, 5.0f)
+                    };
+                    g.FillPolygon(brush, pts);
+                    g.DrawLine(pen, 10.0f, 3.5f, 12.5f, 6.0f);
+                }
+                break;
+
+            case "unpin":
+                // Windows 11 Fluent pushpin with slash
+                using (var pen = new Pen(Color.FromArgb(180, 180, 180), 1.25f))
+                using (var brush = new SolidBrush(Color.FromArgb(180, 180, 180)))
+                using (var needlePen = new Pen(Color.FromArgb(150, 150, 150), 1.25f))
+                using (var slashPen = new Pen(Color.FromArgb(255, 120, 135), 1.4f))
+                {
+                    g.DrawLine(needlePen, 6.0f, 10.0f, 2.5f, 13.5f);
+                    g.DrawLine(pen, 4.5f, 8.5f, 7.5f, 11.5f);
+                    var pts = new PointF[]
+                    {
+                        new(5.5f, 7.5f),
+                        new(8.5f, 10.5f),
+                        new(11.0f, 8.0f),
+                        new(8.0f, 5.0f)
+                    };
+                    g.FillPolygon(brush, pts);
+                    g.DrawLine(pen, 10.0f, 3.5f, 12.5f, 6.0f);
+
+                    slashPen.StartCap = System.Drawing.Drawing2D.LineCap.Round;
+                    slashPen.EndCap = System.Drawing.Drawing2D.LineCap.Round;
+                    g.DrawLine(slashPen, 2.5f, 2.5f, 13.5f, 13.5f);
                 }
                 break;
 
             case "hide":
+                // Fluent Eye-off
                 using (var pen = new Pen(Color.FromArgb(210, 210, 210), 1.25f))
+                using (var brush = new SolidBrush(Color.FromArgb(210, 210, 210)))
                 {
-                    g.DrawArc(pen, 2, 3, 11, 8, 0, 180);
-                    g.DrawArc(pen, 2, 4, 11, 8, 180, 180);
-                    g.DrawLine(pen, 2, 13, 13, 2);
+                    pen.StartCap = System.Drawing.Drawing2D.LineCap.Round;
+                    pen.EndCap = System.Drawing.Drawing2D.LineCap.Round;
+
+                    var ptsTop = new PointF[] { new(2.5f, 8.0f), new(8.0f, 4.5f), new(13.5f, 8.0f) };
+                    var ptsBot = new PointF[] { new(2.5f, 8.0f), new(8.0f, 11.5f), new(13.5f, 8.0f) };
+                    g.DrawCurve(pen, ptsTop, 0.5f);
+                    g.DrawCurve(pen, ptsBot, 0.5f);
+
+                    g.FillEllipse(brush, 6.75f, 6.75f, 2.5f, 2.5f);
+                    g.DrawLine(pen, 3.0f, 3.0f, 13.0f, 13.0f);
                 }
                 break;
 
             case "close":
-                using (var pen = new Pen(Color.FromArgb(255, 128, 140), 1.5f))
+                // Fluent soft dismiss cross
+                using (var pen = new Pen(Color.FromArgb(255, 115, 130), 1.5f))
                 {
-                    g.DrawLine(pen, 3, 3, 12, 12);
-                    g.DrawLine(pen, 12, 3, 3, 12);
+                    pen.StartCap = System.Drawing.Drawing2D.LineCap.Round;
+                    pen.EndCap = System.Drawing.Drawing2D.LineCap.Round;
+                    g.DrawLine(pen, 4.0f, 4.0f, 12.0f, 12.0f);
+                    g.DrawLine(pen, 12.0f, 4.0f, 4.0f, 12.0f);
+                }
+                break;
+
+            case "launch":
+                // Fluent Open in new window / Launch
+                using (var pen = new Pen(Color.FromArgb(96, 205, 255), 1.25f))
+                {
+                    pen.StartCap = System.Drawing.Drawing2D.LineCap.Round;
+                    pen.EndCap = System.Drawing.Drawing2D.LineCap.Round;
+
+                    g.DrawLine(pen, 7.5f, 8.5f, 13.0f, 3.0f);
+                    g.DrawLine(pen, 9.5f, 3.0f, 13.0f, 3.0f);
+                    g.DrawLine(pen, 13.0f, 3.0f, 13.0f, 6.5f);
+
+                    g.DrawLine(pen, 6.5f, 3.5f, 3.0f, 3.5f);
+                    g.DrawLine(pen, 3.0f, 3.5f, 3.0f, 13.0f);
+                    g.DrawLine(pen, 3.0f, 13.0f, 12.5f, 13.0f);
+                    g.DrawLine(pen, 12.5f, 13.0f, 12.5f, 9.5f);
                 }
                 break;
 
