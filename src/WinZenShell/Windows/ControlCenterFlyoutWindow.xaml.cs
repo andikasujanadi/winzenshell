@@ -59,28 +59,18 @@ public partial class ControlCenterFlyoutWindow : Window
 
     public void ApplyCornerClipping()
     {
-        if (_hwnd == IntPtr.Zero) return;
-        if (Win32Api.GetWindowRect(_hwnd, out var winRect))
+        if (_hwnd == IntPtr.Zero || CcWebView == null || CcWebView.Handle == IntPtr.Zero) return;
+        if (Win32Api.GetClientRect(CcWebView.Handle, out var clientRect) && clientRect.Width > 0 && clientRect.Height > 0)
         {
-            int w = winRect.Width;
-            int h = winRect.Height;
             double dpiScale = System.Windows.Media.VisualTreeHelper.GetDpi(this).DpiScaleX;
             if (dpiScale <= 0) dpiScale = 1.0;
-            int radiusPhysical = (int)Math.Round(16 * dpiScale);
+            int radiusPhysical = (int)Math.Round(11 * dpiScale);
             int diameter = radiusPhysical * 2;
 
-            IntPtr hRgn = Win32Api.CreateRoundRectRgn(0, 0, w, h, diameter, diameter);
-            if (Win32Api.SetWindowRgn(_hwnd, hRgn, true) == 0)
+            IntPtr childRgn = Win32Api.CreateRoundRectRgn(0, 0, clientRect.Width + 1, clientRect.Height + 1, diameter, diameter);
+            if (Win32Api.SetWindowRgn(CcWebView.Handle, childRgn, true) == 0)
             {
-                Win32Api.DeleteObject(hRgn);
-            }
-            if (CcWebView != null && CcWebView.Handle != IntPtr.Zero)
-            {
-                IntPtr childRgn = Win32Api.CreateRoundRectRgn(0, 0, w, h, diameter, diameter);
-                if (Win32Api.SetWindowRgn(CcWebView.Handle, childRgn, true) == 0)
-                {
-                    Win32Api.DeleteObject(childRgn);
-                }
+                Win32Api.DeleteObject(childRgn);
             }
         }
     }
@@ -139,13 +129,13 @@ public partial class ControlCenterFlyoutWindow : Window
         bool isLight = string.Equals(theme, "light", StringComparison.OrdinalIgnoreCase);
         if (isLight)
         {
-            OuterBorder.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xF3, 0xF3, 0xF3));
-            OuterBorder.BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(0x28, 0x00, 0x00, 0x00));
+            OuterBorder.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xF9, 0xF9, 0xF9));
+            OuterBorder.BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(0x38, 0x00, 0x00, 0x00));
         }
         else
         {
-            OuterBorder.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x1E, 0x1E, 0x1E));
-            OuterBorder.BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x3E, 0x3E, 0x3E));
+            OuterBorder.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x1C, 0x1C, 0x1C));
+            OuterBorder.BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF));
         }
     }
 

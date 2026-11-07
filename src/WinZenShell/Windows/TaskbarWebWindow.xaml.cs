@@ -289,6 +289,16 @@ public partial class TaskbarWebWindow : Window
                     {
                         _controlCenterFlyout ??= new ControlCenterFlyoutWindow(_shellState, _metricsService, _brightnessService, _openSettingsCallback, _audioService);
                         _controlCenterFlyout.ShowAt(mon.Right - 380, 34, Top, Height, _shellState.Settings.DockEdge);
+                        if (cmd.Contains("edit", StringComparison.OrdinalIgnoreCase))
+                        {
+                            _ = System.Threading.Tasks.Task.Delay(500).ContinueWith(_ => Dispatcher.Invoke(async () =>
+                            {
+                                if (_controlCenterFlyout?.CcWebView?.CoreWebView2 != null)
+                                {
+                                    await _controlCenterFlyout.CcWebView.CoreWebView2.ExecuteScriptAsync("document.getElementById('btnEdit')?.click();");
+                                }
+                            }));
+                        }
                     }
                     else if (cmd.StartsWith("close_cc", StringComparison.OrdinalIgnoreCase))
                     {

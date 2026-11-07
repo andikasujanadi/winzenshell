@@ -14,6 +14,7 @@
 
     <Window.Resources>
         <SolidColorBrush x:Key="AccentBrush" Color="#3684E3"/>
+        <SolidColorBrush x:Key="ProgressTrackBg" Color="#383838"/>
         <SolidColorBrush x:Key="TaskMgrBtnBg" Color="#262626"/>
         <SolidColorBrush x:Key="TaskMgrBtnBorder" Color="#383838"/>
         <SolidColorBrush x:Key="TaskMgrBtnFg" Color="#FFFFFF"/>
@@ -96,7 +97,7 @@
                     </Grid>
 
                     <Grid Grid.Row="1" Height="6">
-                        <Border Background="#383838" CornerRadius="3"/>
+                        <Border Background="{DynamicResource ProgressTrackBg}" CornerRadius="3"/>
                         <Border x:Name="BarCpu" Background="{DynamicResource AccentBrush}" CornerRadius="3" HorizontalAlignment="Left" Width="0"/>
                     </Grid>
                 </Grid>
@@ -117,7 +118,7 @@
                     </Grid>
 
                     <Grid Grid.Row="1" Height="6" Margin="0,0,0,6">
-                        <Border Background="#383838" CornerRadius="3"/>
+                        <Border Background="{DynamicResource ProgressTrackBg}" CornerRadius="3"/>
                         <Border x:Name="BarRam" Background="#C084FC" CornerRadius="3" HorizontalAlignment="Left" Width="0"/>
                     </Grid>
 

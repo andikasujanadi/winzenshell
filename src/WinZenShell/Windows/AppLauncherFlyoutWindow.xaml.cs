@@ -57,28 +57,18 @@ public partial class AppLauncherFlyoutWindow : Window
 
     public void ApplyCornerClipping()
     {
-        if (_hwnd == IntPtr.Zero) return;
-        if (Win32Api.GetWindowRect(_hwnd, out var winRect))
+        if (_hwnd == IntPtr.Zero || LauncherWebView == null || LauncherWebView.Handle == IntPtr.Zero) return;
+        if (Win32Api.GetClientRect(LauncherWebView.Handle, out var clientRect) && clientRect.Width > 0 && clientRect.Height > 0)
         {
-            int w = winRect.Width;
-            int h = winRect.Height;
             double dpiScale = System.Windows.Media.VisualTreeHelper.GetDpi(this).DpiScaleX;
             if (dpiScale <= 0) dpiScale = 1.0;
-            int radiusPhysical = (int)Math.Round(16 * dpiScale);
+            int radiusPhysical = (int)Math.Round(15 * dpiScale);
             int diameter = radiusPhysical * 2;
 
-            IntPtr hRgn = Win32Api.CreateRoundRectRgn(0, 0, w, h, diameter, diameter);
-            if (Win32Api.SetWindowRgn(_hwnd, hRgn, true) == 0)
+            IntPtr childRgn = Win32Api.CreateRoundRectRgn(0, 0, clientRect.Width + 1, clientRect.Height + 1, diameter, diameter);
+            if (Win32Api.SetWindowRgn(LauncherWebView.Handle, childRgn, true) == 0)
             {
-                Win32Api.DeleteObject(hRgn);
-            }
-            if (LauncherWebView != null && LauncherWebView.Handle != IntPtr.Zero)
-            {
-                IntPtr childRgn = Win32Api.CreateRoundRectRgn(0, 0, w, h, diameter, diameter);
-                if (Win32Api.SetWindowRgn(LauncherWebView.Handle, childRgn, true) == 0)
-                {
-                    Win32Api.DeleteObject(childRgn);
-                }
+                Win32Api.DeleteObject(childRgn);
             }
         }
     }

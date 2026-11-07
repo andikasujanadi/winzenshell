@@ -115,6 +115,7 @@ public partial class SystemMonitorFlyoutWindow : Window
         bool isLight = string.Equals(theme, "light", StringComparison.OrdinalIgnoreCase);
         if (isLight)
         {
+            Resources["ProgressTrackBg"] = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xE5, 0xE5, 0xE5));
             Resources["TaskMgrBtnBg"] = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xFF, 0xFF, 0xFF));
             Resources["TaskMgrBtnBorder"] = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(0x28, 0, 0, 0));
             Resources["TaskMgrBtnFg"] = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x1B, 0x1B, 0x1B));
@@ -129,11 +130,13 @@ public partial class SystemMonitorFlyoutWindow : Window
             TxtHeaderTitle.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x1B, 0x1B, 0x1B));
             LblCpu.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x1B, 0x1B, 0x1B));
             LblRam.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x1B, 0x1B, 0x1B));
+            TxtRamDetails.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x66, 0x66, 0x66));
             TxtCpuVal.Foreground = _accentBrush;
             BarCpu.Background = _accentBrush;
         }
         else
         {
+            Resources["ProgressTrackBg"] = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x38, 0x38, 0x38));
             Resources["TaskMgrBtnBg"] = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x26, 0x26, 0x26));
             Resources["TaskMgrBtnBorder"] = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x38, 0x38, 0x38));
             Resources["TaskMgrBtnFg"] = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xFF, 0xFF, 0xFF));
@@ -148,6 +151,7 @@ public partial class SystemMonitorFlyoutWindow : Window
             TxtHeaderTitle.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xFF, 0xFF, 0xFF));
             LblCpu.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xFF, 0xFF, 0xFF));
             LblRam.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xFF, 0xFF, 0xFF));
+            TxtRamDetails.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xA0, 0xA0, 0xA0));
             TxtCpuVal.Foreground = _accentBrush;
             BarCpu.Background = _accentBrush;
         }

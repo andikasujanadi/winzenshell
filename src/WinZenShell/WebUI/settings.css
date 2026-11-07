@@ -567,6 +567,35 @@ body {
   background: #000000;
 }
 
+/* Light Mode ToggleSwitch */
+html[data-theme="light"] .toggle-track,
+body.theme-light .toggle-track {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.44);
+}
+
+html[data-theme="light"] .toggle-thumb,
+body.theme-light .toggle-thumb {
+  background: #5a5a5a;
+}
+
+html[data-theme="light"] .win11-toggle:hover .toggle-track,
+body.theme-light .win11-toggle:hover .toggle-track {
+  border-color: rgba(0, 0, 0, 0.75);
+}
+
+html[data-theme="light"] .win11-toggle input:checked + .toggle-track,
+body.theme-light .win11-toggle input:checked + .toggle-track {
+  background: var(--win11-accent);
+  border-color: var(--win11-accent);
+}
+
+html[data-theme="light"] .win11-toggle input:checked + .toggle-track .toggle-thumb,
+body.theme-light .win11-toggle input:checked + .toggle-track .toggle-thumb {
+  transform: translateX(20px);
+  background: #ffffff;
+}
+
 /* Expander Sub-rows */
 .expander-subrow {
   background: var(--win11-bg-card-sub);
@@ -769,6 +798,22 @@ body.theme-light .accent-swatch.active {
 .win11-select option {
   background: var(--win11-bg-card);
   color: var(--win11-text-primary);
+}
+
+html[data-theme="light"] .win11-select,
+body.theme-light .win11-select,
+html[data-theme="light"] .win11-input,
+body.theme-light .win11-input {
+  background: #ffffff;
+  color: #1b1b1b;
+  color-scheme: light;
+  border-color: rgba(0, 0, 0, 0.16);
+}
+
+html[data-theme="light"] .win11-select option,
+body.theme-light .win11-select option {
+  background: #ffffff;
+  color: #1b1b1b;
 }
 
 .win11-slider {

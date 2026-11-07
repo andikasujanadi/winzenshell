@@ -117,6 +117,16 @@ body {
   background: rgba(255, 255, 255, 0.3);
 }
 
+html[data-theme="light"] .launcher-content::-webkit-scrollbar-thumb,
+body.theme-light .launcher-content::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.18);
+}
+
+html[data-theme="light"] .launcher-content::-webkit-scrollbar-thumb:hover,
+body.theme-light .launcher-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.32);
+}
+
 /* Section Titles */
 .section-recent {
   margin-bottom: 16px;

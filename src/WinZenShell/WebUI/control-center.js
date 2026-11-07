@@ -14,6 +14,10 @@ function initControlCenter() {
   let availableWidgets = [];
   let draggedCardId = null;
 
+  const SVG_PENCIL = '<path d="M12.146.146a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1 0 .708l-9.5 9.5a.5.5 0 0 1-.168.11l-4 1.5a.5.5 0 0 1-.65-.65l1.5-4a.5.5 0 0 1 .11-.168l9.5-9.5zm1.414 2.122-1.414-1.414L11 2.036l1.414 1.414 1.146-1.146zm-2.121.707-8.293 8.293-.854 2.276 2.276-.854 8.293-8.293-1.422-1.422z"/>';
+  const SVG_CHECK = '<path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>';
+  const editSvg = document.getElementById('editIconPencil');
+
   if (btnClose) {
     btnClose.addEventListener('click', () => {
       if (isEditing) toggleEditMode(false);
@@ -33,12 +37,14 @@ function initControlCenter() {
       ccContainer.classList.add('is-editing');
       btnEdit.classList.add('is-active');
       btnEditText.textContent = 'Done';
+      if (editSvg) editSvg.innerHTML = SVG_CHECK;
       ccEditFooter.style.display = 'flex';
       populateAddSelect();
     } else {
       ccContainer.classList.remove('is-editing');
       btnEdit.classList.remove('is-active');
       btnEditText.textContent = 'Edit';
+      if (editSvg) editSvg.innerHTML = SVG_PENCIL;
       ccEditFooter.style.display = 'none';
     }
   }
@@ -235,19 +241,27 @@ function initControlCenter() {
       content.style.setProperty('--winzen-border-accent', currentAccent);
       content.style.setProperty('--win11-accent', currentAccent);
 
+      const isLightHost = currentTheme === 'light';
+      const defText = isLightHost ? '#1b1b1b' : '#ffffff';
+      const defSecondary = isLightHost ? '#5c5c5c' : '#c5c5c5';
+      const defSurface = isLightHost ? '#ffffff' : '#252525';
+      const defHover = isLightHost ? 'rgba(0, 0, 0, 0.045)' : 'rgba(255, 255, 255, 0.0605)';
+      const defSubtle = isLightHost ? '#f9f9f9' : '#202020';
+      const defBorder = isLightHost ? 'rgba(0, 0, 0, 0.082)' : 'rgba(255, 255, 255, 0.08)';
+
       const shadow = content.attachShadow({ mode: 'open' });
       const styleEl = document.createElement('style');
       styleEl.textContent = `
         :host {
-          --winzen-bg: #1c1c1c;
-          --winzen-surface: #252525;
-          --winzen-surface-hover: rgba(255, 255, 255, 0.0605);
+          --winzen-bg: ${isLightHost ? '#f3f3f3' : '#1c1c1c'};
+          --winzen-surface: ${defSurface};
+          --winzen-surface-hover: ${defHover};
           --winzen-surface-active: rgba(255, 255, 255, 0.04);
-          --winzen-border: rgba(255, 255, 255, 0.08);
+          --winzen-border: ${defBorder};
           --winzen-border-subtle: rgba(255, 255, 255, 0.05);
           --winzen-border-accent: ${currentAccent};
-          --winzen-text: #ffffff;
-          --winzen-text-secondary: #c5c5c5;
+          --winzen-text: ${defText};
+          --winzen-text-secondary: ${defSecondary};
           --winzen-text-muted: #888888;
           --winzen-accent: ${currentAccent};
           --winzen-accent-hover: ${currentAccent};
@@ -264,7 +278,7 @@ function initControlCenter() {
           display: flex;
           flex-direction: column;
           align-items: stretch;
-          justify-content: center;
+          justify-content: flex-start;
           width: 100%;
           height: 100%;
           min-height: 0;
@@ -303,7 +317,7 @@ function initControlCenter() {
       wrapper.setAttribute('data-in-control-center', 'true');
       wrapper.setAttribute('data-theme', currentTheme);
       wrapper.setAttribute('data-aspect-ratio', ratio);
-      wrapper.style.cssText = 'width:100%; height:100%; flex:1; display:flex; flex-direction:column; justify-content:center; align-items:stretch; min-height:0;';
+      wrapper.style.cssText = 'width:100%; height:100%; flex:1; display:flex; flex-direction:column; justify-content:flex-start; align-items:stretch; min-height:0;';
       wrapper.innerHTML = w.htmlContent || '';
       shadow.appendChild(wrapper);
 

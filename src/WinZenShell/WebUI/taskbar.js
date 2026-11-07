@@ -104,19 +104,27 @@ function initTaskbar() {
 
       const shadow = host.attachShadow({ mode: 'open' });
 
+      const isLightHost = currentTheme === 'light';
+      const defText = isLightHost ? '#1b1b1b' : '#ffffff';
+      const defSecondary = isLightHost ? '#5c5c5c' : '#c5c5c5';
+      const defSurface = isLightHost ? '#ffffff' : '#252525';
+      const defHover = isLightHost ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.0605)';
+      const defSubtle = isLightHost ? '#f9f9f9' : '#202020';
+      const defBorder = isLightHost ? 'rgba(0, 0, 0, 0.082)' : 'rgba(255, 255, 255, 0.08)';
+
       const styleEl = document.createElement('style');
       styleEl.textContent = `
         :host {
-          --winzen-bg: #1c1c1c;
-          --winzen-surface: #252525;
-          --winzen-surface-hover: rgba(255, 255, 255, 0.0605);
+          --winzen-bg: ${isLightHost ? '#f3f3f3' : '#1c1c1c'};
+          --winzen-surface: ${defSurface};
+          --winzen-surface-hover: ${defHover};
           --winzen-surface-active: rgba(255, 255, 255, 0.04);
-          --winzen-surface-subtle: #202020;
-          --winzen-border: rgba(255, 255, 255, 0.08);
+          --winzen-surface-subtle: ${defSubtle};
+          --winzen-border: ${defBorder};
           --winzen-border-subtle: rgba(255, 255, 255, 0.05);
           --winzen-border-accent: ${currentAccent};
-          --winzen-text: #ffffff;
-          --winzen-text-secondary: #c5c5c5;
+          --winzen-text: ${defText};
+          --winzen-text-secondary: ${defSecondary};
           --winzen-text-muted: #888888;
           --winzen-accent: ${currentAccent};
           --winzen-accent-hover: ${currentAccent};

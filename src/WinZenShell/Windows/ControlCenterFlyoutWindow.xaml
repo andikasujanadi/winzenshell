@@ -14,11 +14,11 @@
         UseLayoutRounding="True">
     <Border x:Name="OuterBorder"
             Background="#1E1E1E"
-            CornerRadius="14"
+            CornerRadius="12"
             BorderBrush="#3E3E3E"
             BorderThickness="1">
-        <Grid ClipToBounds="True">
-            <Border CornerRadius="13" ClipToBounds="True">
+        <Grid ClipToBounds="True" Margin="1">
+            <Border CornerRadius="11" ClipToBounds="True">
                 <wpf:WebView2 x:Name="CcWebView" DefaultBackgroundColor="Transparent"/>
             </Border>
         </Grid>

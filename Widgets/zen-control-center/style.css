@@ -19,18 +19,38 @@
   border-radius: var(--winzen-radius-xs, 4px);
   background: transparent;
   border: 1px solid transparent;
-  color: var(--winzen-text-secondary, #c5c5c5);
+  color: var(--winzen-text, #ffffff);
   cursor: pointer;
   transition: all 0.12s cubic-bezier(0.1, 0.9, 0.2, 1);
 }
+:host-context([data-theme="light"]) .cc-btn,
+:host(.theme-light) .cc-btn,
+.theme-light .cc-btn,
+body.theme-light .cc-btn {
+  color: #1b1b1b;
+}
 .cc-btn:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.08);
-  color: var(--winzen-text, #ffffff);
+  background: var(--winzen-surface-hover, rgba(255, 255, 255, 0.08));
+  border-color: var(--winzen-border-subtle, rgba(255, 255, 255, 0.08));
+  color: var(--winzen-accent, #3684e3);
+}
+:host-context([data-theme="light"]) .cc-btn:hover,
+:host(.theme-light) .cc-btn:hover,
+.theme-light .cc-btn:hover,
+body.theme-light .cc-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 0, 0, 0.08);
+  color: var(--winzen-accent, #0067c0);
 }
 .cc-btn:active {
   background: rgba(255, 255, 255, 0.04);
   transform: scale(0.95);
+}
+:host-context([data-theme="light"]) .cc-btn:active,
+:host(.theme-light) .cc-btn:active,
+.theme-light .cc-btn:active,
+body.theme-light .cc-btn:active {
+  background: rgba(0, 0, 0, 0.08);
 }
 .cc-icon {
   width: 16px;
