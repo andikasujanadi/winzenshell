@@ -221,12 +221,14 @@ function initSettingsPage() {
 
   inputFloatingMargin.addEventListener('input', () => {
     labelMarginVal.textContent = `${inputFloatingMargin.value}px`;
+    sendWorkAreaConfig();
   });
   inputFloatingMargin.addEventListener('change', sendWorkAreaConfig);
 
   if (inputCornerRadius) {
     inputCornerRadius.addEventListener('input', () => {
       if (labelRadiusVal) labelRadiusVal.textContent = `${inputCornerRadius.value}px`;
+      sendWorkAreaConfig();
     });
     inputCornerRadius.addEventListener('change', sendWorkAreaConfig);
   }

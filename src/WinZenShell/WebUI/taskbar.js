@@ -32,8 +32,10 @@ function initTaskbar() {
     document.documentElement.style.setProperty('--win11-accent', currentAccent);
 
     const isFloating = (settings.floatingMarginPx || 0) > 0;
+    const isTop = (settings.dockEdge || 'Bottom').toLowerCase() === 'top';
     if (taskbarBar) {
       taskbarBar.classList.toggle('floating', isFloating);
+      taskbarBar.classList.toggle('dock-top', isTop);
       taskbarBar.style.setProperty('--taskbar-radius', `${isFloating ? currentRadius : 0}px`);
     }
 

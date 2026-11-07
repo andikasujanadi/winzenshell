@@ -1,13 +1,15 @@
 const strip = root.getElementById('winStrip');
-const showAppName = typeof widgetConfig !== 'undefined' && widgetConfig
+let showAppName = typeof widgetConfig !== 'undefined' && widgetConfig
   ? widgetConfig.showAppName !== false
   : true;
-const combineApps = typeof widgetConfig !== 'undefined' && widgetConfig
+let combineApps = typeof widgetConfig !== 'undefined' && widgetConfig
   ? !!widgetConfig.combineApps
   : false;
-const showThumbnails = typeof widgetConfig !== 'undefined' && widgetConfig
+let showThumbnails = typeof widgetConfig !== 'undefined' && widgetConfig
   ? widgetConfig.showThumbnails !== false
   : true;
+
+let lastCachedMetrics = null;
 
 // Client-side stable order tracker
 const seenOrder = [];
@@ -44,8 +46,33 @@ function closeContextMenu() {
   }
 }
 
+window.addEventListener('winzen:state', (e) => {
+  const state = e.detail;
+  if (!state || !Array.isArray(state.widgets)) return;
+  const cfg = state.widgets.find((w) => w.id === 'community.zen-active-windows');
+  if (!cfg) return;
+
+  const newShowAppName = cfg.showAppName !== false;
+  const newCombineApps = !!cfg.combineApps;
+  const newShowThumbnails = cfg.showThumbnails !== false;
+
+  if (newShowAppName !== showAppName || newCombineApps !== combineApps || newShowThumbnails !== showThumbnails) {
+    showAppName = newShowAppName;
+    combineApps = newCombineApps;
+    showThumbnails = newShowThumbnails;
+    lastSig = '';
+    if (lastCachedMetrics) {
+      renderWindows(lastCachedMetrics);
+    }
+  }
+});
+
 window.addEventListener('winzen:metrics', (e) => {
-  const m = e.detail;
+  lastCachedMetrics = e.detail;
+  renderWindows(lastCachedMetrics);
+});
+
+function renderWindows(m) {
   if (!m || !strip) return;
 
   const rawWindows = Array.isArray(m.windows) ? m.windows : [];
@@ -290,7 +317,7 @@ window.addEventListener('winzen:metrics', (e) => {
 
     strip.appendChild(btn);
   });
-});
+}
 
 function openContextMenu(ev, item, anchorBtn) {
   closeContextMenu();
@@ -489,9 +516,18 @@ function openContextMenu(ev, item, anchorBtn) {
     }
   }
 
-  // Position above the anchor button on taskbar
+  // Position relative to anchor button on taskbar (support both bottom and top dock)
   const rect = anchorBtn.getBoundingClientRect();
-  menu.style.bottom = `${window.innerHeight - rect.top + 6}px`;
+  const isDockTop = window.winzen && window.winzen.state && window.winzen.state.settings &&
+    String(window.winzen.state.settings.dockEdge || '').toLowerCase() === 'top';
+
+  if (isDockTop) {
+    menu.style.top = `${rect.bottom + 6}px`;
+    menu.style.bottom = 'auto';
+  } else {
+    menu.style.bottom = `${window.innerHeight - rect.top + 6}px`;
+    menu.style.top = 'auto';
+  }
   menu.style.left = `${Math.max(8, rect.left)}px`;
 
   root.appendChild(menu);

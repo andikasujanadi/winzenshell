@@ -473,6 +473,7 @@ public partial class TaskbarWebWindow : Window
         int margin = _shellState.Settings.FloatingMarginPx;
         int radius = _shellState.Settings.TaskbarCornerRadiusPx;
         bool isLight = string.Equals(_shellState.Settings.Theme, "light", StringComparison.OrdinalIgnoreCase);
+        bool isTop = string.Equals(_shellState.Settings.DockEdge, "top", StringComparison.OrdinalIgnoreCase);
 
         OuterBorder.Background = isLight
             ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xF3, 0xF3, 0xF3))
@@ -481,6 +482,13 @@ public partial class TaskbarWebWindow : Window
         TaskbarWebView.DefaultBackgroundColor = isLight
             ? System.Drawing.Color.FromArgb(255, 0xF3, 0xF3, 0xF3)
             : System.Drawing.Color.FromArgb(255, 0x1C, 0x1C, 0x1C);
+
+        // Remove window drop shadow when on top or docked (GlassFrameThickness = 0)
+        var chrome = System.Windows.Shell.WindowChrome.GetWindowChrome(this);
+        if (chrome != null)
+        {
+            chrome.GlassFrameThickness = new Thickness(0);
+        }
 
         if (_hwnd == IntPtr.Zero) return;
 

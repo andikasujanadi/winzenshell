@@ -32,7 +32,13 @@ body {
   gap: 8px;
   overflow: hidden;
   box-sizing: border-box;
+  box-shadow: none;
   transition: border-radius 0.15s ease;
+}
+
+.taskbar-bar.dock-top {
+  border-top: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .taskbar-bar.floating {
@@ -124,6 +130,13 @@ html[data-theme="light"] .taskbar-bar,
 body.theme-light .taskbar-bar {
   background: #f3f3f3;
   border-top: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: none;
+}
+
+html[data-theme="light"] .taskbar-bar.dock-top,
+body.theme-light .taskbar-bar.dock-top {
+  border-top: none;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 html[data-theme="light"] .studio-btn,

@@ -15,7 +15,7 @@
         SnapsToDevicePixels="True"
         UseLayoutRounding="True">
     <WindowChrome.WindowChrome>
-        <WindowChrome GlassFrameThickness="1"
+        <WindowChrome GlassFrameThickness="0"
                       ResizeBorderThickness="0"
                       CaptionHeight="0"
                       UseAeroCaptionButtons="False" />
