@@ -53,6 +53,13 @@ public class SystemMetricsSnapshot
     public bool IsCharging { get; set; } = false;
     public bool HasBattery { get; set; } = true;
     public string BatteryStatusText { get; set; } = "Fully Charged";
+    public string NetworkType { get; set; } = "offline"; // "wifi", "ethernet", "offline"
+    public string NetworkStatusText { get; set; } = "Disconnected";
+    public string NetworkName { get; set; } = "";
+    public int WifiSignalPercent { get; set; } = 0;
+    public string LocalIpAddress { get; set; } = "";
+    public string GatewayAddress { get; set; } = "";
+    public bool IsNetworkConnected { get; set; } = false;
 }
 
 public class SystemMetricsService
@@ -60,6 +67,7 @@ public class SystemMetricsService
     public BrightnessService? Brightness { get; set; }
     public AudioService? Audio { get; set; }
     public VirtualDesktopService? VirtualDesktops { get; set; }
+    public NetworkService? Network { get; set; }
 
     private DateTime _lastCpuCheck = DateTime.UtcNow;
     private TimeSpan _lastTotalProcTime = TimeSpan.Zero;
@@ -149,6 +157,26 @@ public class SystemMetricsService
             }
         }
 
+        string netType = "offline";
+        string netStatus = "Disconnected";
+        string netName = "";
+        int wifiSignal = 0;
+        string localIp = "";
+        string gatewayIp = "";
+        bool isNetConnected = false;
+
+        if (Network != null)
+        {
+            var netInfo = Network.GetNetworkStatus();
+            netType = netInfo.NetworkType;
+            netStatus = netInfo.StatusText;
+            netName = netInfo.NetworkType == "wifi" ? netInfo.Ssid : (netInfo.NetworkType == "ethernet" ? netInfo.AdapterName : "");
+            wifiSignal = netInfo.SignalPercent;
+            localIp = netInfo.LocalIp;
+            gatewayIp = netInfo.GatewayIp;
+            isNetConnected = netInfo.IsConnected;
+        }
+
         return new SystemMetricsSnapshot
         {
             CpuPercent = cpu,
@@ -168,7 +196,14 @@ public class SystemMetricsService
             BatteryPercent = batteryPercent,
             IsCharging = isCharging,
             HasBattery = hasBattery,
-            BatteryStatusText = batteryStatusText
+            BatteryStatusText = batteryStatusText,
+            NetworkType = netType,
+            NetworkStatusText = netStatus,
+            NetworkName = netName,
+            WifiSignalPercent = wifiSignal,
+            LocalIpAddress = localIp,
+            GatewayAddress = gatewayIp,
+            IsNetworkConnected = isNetConnected
         };
     }
 

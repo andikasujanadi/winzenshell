@@ -1,0 +1,14 @@
+{
+  "id": "community.zen-network",
+  "name": "Zen Network",
+  "version": "1.0.0",
+  "author": "Community",
+  "description": "Network status indicator for Wi-Fi, Ethernet, and offline with Wi-Fi selector flyout.",
+  "entry": "index.html",
+  "slot": "right",
+  "width": 34,
+  "autoWidth": true,
+  "displayMode": "icon",
+  "supportedModes": ["icon", "widget"],
+  "order": 3
+}

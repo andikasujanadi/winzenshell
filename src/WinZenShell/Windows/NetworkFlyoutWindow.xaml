@@ -1,0 +1,299 @@
+<Window x:Class="WinZenShell.Windows.NetworkFlyoutWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="WinZen Network &amp; Wi-Fi"
+        Width="370" Height="500"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ResizeMode="NoResize"
+        SnapsToDevicePixels="True"
+        UseLayoutRounding="True">
+
+    <Window.Resources>
+        <SolidColorBrush x:Key="AccentBrush" Color="#3684E3"/>
+
+        <!-- Custom ScrollBar Style -->
+        <Style x:Key="FluentScrollBarThumb" TargetType="{x:Type Thumb}">
+            <Setter Property="OverridesDefaultStyle" Value="true"/>
+            <Setter Property="IsTabStop" Value="false"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Thumb}">
+                        <Rectangle x:Name="ThumbRect" RadiusX="3" RadiusY="3" Fill="#555555" Width="5"/>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="true">
+                                <Setter TargetName="ThumbRect" Property="Fill" Value="#888888"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="FluentScrollViewer" TargetType="{x:Type ScrollViewer}">
+            <Setter Property="OverridesDefaultStyle" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ScrollViewer}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <ScrollContentPresenter Grid.Column="0" CanContentScroll="{TemplateBinding CanContentScroll}"/>
+                            <ScrollBar x:Name="PART_VerticalScrollBar"
+                                       Grid.Column="1"
+                                       Width="6"
+                                       Margin="4,0,0,0"
+                                       Value="{TemplateBinding VerticalOffset}"
+                                       Maximum="{TemplateBinding ScrollableHeight}"
+                                       ViewportSize="{TemplateBinding ViewportHeight}"
+                                       Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}"/>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="FluentToolButton" TargetType="{x:Type Button}">
+            <Setter Property="Background" Value="#262626"/>
+            <Setter Property="BorderBrush" Value="#383838"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="5"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#333333"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <!-- 100% Solid Opaque Universal Fluent Background -->
+    <Border x:Name="OuterBorder"
+            Background="#1E1E1E"
+            BorderBrush="#3E3E3E"
+            BorderThickness="1"
+            CornerRadius="14"
+            Padding="16,14,16,14">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/> <!-- 0: Header -->
+                <RowDefinition Height="Auto"/> <!-- 1: Active Connection Card -->
+                <RowDefinition Height="Auto"/> <!-- 2: Wi-Fi Section Header & Refresh -->
+                <RowDefinition Height="*"/>    <!-- 3: Available Networks List -->
+                <RowDefinition Height="Auto"/> <!-- 4: Footer Shortcuts -->
+            </Grid.RowDefinitions>
+
+            <!-- 0: Header -->
+            <DockPanel Grid.Row="0" Margin="0,0,0,12" LastChildFill="False">
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center">
+                    <Path x:Name="HeaderIconPath"
+                          Data="M12 3a9 9 0 0 1 6.36 2.64.75.75 0 0 1-1.06 1.06A7.5 7.5 0 0 0 12 4.5a7.5 7.5 0 0 0-5.3 2.2.75.75 0 0 1-1.06-1.06A9 9 0 0 1 12 3zm0 4a5 5 0 0 1 3.54 1.46.75.75 0 1 1-1.06 1.06 3.5 3.5 0 0 0-4.95 0 .75.75 0 0 1-1.06-1.06A5 5 0 0 1 12 7zm0 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z"
+                          Fill="{DynamicResource AccentBrush}"
+                          Width="16" Height="16"
+                          Stretch="Uniform"
+                          Margin="0,0,8,0"/>
+                    <TextBlock x:Name="TxtHeaderTitle"
+                               Text="Network &amp; Wi-Fi"
+                               Foreground="#FFFFFF"
+                               FontSize="13"
+                               FontWeight="SemiBold"
+                               FontFamily="Segoe UI Variable Display, Segoe UI"/>
+                </StackPanel>
+
+                <Button x:Name="BtnClose"
+                        DockPanel.Dock="Right"
+                        Width="24" Height="24"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Foreground="#9E9E9E"
+                        FontSize="11"
+                        Cursor="Hand"
+                        Click="OnCloseClicked">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Border" Background="{TemplateBinding Background}" CornerRadius="4">
+                                <Path Data="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+                                      Fill="{TemplateBinding Foreground}"
+                                      Width="10" Height="10"
+                                      Stretch="Uniform"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Border" Property="Background" Value="#2AFFFFFF"/>
+                                    <Setter Property="Foreground" Value="#FFFFFF"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+            </DockPanel>
+
+            <!-- 1: Active Connection Status Card -->
+            <Border x:Name="StatusCard"
+                    Grid.Row="1"
+                    Background="#262626"
+                    BorderBrush="#383838"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="12,10"
+                    Margin="0,0,0,12">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Icon -->
+                    <Border Grid.Column="0"
+                            Width="36" Height="36"
+                            CornerRadius="6"
+                            Background="#18FFFFFF"
+                            Margin="0,0,10,0">
+                        <Path x:Name="StatusIconPath"
+                              Data="M12 3a9 9 0 0 1 6.36 2.64.75.75 0 0 1-1.06 1.06A7.5 7.5 0 0 0 12 4.5a7.5 7.5 0 0 0-5.3 2.2.75.75 0 0 1-1.06-1.06A9 9 0 0 1 12 3zm0 4a5 5 0 0 1 3.54 1.46.75.75 0 1 1-1.06 1.06 3.5 3.5 0 0 0-4.95 0 .75.75 0 0 1-1.06-1.06A5 5 0 0 1 12 7zm0 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z"
+                              Fill="{DynamicResource AccentBrush}"
+                              Width="18" Height="18"
+                              Stretch="Uniform"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center"/>
+                    </Border>
+
+                    <!-- Status Text Stack -->
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock x:Name="TxtStatusName"
+                                   Text="Ethernet"
+                                   Foreground="#FFFFFF"
+                                   FontSize="13"
+                                   FontWeight="SemiBold"
+                                   TextTrimming="CharacterEllipsis"/>
+                        <TextBlock x:Name="TxtStatusDetail"
+                                   Text="Connected • 172.168.100.18"
+                                   Foreground="#A0A0A0"
+                                   FontSize="11"
+                                   Margin="0,2,0,0"
+                                   TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+
+                    <!-- Action Button (Disconnect Wi-Fi if connected) -->
+                    <Button x:Name="BtnDisconnectWifi"
+                            Grid.Column="2"
+                            Content="Disconnect"
+                            Background="#333333"
+                            Foreground="#FFFFFF"
+                            BorderBrush="#444444"
+                            BorderThickness="1"
+                            Padding="8,4"
+                            FontSize="11"
+                            Cursor="Hand"
+                            VerticalAlignment="Center"
+                            Visibility="Collapsed"
+                            Click="OnDisconnectWifiClicked"
+                            Style="{StaticResource FluentToolButton}"/>
+                </Grid>
+            </Border>
+
+            <!-- 2: Wi-Fi Section Header & Refresh Button -->
+            <DockPanel Grid.Row="2" Margin="0,0,0,8" LastChildFill="False">
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center">
+                    <TextBlock x:Name="TxtAvailableHeader"
+                               Text="Available Wi-Fi Networks"
+                               Foreground="#CCCCCC"
+                               FontSize="11.5"
+                               FontWeight="SemiBold"/>
+                    <TextBlock x:Name="TxtScanningIndicator"
+                               Text="• Scanning..."
+                               Foreground="{DynamicResource AccentBrush}"
+                               FontSize="11"
+                               Margin="6,0,0,0"
+                               Visibility="Collapsed"/>
+                </StackPanel>
+
+                <!-- Refresh Button -->
+                <Button x:Name="BtnRefreshWifi"
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource FluentToolButton}"
+                        Padding="8,4"
+                        Cursor="Hand"
+                        Click="OnRefreshClicked"
+                        ToolTip="Refresh Wi-Fi Networks">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Path x:Name="RefIcon"
+                              Data="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"
+                              Fill="#CCCCCC"
+                              Width="11" Height="11"
+                              Stretch="Uniform"
+                              Margin="0,0,5,0"
+                              RenderTransformOrigin="0.5,0.5">
+                            <Path.RenderTransform>
+                                <RotateTransform x:Name="RefRotate" Angle="0"/>
+                            </Path.RenderTransform>
+                        </Path>
+                        <TextBlock x:Name="RefText" Text="Refresh" Foreground="#CCCCCC" FontSize="11"/>
+                    </StackPanel>
+                </Button>
+            </DockPanel>
+
+            <!-- 3: Available Networks List -->
+            <ScrollViewer Grid.Row="3"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          Style="{StaticResource FluentScrollViewer}"
+                          Margin="0,0,0,10">
+                <StackPanel x:Name="NetworksContainer">
+                    <!-- Populated dynamically via code-behind -->
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- 4: Footer Shortcuts -->
+            <Border Grid.Row="4"
+                    BorderBrush="#28FFFFFF"
+                    BorderThickness="0,1,0,0"
+                    Padding="0,10,0,0">
+                <DockPanel LastChildFill="False">
+                    <Button x:Name="BtnWindowsWifiSettings"
+                            DockPanel.Dock="Left"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Foreground="{DynamicResource AccentBrush}"
+                            FontSize="11"
+                            Cursor="Hand"
+                            Click="OnOpenSettingsClicked">
+                        <TextBlock Text="Network settings" TextDecorations="Underline"/>
+                    </Button>
+
+                    <Button x:Name="BtnWindowsNetworksPrompt"
+                            DockPanel.Dock="Right"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Foreground="#888888"
+                            FontSize="11"
+                            Cursor="Hand"
+                            Click="OnOpenWindowsNetworksClicked"
+                            ToolTip="Open Windows native network flyout">
+                        <TextBlock Text="Windows quick connect ›"/>
+                    </Button>
+                </DockPanel>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

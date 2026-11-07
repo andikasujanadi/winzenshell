@@ -33,6 +33,8 @@ public partial class TaskbarWebWindow : Window
     private AppLauncherFlyoutWindow? _appLauncherFlyout;
     private SystemMonitorFlyoutWindow? _systemMonitorFlyout;
     private WindowSelectorFlyoutWindow? _windowSelectorFlyout;
+    private NetworkFlyoutWindow? _networkFlyout;
+    private readonly NetworkService _networkService;
     private TaskbarBackdropWindow? _backdropWindow;
     private FileSystemWatcher? _triggerWatcher;
     private Forms.ContextMenuStrip? _activeNativeMenu;
@@ -58,14 +60,17 @@ public partial class TaskbarWebWindow : Window
         _brightnessService = brightnessService;
         _audioService = new AudioService();
         _virtualDesktopService = new VirtualDesktopService();
+        _networkService = new NetworkService();
         _metricsService.Audio = _audioService;
         _metricsService.VirtualDesktops = _virtualDesktopService;
+        _metricsService.Network = _networkService;
         _appLauncherService = appLauncherService;
         _openSettingsCallback = openSettingsCallback;
 
         _shellState.StateChanged += OnShellStateChanged;
         _shellState.TaskbarVisibilityRequested += OnTaskbarVisibilityRequested;
         _shellState.TaskbarBoundsUpdated += OnTaskbarBoundsUpdated;
+        _networkService.NetworkChanged += (_, _) => Dispatcher.Invoke(BroadcastMetrics);
         _brightnessService.BrightnessChanged += val => Dispatcher.Invoke(() =>
         {
             if (_brightnessFlyout != null && _brightnessFlyout.IsVisible)
@@ -387,9 +392,25 @@ public partial class TaskbarWebWindow : Window
                             _brightnessFlyout.ShowAt(mon.Right - 420, 34, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
                         }
                     }
+                    else if (cmd.StartsWith("open_network", StringComparison.OrdinalIgnoreCase))
+                    {
+                        _networkFlyout ??= new NetworkFlyoutWindow(_networkService);
+                        _networkFlyout.ShowAt(mon.Right - 420, 34, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
+                    }
+                    else if (cmd.StartsWith("toggle_network", StringComparison.OrdinalIgnoreCase))
+                    {
+                        _networkFlyout ??= new NetworkFlyoutWindow(_networkService);
+                        bool wasJustOpen = _networkFlyout.IsVisible ||
+                            (DateTime.UtcNow - _networkFlyout.LastDeactivatedTime).TotalMilliseconds < 350;
+                        CloseAllFlyouts();
+                        if (!wasJustOpen)
+                        {
+                            _networkFlyout.ShowAt(mon.Right - 420, 34, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
+                        }
+                    }
                     else if (cmd.StartsWith("status_flyout", StringComparison.OrdinalIgnoreCase))
                     {
-                        string status = $"Volume={_volumeFlyout?.IsVisible == true};Brightness={_brightnessFlyout?.IsVisible == true};Clock={_clockFlyout?.IsVisible == true};Telemetry={_systemMonitorFlyout?.IsVisible == true};CC={_controlCenterFlyout?.IsVisible == true};Launcher={_appLauncherFlyout?.IsVisible == true}";
+                        string status = $"Volume={_volumeFlyout?.IsVisible == true};Brightness={_brightnessFlyout?.IsVisible == true};Clock={_clockFlyout?.IsVisible == true};Telemetry={_systemMonitorFlyout?.IsVisible == true};CC={_controlCenterFlyout?.IsVisible == true};Launcher={_appLauncherFlyout?.IsVisible == true};Network={_networkFlyout?.IsVisible == true}";
                         File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "flyout_status.txt"), status);
                     }
                     else if (cmd.StartsWith("volume_click_0", StringComparison.OrdinalIgnoreCase))
@@ -1013,6 +1034,25 @@ public partial class TaskbarWebWindow : Window
                         if (!wasJustOpen)
                         {
                             _systemMonitorFlyout.ShowAt(Left + smX, smW, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
+                        }
+                    });
+                    break;
+
+                case "toggle_network_flyout":
+                    double nwX = root.TryGetProperty("x", out var nwXProp) && nwXProp.TryGetDouble(out double nwXd) ? nwXd : 0;
+                    double nwW = root.TryGetProperty("width", out var nwWProp) && nwWProp.TryGetDouble(out double nwWd) ? nwWd : 34;
+
+                    Dispatcher.Invoke(() =>
+                    {
+                        _networkFlyout ??= new NetworkFlyoutWindow(_networkService);
+                        bool wasJustOpen = _networkFlyout.IsVisible ||
+                            (DateTime.UtcNow - _networkFlyout.LastDeactivatedTime).TotalMilliseconds < 350;
+
+                        CloseAllFlyouts();
+
+                        if (!wasJustOpen)
+                        {
+                            _networkFlyout.ShowAt(Left + nwX, nwW, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
                         }
                     });
                     break;
@@ -1680,6 +1720,8 @@ public partial class TaskbarWebWindow : Window
             _systemMonitorFlyout.Hide();
         if (_appLauncherFlyout != null && _appLauncherFlyout != except && _appLauncherFlyout.IsVisible)
             _appLauncherFlyout.Hide();
+        if (_networkFlyout != null && _networkFlyout != except && _networkFlyout.IsVisible)
+            _networkFlyout.Hide();
         if (_windowSelectorFlyout != null && _windowSelectorFlyout != except && _windowSelectorFlyout.IsVisible)
             _windowSelectorFlyout.HideSelector();
     }

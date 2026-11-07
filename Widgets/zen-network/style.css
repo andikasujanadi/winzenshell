@@ -1,0 +1,94 @@
+:host {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-family: var(--winzen-font, 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, sans-serif);
+  color: var(--winzen-text, #ffffff);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+.network-pill {
+  height: 36px;
+  max-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 8px;
+  border-radius: var(--winzen-radius-xs, 4px);
+  background: transparent;
+  border: 1px solid transparent;
+  color: inherit;
+  cursor: pointer;
+  outline: none;
+  transition: background-color 0.12s ease, border-color 0.12s ease, transform 0.1s ease;
+}
+
+.network-pill:hover {
+  background: var(--winzen-surface-hover, rgba(255, 255, 255, 0.0605));
+  border-color: var(--winzen-border, rgba(255, 255, 255, 0.08));
+}
+
+.network-pill:active {
+  transform: scale(0.97);
+}
+
+.network-icon-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.net-icon {
+  width: 17px;
+  height: 17px;
+  fill: currentColor;
+  transition: fill 0.2s ease;
+}
+
+.state-wifi .net-icon {
+  fill: var(--winzen-accent, #3684e3);
+}
+
+.state-ethernet .net-icon {
+  fill: var(--winzen-accent, #3684e3);
+}
+
+.state-offline .net-icon {
+  fill: #888888;
+  opacity: 0.7;
+}
+
+.net-label {
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--winzen-text, #ffffff);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  max-width: 90px;
+  display: none; /* Can be enabled in full widget mode */
+}
+
+/* Light theme overrides */
+:host([data-theme="light"]) .net-label,
+:host(.theme-light) .net-label {
+  color: #1a1a1a;
+}
+
+:host([data-theme="light"]) .state-offline .net-icon,
+:host(.theme-light) .state-offline .net-icon {
+  fill: #777777;
+}
