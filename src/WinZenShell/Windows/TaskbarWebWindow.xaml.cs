@@ -35,8 +35,6 @@ public partial class TaskbarWebWindow : Window
     private WindowSelectorFlyoutWindow? _windowSelectorFlyout;
     private FileSystemWatcher? _triggerWatcher;
     private Forms.ContextMenuStrip? _activeNativeMenu;
-    private readonly System.Windows.Controls.Control _webViewControl;
-    private readonly Microsoft.Web.WebView2.Wpf.IWebView2 TaskbarWebView;
     private IntPtr _hwnd = IntPtr.Zero;
     private bool _webViewReady;
     private bool _isApplyingWorkArea;
@@ -52,17 +50,7 @@ public partial class TaskbarWebWindow : Window
         Action openSettingsCallback)
     {
         InitializeComponent();
-
-        var compType = typeof(Microsoft.Web.WebView2.Wpf.WebView2).Assembly
-            .GetType("Microsoft.Web.WebView2.Wpf.WebView2CompositionControl", throwOnError: true)!;
-        _webViewControl = (System.Windows.Controls.Control)Activator.CreateInstance(compType, nonPublic: true)!;
-        _webViewControl.UseLayoutRounding = false;
-        _webViewControl.HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch;
-        _webViewControl.VerticalAlignment = System.Windows.VerticalAlignment.Stretch;
-        OuterBorder.Child = _webViewControl;
-
-        TaskbarWebView = (Microsoft.Web.WebView2.Wpf.IWebView2)_webViewControl;
-        TaskbarWebView.DefaultBackgroundColor = System.Drawing.Color.Transparent;
+        TaskbarWebView.DefaultBackgroundColor = System.Drawing.Color.FromArgb(255, 28, 28, 28);
         _shellState = shellState;
         _metricsService = metricsService;
         _brightnessService = brightnessService;
@@ -140,8 +128,9 @@ public partial class TaskbarWebWindow : Window
     {
         try
         {
-            var env = await WebViewEnvironmentManager.GetCompositionEnvironmentAsync();
+            var env = await WebViewEnvironmentManager.GetSharedEnvironmentAsync();
             await TaskbarWebView.EnsureCoreWebView2Async(env);
+            ApplyTaskbarCornerRegion();
 
             var core = TaskbarWebView.CoreWebView2;
             core.Settings.AreDefaultContextMenusEnabled = false;
@@ -488,8 +477,8 @@ public partial class TaskbarWebWindow : Window
             Top = rect.Top;
             Width = rect.Width;
             Height = rect.Height;
-            _webViewControl.Width = rect.Width;
-            _webViewControl.Height = rect.Height;
+            TaskbarWebView.Width = rect.Width;
+            TaskbarWebView.Height = rect.Height;
             ApplyTaskbarCornerRegion();
         });
     }
@@ -504,34 +493,53 @@ public partial class TaskbarWebWindow : Window
             ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xF3, 0xF3, 0xF3))
             : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x1C, 0x1C, 0x1C));
 
-        TaskbarWebView.DefaultBackgroundColor = System.Drawing.Color.Transparent;
-
-        double w = Width > 0 && !double.IsNaN(Width) ? Width : ActualWidth;
-        double h = Height > 0 && !double.IsNaN(Height) ? Height : ActualHeight;
-        double effectiveRadius = (margin > 0 && radius > 0 && w > 0 && h > 0)
-            ? Math.Min(radius, Math.Min(w, h) / 2.0)
-            : 0;
-
-        OuterBorder.CornerRadius = new CornerRadius(effectiveRadius);
-        OuterBorder.Clip = (effectiveRadius > 0 && w > 0 && h > 0)
-            ? new System.Windows.Media.RectangleGeometry(new System.Windows.Rect(0, 0, w, h), effectiveRadius, effectiveRadius)
-            : null;
+        TaskbarWebView.DefaultBackgroundColor = isLight
+            ? System.Drawing.Color.FromArgb(255, 0xF3, 0xF3, 0xF3)
+            : System.Drawing.Color.FromArgb(255, 0x1C, 0x1C, 0x1C);
 
         if (_hwnd == IntPtr.Zero) return;
-
-        // Clear any legacy 1-bit GDI region
-        Win32Api.SetWindowRgn(_hwnd, IntPtr.Zero, true);
 
         int darkAttr = isLight ? 0 : 1;
         Win32Api.DwmSetWindowAttribute(_hwnd, Win32Api.DWMWA_USE_IMMERSIVE_DARK_MODE, ref darkAttr, sizeof(int));
 
-        // Always use DWMWCP_DONOTROUND (1) and DWMWA_COLOR_NONE (0xFFFFFFFE) on the HWND
-        // so Windows 11 DWM never attaches a window drop shadow or 8px frame border.
-        int cornerPref = 1;
+        // Always disable DWM non-client rendering, DWM corner rounding, and DWM border so Windows 11 DWM never adds a drop shadow
+        int ncrp = 1; // DWMNCRP_DISABLED
+        Win32Api.DwmSetWindowAttribute(_hwnd, 2, ref ncrp, sizeof(int)); // DWMWA_NCRENDERING_POLICY = 2
+
+        int cornerPref = 1; // DWMWCP_DONOTROUND
         Win32Api.DwmSetWindowAttribute(_hwnd, Win32Api.DWMWA_WINDOW_CORNER_PREFERENCE, ref cornerPref, sizeof(int));
 
-        int borderColor = unchecked((int)0xFFFFFFFE);
+        int borderColor = unchecked((int)0xFFFFFFFE); // DWMWA_COLOR_NONE
         Win32Api.DwmSetWindowAttribute(_hwnd, 34, ref borderColor, sizeof(int));
+
+        if (margin > 0 && radius > 0 && Win32Api.GetWindowRect(_hwnd, out var winRect))
+        {
+            int w = winRect.Width;
+            int h = winRect.Height;
+            int effRadius = Math.Min(radius, Math.Min(w, h) / 2);
+            int diameter = effRadius * 2;
+            IntPtr hRgn = Win32Api.CreateRoundRectRgn(0, 0, w + 1, h + 1, diameter, diameter);
+            if (Win32Api.SetWindowRgn(_hwnd, hRgn, true) == 0)
+            {
+                Win32Api.DeleteObject(hRgn);
+            }
+            if (TaskbarWebView.Handle != IntPtr.Zero)
+            {
+                IntPtr childRgn = Win32Api.CreateRoundRectRgn(0, 0, w + 1, h + 1, diameter, diameter);
+                if (Win32Api.SetWindowRgn(TaskbarWebView.Handle, childRgn, true) == 0)
+                {
+                    Win32Api.DeleteObject(childRgn);
+                }
+            }
+        }
+        else
+        {
+            Win32Api.SetWindowRgn(_hwnd, IntPtr.Zero, true);
+            if (TaskbarWebView.Handle != IntPtr.Zero)
+            {
+                Win32Api.SetWindowRgn(TaskbarWebView.Handle, IntPtr.Zero, true);
+            }
+        }
     }
 
     private void OnTaskbarVisibilityRequested(bool visible)

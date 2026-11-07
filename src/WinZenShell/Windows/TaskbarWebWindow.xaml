@@ -8,12 +8,16 @@
         Left="0"
         Top="1032"
         WindowStyle="None"
-        AllowsTransparency="True"
         ResizeMode="NoResize"
         ShowInTaskbar="False"
         Topmost="True"
-        Background="Transparent"
+        Background="#1C1C1C"
         SnapsToDevicePixels="True"
         UseLayoutRounding="True">
-    <Border x:Name="OuterBorder" Background="#1C1C1C" Margin="0" />
+    <Grid x:Name="OuterBorder" Background="#1C1C1C" Margin="0">
+        <wv2:WebView2 x:Name="TaskbarWebView"
+                      DefaultBackgroundColor="#1C1C1C"
+                      HorizontalAlignment="Stretch"
+                      VerticalAlignment="Stretch" />
+    </Grid>
 </Window>
