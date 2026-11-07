@@ -122,12 +122,15 @@ function initSettingsPage() {
   function sendWorkAreaConfig() {
     if (isUpdatingFromHost) return;
     stateRespectWorkArea.textContent = toggleRespectWorkArea.checked ? 'On' : 'Off';
+    const parsedHeight = parseInt(inputTaskbarHeight.value, 10);
+    const parsedMargin = parseInt(inputFloatingMargin.value, 10);
+    const parsedRadius = inputCornerRadius ? parseInt(inputCornerRadius.value, 10) : 12;
     window.winzen.send('update_workarea_config', {
       respectWorkArea: toggleRespectWorkArea.checked,
       dockEdge: selectDockEdge.value,
-      taskbarHeightPx: parseInt(inputTaskbarHeight.value, 10) || 48,
-      floatingMarginPx: parseInt(inputFloatingMargin.value, 10) || 0,
-      taskbarCornerRadiusPx: inputCornerRadius ? (parseInt(inputCornerRadius.value, 10) || 12) : 12,
+      taskbarHeightPx: Number.isNaN(parsedHeight) ? 48 : parsedHeight,
+      floatingMarginPx: Number.isNaN(parsedMargin) ? 0 : parsedMargin,
+      taskbarCornerRadiusPx: Number.isNaN(parsedRadius) ? 12 : parsedRadius,
       accentColor: currentAccentColor,
       theme: selectTheme ? selectTheme.value : 'dark'
     });

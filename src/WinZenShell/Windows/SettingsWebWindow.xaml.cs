@@ -106,11 +106,11 @@ public partial class SettingsWebWindow : Window
         }
         catch (Exception ex)
         {
-            System.Windows.MessageBox.Show(
-                $"Failed to initialize Settings WebView2: {ex.Message}",
-                "WinZenShell Error",
-                MessageBoxButton.OK,
-                MessageBoxImage.Error);
+            try
+            {
+                File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings_init_err.txt"), ex.ToString());
+            }
+            catch { }
         }
     }
 

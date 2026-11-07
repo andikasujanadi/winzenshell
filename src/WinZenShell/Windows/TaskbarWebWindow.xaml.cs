@@ -35,6 +35,8 @@ public partial class TaskbarWebWindow : Window
     private WindowSelectorFlyoutWindow? _windowSelectorFlyout;
     private FileSystemWatcher? _triggerWatcher;
     private Forms.ContextMenuStrip? _activeNativeMenu;
+    private readonly System.Windows.Controls.Control _webViewControl;
+    private readonly Microsoft.Web.WebView2.Wpf.IWebView2 TaskbarWebView;
     private IntPtr _hwnd = IntPtr.Zero;
     private bool _webViewReady;
     private bool _isApplyingWorkArea;
@@ -50,7 +52,17 @@ public partial class TaskbarWebWindow : Window
         Action openSettingsCallback)
     {
         InitializeComponent();
-        TaskbarWebView.DefaultBackgroundColor = System.Drawing.Color.FromArgb(255, 28, 28, 28);
+
+        var compType = typeof(Microsoft.Web.WebView2.Wpf.WebView2).Assembly
+            .GetType("Microsoft.Web.WebView2.Wpf.WebView2CompositionControl", throwOnError: true)!;
+        _webViewControl = (System.Windows.Controls.Control)Activator.CreateInstance(compType, nonPublic: true)!;
+        _webViewControl.UseLayoutRounding = false;
+        _webViewControl.HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch;
+        _webViewControl.VerticalAlignment = System.Windows.VerticalAlignment.Stretch;
+        OuterBorder.Child = _webViewControl;
+
+        TaskbarWebView = (Microsoft.Web.WebView2.Wpf.IWebView2)_webViewControl;
+        TaskbarWebView.DefaultBackgroundColor = System.Drawing.Color.Transparent;
         _shellState = shellState;
         _metricsService = metricsService;
         _brightnessService = brightnessService;
@@ -128,7 +140,7 @@ public partial class TaskbarWebWindow : Window
     {
         try
         {
-            var env = await WebViewEnvironmentManager.GetSharedEnvironmentAsync();
+            var env = await WebViewEnvironmentManager.GetCompositionEnvironmentAsync();
             await TaskbarWebView.EnsureCoreWebView2Async(env);
 
             var core = TaskbarWebView.CoreWebView2;
@@ -164,15 +176,23 @@ public partial class TaskbarWebWindow : Window
         }
     }
 
+    private readonly object _triggerLock = new();
+
     private void HandleExternalTrigger()
     {
         try
         {
-            string triggerPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "cmd_trigger.txt");
-            if (!File.Exists(triggerPath)) return;
-            System.Threading.Thread.Sleep(50);
-            string cmd = File.ReadAllText(triggerPath).Trim();
-            try { File.Delete(triggerPath); } catch { }
+            string cmd;
+            lock (_triggerLock)
+            {
+                string triggerPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "cmd_trigger.txt");
+                if (!File.Exists(triggerPath)) return;
+                System.Threading.Thread.Sleep(60);
+                if (!File.Exists(triggerPath)) return;
+                cmd = File.ReadAllText(triggerPath).Trim();
+                try { File.Delete(triggerPath); } catch { }
+            }
+            if (string.IsNullOrWhiteSpace(cmd)) return;
 
             if (cmd.StartsWith("capture_taskbar", StringComparison.OrdinalIgnoreCase))
             {
@@ -224,11 +244,15 @@ public partial class TaskbarWebWindow : Window
                                 await settingsWin.SettingsWebView.CoreWebView2.ExecuteScriptAsync(script);
                                 await System.Threading.Tasks.Task.Delay(300);
                             }
-                            using var fs = new FileStream(outPath, FileMode.Create, FileAccess.Write, FileShare.None);
+                            using var fs = new FileStream(outPath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite);
                             await settingsWin.SettingsWebView.CoreWebView2.CapturePreviewAsync(
                                 Microsoft.Web.WebView2.Core.CoreWebView2CapturePreviewImageFormat.Png,
                                 fs);
                             await fs.FlushAsync();
+                        }
+                        else
+                        {
+                            File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "capture_err.txt"), $"settingsWin={settingsWin != null}, CoreWebView2={settingsWin?.SettingsWebView?.CoreWebView2 != null}");
                         }
                     }
                     catch (Exception ex)
@@ -406,6 +430,8 @@ public partial class TaskbarWebWindow : Window
                     else if (cmd.StartsWith("reload_settings", StringComparison.OrdinalIgnoreCase))
                     {
                         _shellState.LoadSettings();
+                        _shellState.SyncTaskbarAndWorkArea();
+                        _shellState.BroadcastState();
                         BroadcastMetrics();
                     }
                     else if (cmd.StartsWith("capture_menu", StringComparison.OrdinalIgnoreCase))
@@ -462,8 +488,8 @@ public partial class TaskbarWebWindow : Window
             Top = rect.Top;
             Width = rect.Width;
             Height = rect.Height;
-            TaskbarWebView.Width = rect.Width;
-            TaskbarWebView.Height = rect.Height;
+            _webViewControl.Width = rect.Width;
+            _webViewControl.Height = rect.Height;
             ApplyTaskbarCornerRegion();
         });
     }
@@ -473,51 +499,39 @@ public partial class TaskbarWebWindow : Window
         int margin = _shellState.Settings.FloatingMarginPx;
         int radius = _shellState.Settings.TaskbarCornerRadiusPx;
         bool isLight = string.Equals(_shellState.Settings.Theme, "light", StringComparison.OrdinalIgnoreCase);
-        bool isTop = string.Equals(_shellState.Settings.DockEdge, "top", StringComparison.OrdinalIgnoreCase);
 
         OuterBorder.Background = isLight
             ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xF3, 0xF3, 0xF3))
             : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x1C, 0x1C, 0x1C));
 
-        TaskbarWebView.DefaultBackgroundColor = isLight
-            ? System.Drawing.Color.FromArgb(255, 0xF3, 0xF3, 0xF3)
-            : System.Drawing.Color.FromArgb(255, 0x1C, 0x1C, 0x1C);
+        TaskbarWebView.DefaultBackgroundColor = System.Drawing.Color.Transparent;
 
-        // Remove window drop shadow when on top or docked (GlassFrameThickness = 0)
-        var chrome = System.Windows.Shell.WindowChrome.GetWindowChrome(this);
-        if (chrome != null)
-        {
-            chrome.GlassFrameThickness = new Thickness(0);
-        }
+        double w = Width > 0 && !double.IsNaN(Width) ? Width : ActualWidth;
+        double h = Height > 0 && !double.IsNaN(Height) ? Height : ActualHeight;
+        double effectiveRadius = (margin > 0 && radius > 0 && w > 0 && h > 0)
+            ? Math.Min(radius, Math.Min(w, h) / 2.0)
+            : 0;
+
+        OuterBorder.CornerRadius = new CornerRadius(effectiveRadius);
+        OuterBorder.Clip = (effectiveRadius > 0 && w > 0 && h > 0)
+            ? new System.Windows.Media.RectangleGeometry(new System.Windows.Rect(0, 0, w, h), effectiveRadius, effectiveRadius)
+            : null;
 
         if (_hwnd == IntPtr.Zero) return;
 
-        // Clear any legacy 1-bit GDI region so DWM hardware anti-aliased corners are active
+        // Clear any legacy 1-bit GDI region
         Win32Api.SetWindowRgn(_hwnd, IntPtr.Zero, true);
 
         int darkAttr = isLight ? 0 : 1;
         Win32Api.DwmSetWindowAttribute(_hwnd, Win32Api.DWMWA_USE_IMMERSIVE_DARK_MODE, ref darkAttr, sizeof(int));
 
-        if (margin > 0 && radius > 0)
-        {
-            // DWMWCP_ROUNDSMALL (3) for small radii, DWMWCP_ROUND (2) for standard/large radii
-            int cornerPref = radius <= 5 ? 3 : 2;
-            Win32Api.DwmSetWindowAttribute(_hwnd, Win32Api.DWMWA_WINDOW_CORNER_PREFERENCE, ref cornerPref, sizeof(int));
+        // Always use DWMWCP_DONOTROUND (1) and DWMWA_COLOR_NONE (0xFFFFFFFE) on the HWND
+        // so Windows 11 DWM never attaches a window drop shadow or 8px frame border.
+        int cornerPref = 1;
+        Win32Api.DwmSetWindowAttribute(_hwnd, Win32Api.DWMWA_WINDOW_CORNER_PREFERENCE, ref cornerPref, sizeof(int));
 
-            // DWMWA_BORDER_COLOR (34): subtle hardware anti-aliased border (COLORREF 0x00BBGGRR)
-            int borderColor = isLight ? 0x00D6D6D6 : 0x00303030;
-            Win32Api.DwmSetWindowAttribute(_hwnd, 34, ref borderColor, sizeof(int));
-        }
-        else
-        {
-            // DWMWCP_DONOTROUND (1)
-            int cornerPref = 1;
-            Win32Api.DwmSetWindowAttribute(_hwnd, Win32Api.DWMWA_WINDOW_CORNER_PREFERENCE, ref cornerPref, sizeof(int));
-
-            // DWMWA_COLOR_NONE (0xFFFFFFFE)
-            int borderColor = unchecked((int)0xFFFFFFFE);
-            Win32Api.DwmSetWindowAttribute(_hwnd, 34, ref borderColor, sizeof(int));
-        }
+        int borderColor = unchecked((int)0xFFFFFFFE);
+        Win32Api.DwmSetWindowAttribute(_hwnd, 34, ref borderColor, sizeof(int));
     }
 
     private void OnTaskbarVisibilityRequested(bool visible)

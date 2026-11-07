@@ -13,7 +13,7 @@ body {
   height: 100vh;
   max-height: 100vh;
   overflow: hidden;
-  background: #1c1c1c;
+  background: transparent;
   font-family: 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, sans-serif;
   color: #ffffff;
   -webkit-font-smoothing: antialiased;
@@ -33,7 +33,7 @@ body {
   overflow: hidden;
   box-sizing: border-box;
   box-shadow: none;
-  transition: border-radius 0.15s ease;
+  transition: border-radius 0.12s ease;
 }
 
 .taskbar-bar.dock-top {
@@ -43,7 +43,7 @@ body {
 
 .taskbar-bar.floating {
   border-radius: var(--taskbar-radius, 12px);
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: none;
 }
 
@@ -122,7 +122,7 @@ body {
 html[data-theme="light"],
 body.theme-light {
   color-scheme: light;
-  background: #f3f3f3;
+  background: transparent;
   color: #1b1b1b;
 }
 
@@ -137,6 +137,12 @@ html[data-theme="light"] .taskbar-bar.dock-top,
 body.theme-light .taskbar-bar.dock-top {
   border-top: none;
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+html[data-theme="light"] .taskbar-bar.floating,
+body.theme-light .taskbar-bar.floating {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: none;
 }
 
 html[data-theme="light"] .studio-btn,

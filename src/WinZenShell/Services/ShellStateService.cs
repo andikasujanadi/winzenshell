@@ -235,7 +235,7 @@ public class ShellStateService
         _settings.TaskbarHeightPx = Math.Clamp(heightPx, 32, 96);
         _settings.FloatingMarginPx = Math.Clamp(marginPx, 0, 24);
         if (cornerRadiusPx.HasValue)
-            _settings.TaskbarCornerRadiusPx = Math.Clamp(cornerRadiusPx.Value, 0, 32);
+            _settings.TaskbarCornerRadiusPx = Math.Clamp(cornerRadiusPx.Value, 0, 120);
         if (!string.IsNullOrWhiteSpace(accentColor))
             _settings.AccentColor = accentColor;
         if (!string.IsNullOrWhiteSpace(theme))
@@ -259,7 +259,7 @@ public class ShellStateService
 
     public void UpdateCornerRadius(int radiusPx)
     {
-        _settings.TaskbarCornerRadiusPx = Math.Clamp(radiusPx, 0, 32);
+        _settings.TaskbarCornerRadiusPx = Math.Clamp(radiusPx, 0, 120);
         SaveSettings();
         _statusBanner = $"Corner radius set to {_settings.TaskbarCornerRadiusPx}px";
         BroadcastState();

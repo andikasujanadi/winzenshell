@@ -8,22 +8,12 @@
         Left="0"
         Top="1032"
         WindowStyle="None"
+        AllowsTransparency="True"
         ResizeMode="NoResize"
         ShowInTaskbar="False"
         Topmost="True"
-        Background="#1C1C1C"
+        Background="Transparent"
         SnapsToDevicePixels="True"
         UseLayoutRounding="True">
-    <WindowChrome.WindowChrome>
-        <WindowChrome GlassFrameThickness="0"
-                      ResizeBorderThickness="0"
-                      CaptionHeight="0"
-                      UseAeroCaptionButtons="False" />
-    </WindowChrome.WindowChrome>
-    <Grid x:Name="OuterBorder" Background="#1C1C1C" Margin="0">
-        <wv2:WebView2 x:Name="TaskbarWebView"
-                      DefaultBackgroundColor="#1C1C1C"
-                      HorizontalAlignment="Stretch"
-                      VerticalAlignment="Stretch" />
-    </Grid>
+    <Border x:Name="OuterBorder" Background="#1C1C1C" Margin="0" />
 </Window>

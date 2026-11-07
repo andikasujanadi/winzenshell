@@ -62,6 +62,15 @@
   background: var(--winzen-surface-active, rgba(255, 255, 255, 0.0419));
 }
 
+.win-pill.dragging {
+  opacity: 0.88;
+  transform: scale(1.04);
+  z-index: 20;
+  cursor: grabbing;
+  background: var(--winzen-surface-active, rgba(255, 255, 255, 0.12));
+  border-color: var(--winzen-accent, #60cdff);
+}
+
 /* Windows 11 Taskbar Running / Active Bottom Indicator Pill */
 .win-pill::after {
   content: '';

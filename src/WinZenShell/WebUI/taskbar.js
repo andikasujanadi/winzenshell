@@ -60,8 +60,6 @@ function initTaskbar() {
         autoWidth: w.autoWidth !== false,
         displayMode: w.displayMode || 'widget',
         aspectRatio: w.aspectRatio || '1:1',
-        showAppName: w.showAppName !== false,
-        combineApps: !!w.combineApps,
         startIcon: w.startIcon || 'windows',
         startText: w.startText || 'Start',
         showStartText: !!w.showStartText,
