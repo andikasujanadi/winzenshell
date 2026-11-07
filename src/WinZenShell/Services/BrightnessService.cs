@@ -7,6 +7,9 @@ namespace WinZenShell.Services;
 public class BrightnessService
 {
     private int _cachedBrightness = 100;
+    private int _targetBrightness = 100;
+    private bool _isApplyingWmi;
+    private readonly object _wmiLock = new();
     private bool _initialized;
     private readonly object _lock = new();
 
@@ -63,22 +66,50 @@ public class BrightnessService
 
         BrightnessChanged?.Invoke(percent);
 
-        // Apply via WMI asynchronously so UI dragging remains buttery smooth
-        Task.Run(() =>
+        // Queue WMI write sequentially so UI dragging and scrolling is 100% instant and never blocks WMI
+        lock (_wmiLock)
         {
+            _targetBrightness = percent;
+            if (!_isApplyingWmi)
+            {
+                _isApplyingWmi = true;
+                Task.Run(ProcessWmiQueue);
+            }
+        }
+    }
+
+    private void ProcessWmiQueue()
+    {
+        while (true)
+        {
+            int target;
+            lock (_wmiLock)
+            {
+                target = _targetBrightness;
+            }
+
             try
             {
                 using var searcher = new ManagementObjectSearcher(@"root\wmi", "SELECT * FROM WmiMonitorBrightnessMethods");
                 foreach (ManagementObject obj in searcher.Get())
                 {
-                    obj.InvokeMethod("WmiSetBrightness", new object[] { (uint)1, (byte)percent });
+                    obj.InvokeMethod("WmiSetBrightness", new object[] { (uint)1, (byte)target });
                 }
             }
             catch
             {
                 // Fallback or ignore if unsupported on secondary display
             }
-        });
+
+            lock (_wmiLock)
+            {
+                if (_targetBrightness == target)
+                {
+                    _isApplyingWmi = false;
+                    break;
+                }
+            }
+        }
     }
 
     private int QueryWmiBrightness()

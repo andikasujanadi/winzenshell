@@ -61,7 +61,14 @@ public partial class TaskbarWebWindow : Window
         _shellState.StateChanged += OnShellStateChanged;
         _shellState.TaskbarVisibilityRequested += OnTaskbarVisibilityRequested;
         _shellState.TaskbarBoundsUpdated += OnTaskbarBoundsUpdated;
-        _brightnessService.BrightnessChanged += _ => Dispatcher.Invoke(BroadcastMetrics);
+        _brightnessService.BrightnessChanged += val => Dispatcher.Invoke(() =>
+        {
+            if (_brightnessFlyout != null && _brightnessFlyout.IsVisible)
+            {
+                _brightnessFlyout.UpdateBrightness(val);
+            }
+            BroadcastMetrics();
+        });
         _audioService.VolumeChanged += (_, _) => Dispatcher.Invoke(BroadcastMetrics);
 
         _metricsTimer = new DispatcherTimer
@@ -265,6 +272,19 @@ public partial class TaskbarWebWindow : Window
                             _brightnessFlyout.UpdateSliderValueFromMouse(_brightnessFlyout.BrightnessSlider, new System.Windows.Point(0, 10));
                         }
                     }
+                    else if (cmd.StartsWith("set_brightness_val", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var parts = cmd.Split(' ');
+                        if (parts.Length > 1 && int.TryParse(parts[1], out int val))
+                        {
+                            _brightnessService.SetBrightness(val);
+                            if (_brightnessFlyout != null && _brightnessFlyout.IsVisible)
+                            {
+                                _brightnessFlyout.UpdateBrightness(val);
+                            }
+                            BroadcastMetrics();
+                        }
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -376,6 +396,10 @@ public partial class TaskbarWebWindow : Window
         if (_volumeFlyout != null && _volumeFlyout.IsVisible)
         {
             _volumeFlyout.UpdateVolume(snapshot.VolumePercent, snapshot.IsMuted);
+        }
+        if (_brightnessFlyout != null && _brightnessFlyout.IsVisible)
+        {
+            _brightnessFlyout.UpdateBrightness(snapshot.BrightnessPercent);
         }
     }
 
@@ -584,6 +608,10 @@ public partial class TaskbarWebWindow : Window
                     if (root.TryGetProperty("value", out var bValProp) && bValProp.TryGetInt32(out int bVal))
                     {
                         _brightnessService.SetBrightness(bVal);
+                        if (_brightnessFlyout != null && _brightnessFlyout.IsVisible)
+                        {
+                            _brightnessFlyout.UpdateBrightness(bVal);
+                        }
                         BroadcastMetrics();
                     }
                     break;

@@ -9,6 +9,7 @@ public partial class BrightnessFlyoutWindow : Window
 {
     private readonly BrightnessService _brightnessService;
     private bool _isUpdatingUi;
+    private bool _isLightTheme;
     public DateTime LastDeactivatedTime { get; private set; } = DateTime.MinValue;
 
     public BrightnessFlyoutWindow(BrightnessService brightnessService)
@@ -69,13 +70,13 @@ public partial class BrightnessFlyoutWindow : Window
 
     public void ApplyTheme(string? theme)
     {
-        bool isLight = string.Equals(theme, "light", StringComparison.OrdinalIgnoreCase);
-        if (isLight)
+        _isLightTheme = string.Equals(theme, "light", StringComparison.OrdinalIgnoreCase);
+        if (_isLightTheme)
         {
             OuterBorder.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xF3, 0xF3, 0xF3));
             OuterBorder.BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(0x28, 0x00, 0x00, 0x00));
-            InnerBorder.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xFF, 0xFF, 0xFF));
-            InnerBorder.BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(0x18, 0x00, 0x00, 0x00));
+            InnerBorder.Background = System.Windows.Media.Brushes.Transparent;
+            InnerBorder.BorderThickness = new Thickness(0);
             if (PercentLabel != null)
                 PercentLabel.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x1B, 0x1B, 0x1B));
         }
@@ -83,11 +84,28 @@ public partial class BrightnessFlyoutWindow : Window
         {
             OuterBorder.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x1E, 0x1E, 0x1E));
             OuterBorder.BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x3E, 0x3E, 0x3E));
-            InnerBorder.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x25, 0x25, 0x25));
-            InnerBorder.BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x38, 0x38, 0x38));
+            InnerBorder.Background = System.Windows.Media.Brushes.Transparent;
+            InnerBorder.BorderThickness = new Thickness(0);
             if (PercentLabel != null)
                 PercentLabel.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xFF, 0xFF, 0xFF));
         }
+    }
+
+    public void UpdateBrightness(int percent)
+    {
+        _isUpdatingUi = true;
+        if (BrightnessSlider != null && !BrightnessSlider.IsMouseCaptured)
+        {
+            BrightnessSlider.Value = percent;
+        }
+        if (PercentLabel != null && (BrightnessSlider == null || !BrightnessSlider.IsMouseCaptured))
+        {
+            PercentLabel.Text = $"{percent}%";
+            PercentLabel.Foreground = _isLightTheme
+                ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x1B, 0x1B, 0x1B))
+                : System.Windows.Media.Brushes.White;
+        }
+        _isUpdatingUi = false;
     }
 
     private void OnSliderValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -95,6 +113,9 @@ public partial class BrightnessFlyoutWindow : Window
         if (_isUpdatingUi) return;
         int val = (int)Math.Round(e.NewValue);
         PercentLabel.Text = $"{val}%";
+        PercentLabel.Foreground = _isLightTheme
+            ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x1B, 0x1B, 0x1B))
+            : System.Windows.Media.Brushes.White;
         _brightnessService.SetBrightness(val);
     }
 
@@ -105,10 +126,7 @@ public partial class BrightnessFlyoutWindow : Window
         int current = _brightnessService.GetBrightness();
         int next = Math.Clamp(current + step, 0, 100);
         _brightnessService.SetBrightness(next);
-        _isUpdatingUi = true;
-        BrightnessSlider.Value = next;
-        PercentLabel.Text = $"{next}%";
-        _isUpdatingUi = false;
+        UpdateBrightness(next);
     }
 
     internal void UpdateSliderValueFromMouse(System.Windows.Controls.Slider slider, System.Windows.Point pt)
