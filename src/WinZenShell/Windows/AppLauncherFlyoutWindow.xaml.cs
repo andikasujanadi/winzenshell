@@ -73,6 +73,7 @@ public partial class AppLauncherFlyoutWindow : Window
         {
             var env = await WebViewEnvironmentManager.GetSharedEnvironmentAsync();
             await LauncherWebView.EnsureCoreWebView2Async(env);
+            LauncherWebView.DefaultBackgroundColor = System.Drawing.Color.Transparent;
 
             var core = LauncherWebView.CoreWebView2;
             core.Settings.AreDefaultContextMenusEnabled = false;

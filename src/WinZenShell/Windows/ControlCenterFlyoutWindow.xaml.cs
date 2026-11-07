@@ -48,6 +48,7 @@ public partial class ControlCenterFlyoutWindow : Window
         {
             var env = await WebViewEnvironmentManager.GetSharedEnvironmentAsync();
             await CcWebView.EnsureCoreWebView2Async(env);
+            CcWebView.DefaultBackgroundColor = System.Drawing.Color.Transparent;
 
             var core = CcWebView.CoreWebView2;
             core.Settings.AreDefaultContextMenusEnabled = false;

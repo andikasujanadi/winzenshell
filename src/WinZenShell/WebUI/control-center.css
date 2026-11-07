@@ -16,6 +16,7 @@ body {
   font-family: 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, sans-serif;
   color: #ffffff;
   -webkit-font-smoothing: antialiased;
+  border-radius: 13px;
 }
 
 .cc-container {
@@ -26,6 +27,7 @@ body {
   background: transparent;
   border: none;
   overflow: hidden;
+  border-radius: 13px;
 }
 
 .cc-header {
@@ -35,6 +37,8 @@ body {
   padding: 12px 14px 10px 14px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
   background: rgba(255, 255, 255, 0.02);
+  border-top-left-radius: 13px;
+  border-top-right-radius: 13px;
   flex-shrink: 0;
 }
 
