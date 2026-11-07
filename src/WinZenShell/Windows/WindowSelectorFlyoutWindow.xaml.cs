@@ -9,6 +9,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using WinZenShell.Native;
 using WinZenShell.Services;
 using Brush = System.Windows.Media.Brush;
@@ -36,11 +37,18 @@ public partial class WindowSelectorFlyoutWindow : Window
 {
     private readonly SystemMetricsService _metricsService;
     private readonly Action _onActionCompleted;
+    private readonly DispatcherTimer _hoverWatchTimer;
     private static readonly Dictionary<long, BitmapSource> _thumbnailCache = new();
     private bool _isLightTheme;
+    private bool _showThumbnails = true;
+    private bool _isTaskbarHovered;
+    private bool _isPinnedByClick;
+    private DateTime _outsideHoverSince = DateTime.MinValue;
+    private Color _accentColor = Color.FromRgb(0x36, 0x84, 0xE3);
 
     public DateTime LastDeactivatedTime { get; private set; } = DateTime.MinValue;
     public string CurrentAppId { get; private set; } = "";
+    public bool IsPinnedByClick => _isPinnedByClick;
 
     public WindowSelectorFlyoutWindow(SystemMetricsService metricsService, Action onActionCompleted)
     {
@@ -48,12 +56,18 @@ public partial class WindowSelectorFlyoutWindow : Window
         _metricsService = metricsService;
         _onActionCompleted = onActionCompleted;
 
+        _hoverWatchTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(75)
+        };
+        _hoverWatchTimer.Tick += OnHoverWatchTick;
+
         Deactivated += (_, _) =>
         {
             LastDeactivatedTime = DateTime.UtcNow;
             if (IsVisible)
             {
-                Hide();
+                HideSelector();
             }
         };
 
@@ -61,9 +75,75 @@ public partial class WindowSelectorFlyoutWindow : Window
         {
             if (e.Key == Key.Escape)
             {
-                Hide();
+                HideSelector();
             }
         };
+    }
+
+    public void HideSelector()
+    {
+        _hoverWatchTimer.Stop();
+        _isTaskbarHovered = false;
+        _isPinnedByClick = false;
+        if (IsVisible)
+        {
+            Hide();
+        }
+    }
+
+    public void NotifyTaskbarHoverLeave()
+    {
+        _isTaskbarHovered = false;
+        if (_outsideHoverSince == DateTime.MinValue)
+        {
+            _outsideHoverSince = DateTime.UtcNow;
+        }
+    }
+
+    private void OnHoverWatchTick(object? sender, EventArgs e)
+    {
+        if (!IsVisible)
+        {
+            _hoverWatchTimer.Stop();
+            return;
+        }
+
+        if (_isTaskbarHovered)
+        {
+            _outsideHoverSince = DateTime.MinValue;
+            return;
+        }
+
+        bool cursorInsideFlyout = false;
+        if (Win32Api.GetCursorPos(out var pt))
+        {
+            // Expand hit area slightly toward taskbar so moving across the gap never drops hover
+            double padX = 8;
+            double padY = 22;
+            if (pt.X >= Left - padX && pt.X <= Left + ActualWidth + padX &&
+                pt.Y >= Top - padY && pt.Y <= Top + ActualHeight + padY)
+            {
+                cursorInsideFlyout = true;
+            }
+        }
+
+        if (cursorInsideFlyout || IsMouseOver)
+        {
+            _outsideHoverSince = DateTime.MinValue;
+            return;
+        }
+
+        if (_outsideHoverSince == DateTime.MinValue)
+        {
+            _outsideHoverSince = DateTime.UtcNow;
+            return;
+        }
+
+        double graceMs = _isPinnedByClick ? 320 : 170;
+        if ((DateTime.UtcNow - _outsideHoverSince).TotalMilliseconds >= graceMs)
+        {
+            HideSelector();
+        }
     }
 
     protected override void OnSourceInitialized(EventArgs e)
@@ -86,34 +166,64 @@ public partial class WindowSelectorFlyoutWindow : Window
         double taskbarTop,
         double taskbarHeight,
         string dockEdge,
-        string? theme = null)
+        string? theme = null,
+        bool showThumbnails = true,
+        bool isHover = false,
+        string? accentColorHex = null)
     {
         CurrentAppId = appId ?? "";
         _isLightTheme = string.Equals(theme, "light", StringComparison.OrdinalIgnoreCase);
+        _showThumbnails = showThumbnails;
+        _isTaskbarHovered = true;
+        _isPinnedByClick = !isHover;
+        _outsideHoverSince = DateTime.MinValue;
+
+        if (!string.IsNullOrWhiteSpace(accentColorHex))
+        {
+            try
+            {
+                var conv = (Color)System.Windows.Media.ColorConverter.ConvertFromString(accentColorHex);
+                _accentColor = conv;
+            }
+            catch { }
+        }
 
         if (_isLightTheme)
         {
-            OuterBorder.Background = new SolidColorBrush(Color.FromRgb(0xF3, 0xF3, 0xF3));
-            OuterBorder.BorderBrush = new SolidColorBrush(Color.FromArgb(0x28, 0x00, 0x00, 0x00));
+            OuterBorder.Background = new SolidColorBrush(Color.FromRgb(0xF8, 0xF8, 0xF8));
+            OuterBorder.BorderBrush = new SolidColorBrush(Color.FromArgb(0x1E, 0x00, 0x00, 0x00));
         }
         else
         {
-            OuterBorder.Background = new SolidColorBrush(Color.FromRgb(0x2C, 0x2C, 0x2C));
-            OuterBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(0x42, 0x42, 0x42));
+            OuterBorder.Background = new SolidColorBrush(Color.FromRgb(0x24, 0x24, 0x24));
+            OuterBorder.BorderBrush = new SolidColorBrush(Color.FromArgb(0x22, 0xFF, 0xFF, 0xFF));
         }
 
         BitmapSource? appIcon = DecodeDataUrl(iconDataUrl);
-        BuildWindowCards(processName, appIcon, windows);
+        if (_showThumbnails)
+        {
+            CardsPanel.Orientation = Orientation.Horizontal;
+            OuterBorder.Padding = new Thickness(6);
+            BuildWindowThumbnailCards(processName, appIcon, windows);
+        }
+        else
+        {
+            CardsPanel.Orientation = Orientation.Vertical;
+            OuterBorder.Padding = new Thickness(5);
+            BuildWindowListRows(processName, appIcon, windows);
+        }
 
         UpdateLayout();
         Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
         Arrange(new Rect(0, 0, DesiredSize.Width, DesiredSize.Height));
 
-        double flyoutWidth = DesiredSize.Width > 40 ? DesiredSize.Width : (windows.Count * 226 + 40);
-        double flyoutHeight = DesiredSize.Height > 40 ? DesiredSize.Height : 202;
+        double fallbackW = _showThumbnails ? (windows.Count * 224 + 40) : 284;
+        double fallbackH = _showThumbnails ? 200 : (windows.Count * 40 + 38);
+        double flyoutWidth = DesiredSize.Width > 40 ? DesiredSize.Width : fallbackW;
+        double flyoutHeight = DesiredSize.Height > 30 ? DesiredSize.Height : fallbackH;
 
         double left = anchorScreenX + (anchorWidth / 2.0) - (flyoutWidth / 2.0);
-        const double floatingGap = 4.0;
+        const double floatingGap = 2.0;
         double top;
 
         if (string.Equals(dockEdge, "Top", StringComparison.OrdinalIgnoreCase))
@@ -138,26 +248,175 @@ public partial class WindowSelectorFlyoutWindow : Window
         Left = left;
         Top = top;
 
-        Show();
-        Activate();
-        Focus();
+        if (!IsVisible)
+        {
+            Show();
+        }
+        _hoverWatchTimer.Start();
     }
 
-    private void BuildWindowCards(string processName, BitmapSource? appIcon, List<SelectorWindowEntry> windows)
+    private void BuildWindowListRows(string processName, BitmapSource? appIcon, List<SelectorWindowEntry> windows)
     {
         CardsPanel.Children.Clear();
 
         Brush textBrush = _isLightTheme
             ? new SolidColorBrush(Color.FromRgb(0x1B, 0x1B, 0x1B))
-            : new SolidColorBrush(Color.FromRgb(0xF0, 0xF0, 0xF0));
+            : new SolidColorBrush(Color.FromRgb(0xF2, 0xF2, 0xF2));
+
+        Brush rowHoverBrush = _isLightTheme
+            ? new SolidColorBrush(Color.FromArgb(0x14, 0x00, 0x00, 0x00))
+            : new SolidColorBrush(Color.FromArgb(0x18, 0xFF, 0xFF, 0xFF));
+
+        Brush rowActiveBrush = _isLightTheme
+            ? new SolidColorBrush(Color.FromArgb(0x0D, 0x00, 0x00, 0x00))
+            : new SolidColorBrush(Color.FromArgb(0x10, 0xFF, 0xFF, 0xFF));
+
+        Brush accentBrush = new SolidColorBrush(_accentColor);
+
+        foreach (var win in windows)
+        {
+            Brush defaultBg = win.IsActive ? rowActiveBrush : Brushes.Transparent;
+
+            var rowBorder = new Border
+            {
+                Width = 248,
+                Height = 36,
+                CornerRadius = new CornerRadius(6),
+                Padding = new Thickness(8, 0, 6, 0),
+                Margin = new Thickness(2, 1.5, 2, 1.5),
+                Background = defaultBg,
+                Cursor = Cursors.Hand,
+                SnapsToDevicePixels = true
+            };
+
+            var rowGrid = new Grid();
+            rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            var activePill = new Border
+            {
+                Width = 3,
+                Height = 16,
+                CornerRadius = new CornerRadius(1.5),
+                Background = win.IsActive ? accentBrush : Brushes.Transparent,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 0, 8, 0)
+            };
+            Grid.SetColumn(activePill, 0);
+            rowGrid.Children.Add(activePill);
+
+            if (appIcon != null)
+            {
+                var iconImg = new Image
+                {
+                    Source = appIcon,
+                    Width = 16,
+                    Height = 16,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(0, 0, 8, 0)
+                };
+                RenderOptions.SetBitmapScalingMode(iconImg, BitmapScalingMode.HighQuality);
+                Grid.SetColumn(iconImg, 1);
+                rowGrid.Children.Add(iconImg);
+            }
+
+            var titleBlock = new TextBlock
+            {
+                Text = string.IsNullOrWhiteSpace(win.Title) ? processName : win.Title,
+                Foreground = textBrush,
+                FontSize = 12.5,
+                FontWeight = win.IsActive ? FontWeights.SemiBold : FontWeights.Normal,
+                FontFamily = new System.Windows.Media.FontFamily("Segoe UI Variable Text, Segoe UI"),
+                VerticalAlignment = VerticalAlignment.Center,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                Margin = new Thickness(0, 0, 6, 0)
+            };
+            Grid.SetColumn(titleBlock, 2);
+            rowGrid.Children.Add(titleBlock);
+
+            var closeBtn = new Border
+            {
+                Width = 24,
+                Height = 24,
+                CornerRadius = new CornerRadius(5),
+                Background = Brushes.Transparent,
+                Opacity = 0.0,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            var closeGlyph = new TextBlock
+            {
+                Text = "✕",
+                FontSize = 10.5,
+                Foreground = textBrush,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            closeBtn.Child = closeGlyph;
+
+            closeBtn.MouseEnter += (_, _) =>
+            {
+                closeBtn.Background = new SolidColorBrush(Color.FromRgb(0xE8, 0x11, 0x23));
+                closeGlyph.Foreground = Brushes.White;
+            };
+            closeBtn.MouseLeave += (_, _) =>
+            {
+                closeBtn.Background = Brushes.Transparent;
+                closeGlyph.Foreground = textBrush;
+            };
+            closeBtn.MouseLeftButtonUp += (_, e) =>
+            {
+                e.Handled = true;
+                _metricsService.CloseWindow(win.Hwnd);
+                CardsPanel.Children.Remove(rowBorder);
+                _onActionCompleted();
+                if (CardsPanel.Children.Count == 0)
+                {
+                    HideSelector();
+                }
+            };
+
+            Grid.SetColumn(closeBtn, 3);
+            rowGrid.Children.Add(closeBtn);
+            rowBorder.Child = rowGrid;
+
+            rowBorder.MouseEnter += (_, _) =>
+            {
+                rowBorder.Background = rowHoverBrush;
+                closeBtn.Opacity = 1.0;
+            };
+            rowBorder.MouseLeave += (_, _) =>
+            {
+                rowBorder.Background = defaultBg;
+                closeBtn.Opacity = 0.0;
+            };
+            rowBorder.MouseLeftButtonUp += (_, _) =>
+            {
+                HideSelector();
+                _metricsService.ActivateWindowOnly(win.Hwnd);
+                _onActionCompleted();
+            };
+
+            CardsPanel.Children.Add(rowBorder);
+        }
+    }
+
+    private void BuildWindowThumbnailCards(string processName, BitmapSource? appIcon, List<SelectorWindowEntry> windows)
+    {
+        CardsPanel.Children.Clear();
+
+        Brush textBrush = _isLightTheme
+            ? new SolidColorBrush(Color.FromRgb(0x1B, 0x1B, 0x1B))
+            : new SolidColorBrush(Color.FromRgb(0xF2, 0xF2, 0xF2));
 
         Brush cardHoverBrush = _isLightTheme
-            ? new SolidColorBrush(Color.FromRgb(0xE4, 0xE4, 0xE4))
-            : new SolidColorBrush(Color.FromRgb(0x3B, 0x3B, 0x3B));
+            ? new SolidColorBrush(Color.FromArgb(0x14, 0x00, 0x00, 0x00))
+            : new SolidColorBrush(Color.FromArgb(0x18, 0xFF, 0xFF, 0xFF));
 
         Brush cardActiveBrush = _isLightTheme
-            ? new SolidColorBrush(Color.FromRgb(0xEA, 0xEA, 0xEA))
-            : new SolidColorBrush(Color.FromRgb(0x34, 0x34, 0x34));
+            ? new SolidColorBrush(Color.FromArgb(0x0C, 0x00, 0x00, 0x00))
+            : new SolidColorBrush(Color.FromArgb(0x10, 0xFF, 0xFF, 0xFF));
 
         foreach (var win in windows)
         {
@@ -166,10 +425,10 @@ public partial class WindowSelectorFlyoutWindow : Window
             var cardBorder = new Border
             {
                 Width = 216,
-                Height = 162,
-                CornerRadius = new CornerRadius(6),
+                Height = 160,
+                CornerRadius = new CornerRadius(8),
                 Padding = new Thickness(10, 8, 10, 10),
-                Margin = new Thickness(4, 2, 4, 2),
+                Margin = new Thickness(3, 2, 3, 2),
                 Background = defaultBg,
                 Cursor = Cursors.Hand,
                 SnapsToDevicePixels = true
@@ -221,11 +480,10 @@ public partial class WindowSelectorFlyoutWindow : Window
             {
                 Width = 22,
                 Height = 22,
-                CornerRadius = new CornerRadius(4),
+                CornerRadius = new CornerRadius(5),
                 Background = Brushes.Transparent,
                 Opacity = 0.0,
-                VerticalAlignment = VerticalAlignment.Center,
-                ToolTip = "Close window"
+                VerticalAlignment = VerticalAlignment.Center
             };
             var closeGlyph = new TextBlock
             {
@@ -255,7 +513,7 @@ public partial class WindowSelectorFlyoutWindow : Window
                 _onActionCompleted();
                 if (CardsPanel.Children.Count == 0)
                 {
-                    Hide();
+                    HideSelector();
                 }
             };
 
@@ -263,17 +521,16 @@ public partial class WindowSelectorFlyoutWindow : Window
             headerGrid.Children.Add(closeBtn);
             cardStack.Children.Add(headerGrid);
 
-            // Preview Thumbnail Box
+            // Preview Thumbnail Box with anti-aliased rounded geometry clip and no harsh border
             var thumbBorder = new Border
             {
                 Width = 196,
-                Height = 114,
+                Height = 112,
                 Margin = new Thickness(0, 8, 0, 0),
-                CornerRadius = new CornerRadius(4),
-                ClipToBounds = true,
+                CornerRadius = new CornerRadius(6),
                 Background = new SolidColorBrush(Color.FromRgb(0x18, 0x18, 0x18)),
-                BorderBrush = new SolidColorBrush(Color.FromRgb(0x38, 0x38, 0x38)),
-                BorderThickness = new Thickness(1)
+                BorderThickness = new Thickness(0),
+                Clip = new RectangleGeometry(new Rect(0, 0, 196, 112), 6, 6)
             };
 
             BitmapSource? thumb = CaptureOrGetThumbnail(win.Hwnd);
@@ -282,27 +539,30 @@ public partial class WindowSelectorFlyoutWindow : Window
                 var thumbImg = new Image
                 {
                     Source = thumb,
+                    Width = 196,
+                    Height = 112,
                     Stretch = Stretch.UniformToFill,
                     HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Top
+                    VerticalAlignment = VerticalAlignment.Top,
+                    Clip = new RectangleGeometry(new Rect(0, 0, 196, 112), 6, 6)
                 };
                 RenderOptions.SetBitmapScalingMode(thumbImg, BitmapScalingMode.HighQuality);
                 thumbBorder.Child = thumbImg;
             }
             else
             {
-                // Clean realistic window mockup fallback when window is minimized without prior cache
                 var fallbackGrid = new Grid
                 {
-                    Background = new SolidColorBrush(Color.FromRgb(0x1A, 0x1A, 0x1A))
+                    Width = 196,
+                    Height = 112,
+                    Background = new SolidColorBrush(Color.FromRgb(0x1B, 0x1B, 0x1B)),
+                    Clip = new RectangleGeometry(new Rect(0, 0, 196, 112), 6, 6)
                 };
                 var topChrome = new Border
                 {
                     Height = 20,
                     VerticalAlignment = VerticalAlignment.Top,
-                    Background = new SolidColorBrush(Color.FromRgb(0x25, 0x25, 0x25)),
-                    BorderBrush = new SolidColorBrush(Color.FromRgb(0x33, 0x33, 0x33)),
-                    BorderThickness = new Thickness(0, 0, 0, 1)
+                    Background = new SolidColorBrush(Color.FromRgb(0x25, 0x25, 0x25))
                 };
                 fallbackGrid.Children.Add(topChrome);
 
@@ -338,7 +598,7 @@ public partial class WindowSelectorFlyoutWindow : Window
             };
             cardBorder.MouseLeftButtonUp += (_, _) =>
             {
-                Hide();
+                HideSelector();
                 _metricsService.ActivateWindowOnly(win.Hwnd);
                 _onActionCompleted();
             };

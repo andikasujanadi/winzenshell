@@ -194,6 +194,10 @@ public partial class SettingsWebWindow : Window
                     bool wAutoWidth = !root.TryGetProperty("autoWidth", out var waProp) || waProp.GetBoolean();
                     bool wShowAppName = !root.TryGetProperty("showAppName", out var wsnProp) || wsnProp.GetBoolean();
                     bool wCombineApps = root.TryGetProperty("combineApps", out var wcaProp) && wcaProp.GetBoolean();
+                    bool? wShowThumbnails = root.TryGetProperty("showThumbnails", out var wstbProp) &&
+                                            (wstbProp.ValueKind == JsonValueKind.True || wstbProp.ValueKind == JsonValueKind.False)
+                        ? wstbProp.GetBoolean()
+                        : null;
                     string? wStartIcon = root.TryGetProperty("startIcon", out var wsiProp) ? wsiProp.GetString() : null;
                     string? wStartText = root.TryGetProperty("startText", out var wstProp) ? wstProp.GetString() : null;
                     bool wShowStartText = root.TryGetProperty("showStartText", out var wsstProp) && wsstProp.GetBoolean();
@@ -217,7 +221,8 @@ public partial class SettingsWebWindow : Window
                             wStartText,
                             wShowStartText,
                             wDisplayMode,
-                            wAspectRatio);
+                            wAspectRatio,
+                            wShowThumbnails);
                     }
                     break;
 

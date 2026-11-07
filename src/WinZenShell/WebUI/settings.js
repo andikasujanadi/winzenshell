@@ -50,6 +50,9 @@ function initSettingsPage() {
   const toggleCombineApps = document.getElementById('toggleCombineApps');
   const stateCombineApps = document.getElementById('stateCombineApps');
 
+  const toggleShowThumbnails = document.getElementById('toggleShowThumbnails');
+  const stateShowThumbnails = document.getElementById('stateShowThumbnails');
+
   const hiddenAppsContainer = document.getElementById('hiddenAppsContainer');
   const hiddenAppsSubtitle = document.getElementById('hiddenAppsSubtitle');
   const btnUnhideAllApps = document.getElementById('btnUnhideAllApps');
@@ -164,7 +167,8 @@ function initSettingsPage() {
       width: 420,
       autoWidth: true,
       showAppName: true,
-      combineApps: false
+      combineApps: false,
+      showThumbnails: true
     };
 
     window.winzen.send('update_widget_state', {
@@ -175,7 +179,8 @@ function initSettingsPage() {
       width: activeWinWidget.width || 420,
       autoWidth: activeWinWidget.autoWidth !== false,
       showAppName: patch.showAppName !== undefined ? patch.showAppName : (activeWinWidget.showAppName !== false),
-      combineApps: patch.combineApps !== undefined ? patch.combineApps : !!activeWinWidget.combineApps
+      combineApps: patch.combineApps !== undefined ? patch.combineApps : !!activeWinWidget.combineApps,
+      showThumbnails: patch.showThumbnails !== undefined ? patch.showThumbnails : (activeWinWidget.showThumbnails !== false)
     });
   }
 
@@ -192,6 +197,15 @@ function initSettingsPage() {
     stateCombineApps.textContent = combine ? 'On' : 'Off';
     updateActiveWindowsWidgetConfig({ combineApps: combine });
   });
+
+  if (toggleShowThumbnails) {
+    toggleShowThumbnails.addEventListener('change', () => {
+      if (isUpdatingFromHost) return;
+      const showThumb = toggleShowThumbnails.checked;
+      if (stateShowThumbnails) stateShowThumbnails.textContent = showThumb ? 'On' : 'Off';
+      updateActiveWindowsWidgetConfig({ showThumbnails: showThumb });
+    });
+  }
 
   btnUnhideAllApps.addEventListener('click', () => {
     window.winzen.tasks.unhideAllApps();
@@ -332,12 +346,18 @@ function initSettingsPage() {
       const activeWinWidget = latestWidgets.find((w) => w.id === 'community.zen-active-windows');
       const showLabels = activeWinWidget ? activeWinWidget.showAppName !== false : true;
       const combine = activeWinWidget ? !!activeWinWidget.combineApps : false;
+      const showThumbs = activeWinWidget ? activeWinWidget.showThumbnails !== false : true;
 
       toggleShowAppNames.checked = showLabels;
       stateShowAppNames.textContent = showLabels ? 'On' : 'Off';
 
       toggleCombineApps.checked = combine;
       stateCombineApps.textContent = combine ? 'On' : 'Off';
+
+      if (toggleShowThumbnails) {
+        toggleShowThumbnails.checked = showThumbs;
+        if (stateShowThumbnails) stateShowThumbnails.textContent = showThumbs ? 'On' : 'Off';
+      }
 
       renderHiddenApps(data.hiddenApps || []);
 
@@ -869,6 +889,10 @@ function initSettingsPage() {
             <input type="checkbox" class="w-combineapps" ${w.combineApps ? 'checked' : ''} />
             <span>Combine same apps</span>
           </label>
+          <label class="inline-check">
+            <input type="checkbox" class="w-showthumbnails" ${w.showThumbnails !== false ? 'checked' : ''} />
+            <span>Show window thumbnails</span>
+          </label>
         `;
       }
 
@@ -952,6 +976,7 @@ function initSettingsPage() {
 
       const showAppNameInput = expander.querySelector('.w-showappname');
       const combineAppsInput = expander.querySelector('.w-combineapps');
+      const showThumbnailsInput = expander.querySelector('.w-showthumbnails');
       const startIconSelect = expander.querySelector('.w-starticon');
       const showStartTextInput = expander.querySelector('.w-showstarttext');
       const startTextInput = expander.querySelector('.w-starttext');
@@ -998,6 +1023,7 @@ function initSettingsPage() {
           autoWidth: autoWidthInput.checked,
           showAppName: showAppNameInput ? showAppNameInput.checked : (w.showAppName !== false),
           combineApps: combineAppsInput ? combineAppsInput.checked : !!w.combineApps,
+          showThumbnails: showThumbnailsInput ? showThumbnailsInput.checked : (w.showThumbnails !== false),
           startIcon: startIconSelect ? startIconSelect.value : (w.startIcon || 'chromeos'),
           startText: startTextInput ? startTextInput.value : (w.startText || 'Start'),
           showStartText: showStartTextInput ? showStartTextInput.checked : !!w.showStartText,
@@ -1014,6 +1040,7 @@ function initSettingsPage() {
 
       if (showAppNameInput) showAppNameInput.addEventListener('change', pushUpdate);
       if (combineAppsInput) combineAppsInput.addEventListener('change', pushUpdate);
+      if (showThumbnailsInput) showThumbnailsInput.addEventListener('change', pushUpdate);
       if (startIconSelect) startIconSelect.addEventListener('change', pushUpdate);
       if (showStartTextInput) showStartTextInput.addEventListener('change', pushUpdate);
       if (startTextInput) startTextInput.addEventListener('change', pushUpdate);

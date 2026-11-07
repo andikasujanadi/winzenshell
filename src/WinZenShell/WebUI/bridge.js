@@ -50,8 +50,24 @@
           iconDataUrl: String((itemPayload && itemPayload.iconDataUrl) || ''),
           x: Number((itemPayload && itemPayload.x) || 0),
           width: Number((itemPayload && itemPayload.width) || 38),
+          showThumbnails: !itemPayload || itemPayload.showThumbnails !== false,
           windows: Array.isArray(itemPayload && itemPayload.windows) ? itemPayload.windows : []
         });
+      },
+      hoverWindowSelector(itemPayload) {
+        postToNative({
+          action: 'hover_window_selector',
+          appId: String((itemPayload && itemPayload.appId) || ''),
+          processName: String((itemPayload && itemPayload.processName) || ''),
+          iconDataUrl: String((itemPayload && itemPayload.iconDataUrl) || ''),
+          x: Number((itemPayload && itemPayload.x) || 0),
+          width: Number((itemPayload && itemPayload.width) || 38),
+          showThumbnails: !itemPayload || itemPayload.showThumbnails !== false,
+          windows: Array.isArray(itemPayload && itemPayload.windows) ? itemPayload.windows : []
+        });
+      },
+      leaveWindowSelector() {
+        postToNative({ action: 'leave_window_selector' });
       },
       closeWindow(hwnd) {
         postToNative({ action: 'close_window', hwnd: Number(hwnd) });

@@ -5,11 +5,15 @@ const showAppName = typeof widgetConfig !== 'undefined' && widgetConfig
 const combineApps = typeof widgetConfig !== 'undefined' && widgetConfig
   ? !!widgetConfig.combineApps
   : false;
+const showThumbnails = typeof widgetConfig !== 'undefined' && widgetConfig
+  ? widgetConfig.showThumbnails !== false
+  : true;
 
 // Client-side stable order tracker
 const seenOrder = [];
 let lastSig = '';
 let activeMenuEl = null;
+let hoverTimer = null;
 
 const FALLBACK_SVG = `<svg class="win-fallback-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M2.5 2A1.5 1.5 0 0 0 1 3.5v9A1.5 1.5 0 0 0 2.5 14h11a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 13.5 2h-11zM2 3.5a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 .5.5V5H2V3.5zm0 2.5h12v6.5a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5V6z"/></svg>`;
 const STICKY_NOTES_SVG = `<svg class="win-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" fill="#FFC83B"/><path d="M15 15l6 6h-6v-6z" fill="#E5A823"/><line x1="7" y1="8" x2="17" y2="8" stroke="#7A5200" stroke-width="1.8" stroke-linecap="round"/><line x1="7" y1="12" x2="14" y2="12" stroke="#7A5200" stroke-width="1.8" stroke-linecap="round"/></svg>`;
@@ -129,6 +133,7 @@ window.addEventListener('winzen:metrics', (e) => {
   const sig = JSON.stringify({
     showAppName,
     combineApps,
+    showThumbnails,
     items: itemsToRender.map((it) => ({
       k: it.key,
       count: it.windows.length,
@@ -165,13 +170,6 @@ window.addEventListener('winzen:metrics', (e) => {
 
     btn.className = classes.join(' ');
 
-    const tooltip = item.isClosedPinned
-      ? `${item.processName}\nLeft-click: Open\nRight-click: Options`
-      : (isMulti
-          ? `${item.processName} (${item.windows.length} windows)\nLeft-click: Select window\nRight-click: Options`
-          : `${item.processName} — ${item.title}\nLeft-click: ${hasActive ? 'Minimize' : 'Switch to window'}\nRight-click: Options`);
-    btn.title = tooltip;
-
     const iconHtml = getAppIconHtml(item);
 
     let labelHtml = '';
@@ -185,12 +183,74 @@ window.addEventListener('winzen:metrics', (e) => {
 
     btn.innerHTML = `${iconHtml}${labelHtml}`;
 
+    const buildSelectorPayload = () => {
+      const rect = btn.getBoundingClientRect();
+      return {
+        appId: item.appId || '',
+        processName: item.processName || '',
+        iconDataUrl: item.iconDataUrl || '',
+        x: rect.left,
+        width: rect.width,
+        showThumbnails,
+        windows: item.windows.map((w) => ({
+          hwnd: Number(w.hwnd),
+          title: String(w.title || item.processName || ''),
+          isActive: !!w.isActive,
+          isMinimized: !!w.isMinimized
+        }))
+      };
+    };
+
+    // Hover:
+    // - If showThumbnails is ON: show thumbnail preview for ANY running app (1 or more windows)
+    // - If showThumbnails is OFF: show compact window list ONLY when multi-window (if 1 window, show nothing on hover)
+    btn.addEventListener('mouseenter', () => {
+      if (hoverTimer) {
+        clearTimeout(hoverTimer);
+        hoverTimer = null;
+      }
+
+      if (item.isClosedPinned || (!showThumbnails && !isMulti)) {
+        if (window.winzen && window.winzen.tasks && typeof window.winzen.tasks.leaveWindowSelector === 'function') {
+          window.winzen.tasks.leaveWindowSelector();
+        } else if (window.winzen && typeof window.winzen.send === 'function') {
+          window.winzen.send('leave_window_selector');
+        }
+        return;
+      }
+
+      hoverTimer = setTimeout(() => {
+        const payload = buildSelectorPayload();
+        if (window.winzen && window.winzen.tasks && typeof window.winzen.tasks.hoverWindowSelector === 'function') {
+          window.winzen.tasks.hoverWindowSelector(payload);
+        } else if (window.winzen && typeof window.winzen.send === 'function') {
+          window.winzen.send('hover_window_selector', payload);
+        }
+      }, 110);
+    });
+
+    btn.addEventListener('mouseleave', () => {
+      if (hoverTimer) {
+        clearTimeout(hoverTimer);
+        hoverTimer = null;
+      }
+      if (window.winzen && window.winzen.tasks && typeof window.winzen.tasks.leaveWindowSelector === 'function') {
+        window.winzen.tasks.leaveWindowSelector();
+      } else if (window.winzen && typeof window.winzen.send === 'function') {
+        window.winzen.send('leave_window_selector');
+      }
+    });
+
     // Left-click:
     // - Closed pinned app -> Launch
     // - Single running window -> Activate if inactive/minimized, Minimize if active
-    // - Multiple running windows -> Open Windows 11 Popup Window Selector
+    // - Multiple running windows -> Open Windows 11 Popup Window Selector (thumbnails or list)
     btn.addEventListener('click', (ev) => {
       ev.stopPropagation();
+      if (hoverTimer) {
+        clearTimeout(hoverTimer);
+        hoverTimer = null;
+      }
       closeContextMenu();
 
       if (item.isClosedPinned) {
@@ -213,22 +273,7 @@ window.addEventListener('winzen:metrics', (e) => {
         return;
       }
 
-      // Multi-window: Open Windows 11 Popup Window Selector anchored to this button
-      const rect = btn.getBoundingClientRect();
-      const payload = {
-        appId: item.appId || '',
-        processName: item.processName || '',
-        iconDataUrl: item.iconDataUrl || '',
-        x: rect.left,
-        width: rect.width,
-        windows: item.windows.map((w) => ({
-          hwnd: Number(w.hwnd),
-          title: String(w.title || item.processName || ''),
-          isActive: !!w.isActive,
-          isMinimized: !!w.isMinimized
-        }))
-      };
-
+      const payload = buildSelectorPayload();
       if (window.winzen && window.winzen.tasks && typeof window.winzen.tasks.toggleWindowSelector === 'function') {
         window.winzen.tasks.toggleWindowSelector(payload);
       } else {

@@ -295,5 +295,9 @@ public static class Win32Api
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool PrintWindow(IntPtr hwnd, IntPtr hDC, uint nFlags);
 
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool GetCursorPos(out POINT lpPoint);
+
     public const uint PW_RENDERFULLCONTENT = 0x00000002;
 }

@@ -303,6 +303,7 @@ public partial class TaskbarWebWindow : Window
                     {
                         var parts = cmd.Split(' ');
                         string outPath = parts.Length > 1 ? parts[1] : "";
+                        bool showThumbMode = !cmd.Contains("list_mode", StringComparison.OrdinalIgnoreCase);
                         var snap = _metricsService.GetSnapshot(_hwnd, IntPtr.Zero);
                         var multiGroup = System.Linq.Enumerable.FirstOrDefault(
                             System.Linq.Enumerable.GroupBy(snap.Windows, w => (w.AppId ?? w.ProcessName).ToLowerInvariant()),
@@ -332,7 +333,10 @@ public partial class TaskbarWebWindow : Window
                                 Top,
                                 Height,
                                 _shellState.Settings.DockEdge,
-                                _shellState.Settings.Theme);
+                                _shellState.Settings.Theme,
+                                showThumbMode,
+                                false,
+                                _shellState.Settings.AccentColor);
 
                             if (!string.IsNullOrWhiteSpace(outPath))
                             {
@@ -466,26 +470,45 @@ public partial class TaskbarWebWindow : Window
 
     private void ApplyTaskbarCornerRegion()
     {
-        if (_hwnd == IntPtr.Zero) return;
         int margin = _shellState.Settings.FloatingMarginPx;
         int radius = _shellState.Settings.TaskbarCornerRadiusPx;
-        if (margin > 0 && radius > 0 && Win32Api.GetWindowRect(_hwnd, out var winRect))
+        bool isLight = string.Equals(_shellState.Settings.Theme, "light", StringComparison.OrdinalIgnoreCase);
+
+        OuterBorder.Background = isLight
+            ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xF3, 0xF3, 0xF3))
+            : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x1C, 0x1C, 0x1C));
+
+        TaskbarWebView.DefaultBackgroundColor = isLight
+            ? System.Drawing.Color.FromArgb(255, 0xF3, 0xF3, 0xF3)
+            : System.Drawing.Color.FromArgb(255, 0x1C, 0x1C, 0x1C);
+
+        if (_hwnd == IntPtr.Zero) return;
+
+        // Clear any legacy 1-bit GDI region so DWM hardware anti-aliased corners are active
+        Win32Api.SetWindowRgn(_hwnd, IntPtr.Zero, true);
+
+        int darkAttr = isLight ? 0 : 1;
+        Win32Api.DwmSetWindowAttribute(_hwnd, Win32Api.DWMWA_USE_IMMERSIVE_DARK_MODE, ref darkAttr, sizeof(int));
+
+        if (margin > 0 && radius > 0)
         {
-            int w = winRect.Width;
-            int h = winRect.Height;
-            int diameter = radius * 2;
-            IntPtr hRgn = Win32Api.CreateRoundRectRgn(0, 0, w + 1, h + 1, diameter, diameter);
-            if (hRgn != IntPtr.Zero)
-            {
-                if (Win32Api.SetWindowRgn(_hwnd, hRgn, true) == 0)
-                {
-                    Win32Api.DeleteObject(hRgn);
-                }
-            }
+            // DWMWCP_ROUNDSMALL (3) for small radii, DWMWCP_ROUND (2) for standard/large radii
+            int cornerPref = radius <= 5 ? 3 : 2;
+            Win32Api.DwmSetWindowAttribute(_hwnd, Win32Api.DWMWA_WINDOW_CORNER_PREFERENCE, ref cornerPref, sizeof(int));
+
+            // DWMWA_BORDER_COLOR (34): subtle hardware anti-aliased border (COLORREF 0x00BBGGRR)
+            int borderColor = isLight ? 0x00D6D6D6 : 0x00303030;
+            Win32Api.DwmSetWindowAttribute(_hwnd, 34, ref borderColor, sizeof(int));
         }
         else
         {
-            Win32Api.SetWindowRgn(_hwnd, IntPtr.Zero, true);
+            // DWMWCP_DONOTROUND (1)
+            int cornerPref = 1;
+            Win32Api.DwmSetWindowAttribute(_hwnd, Win32Api.DWMWA_WINDOW_CORNER_PREFERENCE, ref cornerPref, sizeof(int));
+
+            // DWMWA_COLOR_NONE (0xFFFFFFFE)
+            int borderColor = unchecked((int)0xFFFFFFFE);
+            Win32Api.DwmSetWindowAttribute(_hwnd, 34, ref borderColor, sizeof(int));
         }
     }
 
@@ -600,12 +623,16 @@ public partial class TaskbarWebWindow : Window
                     }
                     break;
 
+                case "hover_window_selector":
                 case "toggle_window_selector":
+                    bool isHoverReq = string.Equals(action, "hover_window_selector", StringComparison.OrdinalIgnoreCase);
                     string wsAppId = root.TryGetProperty("appId", out var wsAidProp) ? wsAidProp.GetString() ?? "" : "";
                     string wsProc = root.TryGetProperty("processName", out var wsProcProp) ? wsProcProp.GetString() ?? "App" : "App";
                     string wsIcon = root.TryGetProperty("iconDataUrl", out var wsIcoProp) ? wsIcoProp.GetString() ?? "" : "";
                     double wsX = root.TryGetProperty("x", out var wsXProp) && wsXProp.TryGetDouble(out double wsXd) ? wsXd : 0;
                     double wsW = root.TryGetProperty("width", out var wsWProp) && wsWProp.TryGetDouble(out double wsWd) ? wsWd : 38;
+                    bool wsShowThumbs = !root.TryGetProperty("showThumbnails", out var wsStProp) ||
+                                        wsStProp.ValueKind != JsonValueKind.False;
                     var wsList = new List<SelectorWindowEntry>();
                     if (root.TryGetProperty("windows", out var wsWins) && wsWins.ValueKind == JsonValueKind.Array)
                     {
@@ -625,24 +652,49 @@ public partial class TaskbarWebWindow : Window
                     {
                         _windowSelectorFlyout ??= new WindowSelectorFlyoutWindow(_metricsService, BroadcastMetrics);
                         bool sameApp = string.Equals(_windowSelectorFlyout.CurrentAppId, wsAppId, StringComparison.OrdinalIgnoreCase);
-                        bool wasJustOpen = sameApp && (_windowSelectorFlyout.IsVisible ||
-                            (DateTime.UtcNow - _windowSelectorFlyout.LastDeactivatedTime).TotalMilliseconds < 350);
 
-                        CloseAllFlyouts();
-
-                        if (!wasJustOpen && wsList.Count > 0)
+                        if (!isHoverReq)
                         {
-                            _windowSelectorFlyout.ShowAt(
-                                wsAppId,
-                                wsProc,
-                                wsIcon,
-                                wsList,
-                                Left + wsX,
-                                wsW,
-                                Top,
-                                Height,
-                                _shellState.Settings.DockEdge,
-                                _shellState.Settings.Theme);
+                            bool wasAlreadyPinned = sameApp && _windowSelectorFlyout.IsVisible && _windowSelectorFlyout.IsPinnedByClick;
+                            CloseAllFlyouts();
+                            if (wasAlreadyPinned || wsList.Count == 0)
+                            {
+                                return;
+                            }
+                        }
+                        else
+                        {
+                            CloseAllFlyouts(_windowSelectorFlyout);
+                            if (wsList.Count == 0)
+                            {
+                                _windowSelectorFlyout.HideSelector();
+                                return;
+                            }
+                        }
+
+                        _windowSelectorFlyout.ShowAt(
+                            wsAppId,
+                            wsProc,
+                            wsIcon,
+                            wsList,
+                            Left + wsX,
+                            wsW,
+                            Top,
+                            Height,
+                            _shellState.Settings.DockEdge,
+                            _shellState.Settings.Theme,
+                            wsShowThumbs,
+                            isHoverReq,
+                            _shellState.Settings.AccentColor);
+                    });
+                    break;
+
+                case "leave_window_selector":
+                    Dispatcher.Invoke(() =>
+                    {
+                        if (_windowSelectorFlyout != null && _windowSelectorFlyout.IsVisible)
+                        {
+                            _windowSelectorFlyout.NotifyTaskbarHoverLeave();
                         }
                     });
                     break;
@@ -1454,7 +1506,7 @@ public partial class TaskbarWebWindow : Window
         if (_appLauncherFlyout != null && _appLauncherFlyout != except && _appLauncherFlyout.IsVisible)
             _appLauncherFlyout.Hide();
         if (_windowSelectorFlyout != null && _windowSelectorFlyout != except && _windowSelectorFlyout.IsVisible)
-            _windowSelectorFlyout.Hide();
+            _windowSelectorFlyout.HideSelector();
     }
 
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)

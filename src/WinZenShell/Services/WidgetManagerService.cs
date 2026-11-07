@@ -47,6 +47,9 @@ public class WidgetManifest
     [JsonPropertyName("combineApps")]
     public bool CombineApps { get; set; } = false;
 
+    [JsonPropertyName("showThumbnails")]
+    public bool ShowThumbnails { get; set; } = true;
+
     [JsonPropertyName("startIcon")]
     public string StartIcon { get; set; } = "windows";
 
@@ -178,6 +181,7 @@ public class WidgetManagerService
                     manifest.AutoWidth = ov.AutoWidth;
                     manifest.ShowAppName = ov.ShowAppName;
                     manifest.CombineApps = ov.CombineApps;
+                    manifest.ShowThumbnails = ov.ShowThumbnails;
                     if (!string.IsNullOrWhiteSpace(ov.StartIcon))
                         manifest.StartIcon = ov.StartIcon;
                     if (ov.StartText != null)
@@ -362,6 +366,7 @@ public class WidgetStateOverride
     public bool AutoWidth { get; set; } = true;
     public bool ShowAppName { get; set; } = true;
     public bool CombineApps { get; set; } = false;
+    public bool ShowThumbnails { get; set; } = true;
     public string StartIcon { get; set; } = "windows";
     public string StartText { get; set; } = "Start";
     public bool ShowStartText { get; set; } = false;

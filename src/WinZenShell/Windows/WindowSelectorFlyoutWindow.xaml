@@ -7,6 +7,7 @@
         AllowsTransparency="True"
         Background="Transparent"
         Topmost="True"
+        ShowActivated="False"
         ShowInTaskbar="False"
         ResizeMode="NoResize"
         SnapsToDevicePixels="True"
@@ -14,16 +15,16 @@
 
     <Border x:Name="OuterBorder"
             Margin="14"
-            CornerRadius="10"
-            Background="#2C2C2C"
-            BorderBrush="#424242"
+            CornerRadius="12"
+            Background="#242424"
+            BorderBrush="#333333"
             BorderThickness="1"
             Padding="6">
         <Border.Effect>
-            <DropShadowEffect BlurRadius="20"
+            <DropShadowEffect BlurRadius="24"
                               ShadowDepth="6"
                               Direction="270"
-                              Opacity="0.48"
+                              Opacity="0.44"
                               Color="#000000" />
         </Border.Effect>
         <StackPanel x:Name="CardsPanel"

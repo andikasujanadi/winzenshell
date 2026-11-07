@@ -286,7 +286,8 @@ public class ShellStateService
         string? startText = null,
         bool showStartText = false,
         string? displayMode = null,
-        string? aspectRatio = null)
+        string? aspectRatio = null,
+        bool? showThumbnails = null)
     {
         int? existingOrder = _settings.WidgetOverrides.TryGetValue(widgetId, out var prev) ? prev.Order : null;
         var existing = _settings.WidgetOverrides.TryGetValue(widgetId, out var existingOv) ? existingOv : null;
@@ -300,6 +301,7 @@ public class ShellStateService
             AutoWidth = autoWidth,
             ShowAppName = showAppName,
             CombineApps = combineApps,
+            ShowThumbnails = showThumbnails ?? (existing?.ShowThumbnails ?? true),
             StartIcon = !string.IsNullOrWhiteSpace(startIcon) ? startIcon : (existing?.StartIcon ?? "windows"),
             StartText = startText != null ? startText : (existing?.StartText ?? "Start"),
             ShowStartText = showStartText,
@@ -330,6 +332,7 @@ public class ShellStateService
                     AutoWidth = current?.AutoWidth ?? true,
                     ShowAppName = current?.ShowAppName ?? true,
                     CombineApps = current?.CombineApps ?? false,
+                    ShowThumbnails = current?.ShowThumbnails ?? true,
                     StartIcon = current?.StartIcon ?? "windows",
                     StartText = current?.StartText ?? "Start",
                     ShowStartText = current?.ShowStartText ?? false,
