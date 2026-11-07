@@ -49,6 +49,7 @@ public partial class TaskbarWebWindow : Window
         Action openSettingsCallback)
     {
         InitializeComponent();
+        TaskbarWebView.DefaultBackgroundColor = System.Drawing.Color.Transparent;
         _shellState = shellState;
         _metricsService = metricsService;
         _brightnessService = brightnessService;
@@ -199,6 +200,44 @@ public partial class TaskbarWebWindow : Window
                 return;
             }
 
+            if (cmd.StartsWith("capture_settings", StringComparison.OrdinalIgnoreCase))
+            {
+                var parts = cmd.Split(' ');
+                string outPath = parts.Length > 1 ? parts[1] : Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings_capture.png");
+                string targetTab = parts.Length > 2 ? parts[2] : "tab-shell";
+                Dispatcher.InvokeAsync(async () =>
+                {
+                    try
+                    {
+                        var settingsWin = System.Windows.Application.Current.Windows.OfType<SettingsWebWindow>().FirstOrDefault();
+                        if (settingsWin != null && settingsWin.SettingsWebView?.CoreWebView2 != null)
+                        {
+                            if (!string.IsNullOrWhiteSpace(targetTab))
+                            {
+                                await settingsWin.SettingsWebView.CoreWebView2.ExecuteScriptAsync($"window.switchTab && window.switchTab('{targetTab}');");
+                                await System.Threading.Tasks.Task.Delay(400);
+                            }
+                            if (parts.Length > 3)
+                            {
+                                string script = string.Join(" ", System.Linq.Enumerable.Skip(parts, 3));
+                                await settingsWin.SettingsWebView.CoreWebView2.ExecuteScriptAsync(script);
+                                await System.Threading.Tasks.Task.Delay(300);
+                            }
+                            using var fs = new FileStream(outPath, FileMode.Create, FileAccess.Write, FileShare.None);
+                            await settingsWin.SettingsWebView.CoreWebView2.CapturePreviewAsync(
+                                Microsoft.Web.WebView2.Core.CoreWebView2CapturePreviewImageFormat.Png,
+                                fs);
+                            await fs.FlushAsync();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "capture_err.txt"), ex.ToString());
+                    }
+                });
+                return;
+            }
+
             Dispatcher.Invoke(() =>
             {
                 try
@@ -217,12 +256,12 @@ public partial class TaskbarWebWindow : Window
                     else if (cmd.StartsWith("open_brightness", StringComparison.OrdinalIgnoreCase))
                     {
                         _brightnessFlyout ??= new BrightnessFlyoutWindow(_brightnessService);
-                        _brightnessFlyout.ShowAt(mon.Right - 420, 34, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme);
+                        _brightnessFlyout.ShowAt(mon.Right - 420, 34, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
                     }
                     else if (cmd.StartsWith("open_volume", StringComparison.OrdinalIgnoreCase))
                     {
                         _volumeFlyout ??= new VolumeFlyoutWindow(_audioService);
-                        _volumeFlyout.ShowAt(mon.Right - 420, 34, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme);
+                        _volumeFlyout.ShowAt(mon.Right - 420, 34, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
                     }
                     else if (cmd.StartsWith("open_clock", StringComparison.OrdinalIgnoreCase))
                     {
@@ -563,7 +602,7 @@ public partial class TaskbarWebWindow : Window
 
                         if (!wasJustOpen)
                         {
-                            _brightnessFlyout.ShowAt(Left + bx, bw, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme);
+                            _brightnessFlyout.ShowAt(Left + bx, bw, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
                         }
                     });
                     break;
@@ -582,7 +621,7 @@ public partial class TaskbarWebWindow : Window
 
                         if (!wasJustOpen)
                         {
-                            _volumeFlyout.ShowAt(Left + vx, vw, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme);
+                            _volumeFlyout.ShowAt(Left + vx, vw, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
                         }
                     });
                     break;

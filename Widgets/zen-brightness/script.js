@@ -23,7 +23,7 @@ function updateVisuals(val) {
   if (valLabel) valLabel.textContent = `${val}%`;
   if (slider) {
     slider.value = val;
-    slider.style.background = `linear-gradient(to right, #60cdff 0%, #60cdff ${val}%, #3e3e3e ${val}%, #3e3e3e 100%)`;
+    slider.style.background = `linear-gradient(to right, var(--winzen-accent, #60cdff) 0%, var(--winzen-accent, #60cdff) ${val}%, #3e3e3e ${val}%, #3e3e3e 100%)`;
   }
   if (btn) btn.title = `Brightness (${val}%) — Scroll to adjust`;
 }

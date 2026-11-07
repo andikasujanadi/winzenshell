@@ -28,6 +28,12 @@
       },
       setTheme(theme) {
         postToNative({ action: 'set_theme', theme: String(theme || 'dark') });
+      },
+      setAccentColor(color) {
+        postToNative({ action: 'set_accent_color', accentColor: String(color || '#3684E3') });
+      },
+      setCornerRadius(radiusPx) {
+        postToNative({ action: 'set_corner_radius', taskbarCornerRadiusPx: Number(radiusPx) });
       }
     },
     tasks: {

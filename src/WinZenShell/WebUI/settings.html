@@ -203,7 +203,7 @@
               </div>
             </div>
 
-            <!-- Subrow: Taskbar Alignment, Height, Margin, Theme -->
+            <!-- Subrow: Taskbar Alignment, Height, Margin, Corner Radius, Theme -->
             <div class="expander-subrow controls-subrow">
               <div class="subrow-field">
                 <label for="selectTheme">Shell &amp; widgets theme</label>
@@ -226,6 +226,29 @@
               <div class="subrow-field">
                 <label for="inputFloatingMargin">Floating margin (<span id="labelMarginVal">0px</span>)</label>
                 <input type="range" id="inputFloatingMargin" class="win11-slider" min="0" max="16" step="2" value="0" />
+              </div>
+              <div class="subrow-field">
+                <label for="inputCornerRadius">Floating corner radius (<span id="labelRadiusVal">12px</span>)</label>
+                <input type="range" id="inputCornerRadius" class="win11-slider" min="0" max="28" step="2" value="12" />
+              </div>
+            </div>
+
+            <!-- Subrow: Accent Color Selector (9 Authentic Swatches) -->
+            <div class="expander-subrow setting-subrow" id="accentColorRow">
+              <div class="card-titles">
+                <label class="card-title">Accent color</label>
+                <span class="card-subtitle">Choose an accent color for taskbar sliders, buttons, indicators, and focus rings</span>
+                <div class="accent-swatches-grid" id="accentSwatchesContainer">
+                  <button type="button" class="accent-swatch" data-color="#3684E3" style="--swatch-color: #3684E3;" title="Blue" aria-label="Blue"></button>
+                  <button type="button" class="accent-swatch" data-color="#2490A5" style="--swatch-color: #2490A5;" title="Teal" aria-label="Teal"></button>
+                  <button type="button" class="accent-swatch" data-color="#3C964A" style="--swatch-color: #3C964A;" title="Green" aria-label="Green"></button>
+                  <button type="button" class="accent-swatch" data-color="#CA8902" style="--swatch-color: #CA8902;" title="Gold" aria-label="Gold"></button>
+                  <button type="button" class="accent-swatch" data-color="#E95F05" style="--swatch-color: #E95F05;" title="Orange" aria-label="Orange"></button>
+                  <button type="button" class="accent-swatch" data-color="#E82C42" style="--swatch-color: #E82C42;" title="Red" aria-label="Red"></button>
+                  <button type="button" class="accent-swatch" data-color="#D76199" style="--swatch-color: #D76199;" title="Pink" aria-label="Pink"></button>
+                  <button type="button" class="accent-swatch" data-color="#9342AD" style="--swatch-color: #9342AD;" title="Purple" aria-label="Purple"></button>
+                  <button type="button" class="accent-swatch" data-color="#708496" style="--swatch-color: #708496;" title="Slate" aria-label="Slate"></button>
+                </div>
               </div>
             </div>
           </div>

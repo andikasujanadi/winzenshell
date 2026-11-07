@@ -620,8 +620,8 @@ body {
 
 .controls-subrow {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 16px;
 }
 
 .subrow-field {
@@ -633,6 +633,42 @@ body {
 .subrow-field label {
   font-size: 12px;
   color: var(--win11-text-secondary);
+}
+
+/* Accent Color Swatches Grid */
+.accent-swatches-grid {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.accent-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  background-color: var(--swatch-color);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  padding: 0;
+  outline: none;
+  position: relative;
+  box-sizing: border-box;
+}
+
+.accent-swatch:hover {
+  transform: scale(1.15);
+}
+
+.accent-swatch.active {
+  box-shadow: 0 0 0 3px var(--win11-bg-card-sub, #202020), 0 0 0 5px var(--swatch-color);
+}
+
+html[data-theme="light"] .accent-swatch.active,
+body.theme-light .accent-swatch.active {
+  box-shadow: 0 0 0 3px var(--win11-bg-card-sub, #f9f9f9), 0 0 0 5px var(--swatch-color);
 }
 
 /* Windows 11 Controls (Buttons, ComboBox, Slider, TextBox) */

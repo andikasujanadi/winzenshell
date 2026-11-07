@@ -3,9 +3,12 @@ function initTaskbar() {
   const slotCenter = document.getElementById('slot-center');
   const slotRight = document.getElementById('slot-right');
   const btnOpenStudio = document.getElementById('btnOpenStudio');
+  const taskbarBar = document.getElementById('taskbarBar');
 
   let lastWidgetsSignature = '';
   let currentTheme = 'dark';
+  let currentAccent = '#3684E3';
+  let currentRadius = 12;
 
   if (btnOpenStudio) {
     btnOpenStudio.addEventListener('click', () => {
@@ -17,15 +20,36 @@ function initTaskbar() {
     const state = e.detail;
     if (!state || !Array.isArray(state.widgets)) return;
 
-    currentTheme = (state.settings && state.settings.theme) || 'dark';
+    const settings = state.settings || {};
+    currentTheme = settings.theme || 'dark';
+    currentAccent = settings.accentColor || '#3684E3';
+    currentRadius = settings.taskbarCornerRadiusPx ?? 12;
+
     document.documentElement.setAttribute('data-theme', currentTheme);
     document.body.className = currentTheme === 'light' ? 'theme-light' : 'theme-dark';
+    document.documentElement.style.setProperty('--winzen-accent', currentAccent);
+    document.documentElement.style.setProperty('--winzen-border-accent', currentAccent);
+    document.documentElement.style.setProperty('--win11-accent', currentAccent);
+
+    const isFloating = (settings.floatingMarginPx || 0) > 0;
+    if (taskbarBar) {
+      taskbarBar.classList.toggle('floating', isFloating);
+      taskbarBar.style.setProperty('--taskbar-radius', `${isFloating ? currentRadius : 0}px`);
+    }
+
+    // Update accent and radius on existing widget hosts
+    document.querySelectorAll('.widget-host').forEach(host => {
+      host.style.setProperty('--winzen-accent', currentAccent);
+      host.style.setProperty('--winzen-border-accent', currentAccent);
+      host.style.setProperty('--win11-accent', currentAccent);
+    });
 
     const enabledWidgets = state.widgets
       .filter((w) => w.enabled && (w.slot || '').toLowerCase() !== 'unused' && (w.slot || '').toLowerCase() !== 'disabled')
       .sort((a, b) => (a.order ?? 10) - (b.order ?? 10));
     const sig = JSON.stringify({
       theme: currentTheme,
+      accent: currentAccent,
       widgets: enabledWidgets.map((w) => ({
         id: w.id,
         slot: w.slot,
@@ -72,6 +96,9 @@ function initTaskbar() {
       host.setAttribute('data-theme', currentTheme);
       host.style.width = isAutoWidth ? 'auto' : (isIconMode ? '34px' : `${w.width || 160}px`);
       host.dataset.widgetId = w.id;
+      host.style.setProperty('--winzen-accent', currentAccent);
+      host.style.setProperty('--winzen-border-accent', currentAccent);
+      host.style.setProperty('--win11-accent', currentAccent);
 
       const shadow = host.attachShadow({ mode: 'open' });
 
@@ -85,13 +112,13 @@ function initTaskbar() {
           --winzen-surface-subtle: #202020;
           --winzen-border: rgba(255, 255, 255, 0.08);
           --winzen-border-subtle: rgba(255, 255, 255, 0.05);
-          --winzen-border-accent: #60cdff;
+          --winzen-border-accent: ${currentAccent};
           --winzen-text: #ffffff;
           --winzen-text-secondary: #c5c5c5;
           --winzen-text-muted: #888888;
-          --winzen-accent: #60cdff;
-          --winzen-accent-hover: #78d4ff;
-          --winzen-accent-pressed: #0098e6;
+          --winzen-accent: ${currentAccent};
+          --winzen-accent-hover: ${currentAccent};
+          --winzen-accent-pressed: ${currentAccent};
           --winzen-purple: #c084fc;
           --winzen-danger: #f87171;
           --winzen-radius-xs: 4px;
@@ -119,13 +146,13 @@ function initTaskbar() {
           --winzen-surface-subtle: #f9f9f9;
           --winzen-border: rgba(0, 0, 0, 0.082);
           --winzen-border-subtle: rgba(0, 0, 0, 0.05);
-          --winzen-border-accent: #0067c0;
+          --winzen-border-accent: ${currentAccent};
           --winzen-text: #1b1b1b;
           --winzen-text-secondary: #5c5c5c;
           --winzen-text-muted: #8a8a8a;
-          --winzen-accent: #0067c0;
-          --winzen-accent-hover: #1879cd;
-          --winzen-accent-pressed: #005aa3;
+          --winzen-accent: ${currentAccent};
+          --winzen-accent-hover: ${currentAccent};
+          --winzen-accent-pressed: ${currentAccent};
           --winzen-purple: #7c3aed;
           --winzen-danger: #dc2626;
           color: var(--winzen-text);

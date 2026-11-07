@@ -42,7 +42,7 @@ function updateVisuals(val, isMuted) {
 
   if (slider) {
     slider.value = effectiveVal;
-    slider.style.background = `linear-gradient(to right, #60cdff 0%, #60cdff ${effectiveVal}%, #3e3e3e ${effectiveVal}%, #3e3e3e 100%)`;
+    slider.style.background = `linear-gradient(to right, var(--winzen-accent, #60cdff) 0%, var(--winzen-accent, #60cdff) ${effectiveVal}%, #3e3e3e ${effectiveVal}%, #3e3e3e 100%)`;
   }
 
   if (btn) {

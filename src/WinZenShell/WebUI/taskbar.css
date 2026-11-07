@@ -13,7 +13,7 @@ body {
   height: 100vh;
   max-height: 100vh;
   overflow: hidden;
-  background: #1c1c1c;
+  background: transparent !important;
   font-family: 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, sans-serif;
   color: #ffffff;
   -webkit-font-smoothing: antialiased;
@@ -31,6 +31,14 @@ body {
   padding: 0 8px;
   gap: 8px;
   overflow: hidden;
+  box-sizing: border-box;
+  transition: border-radius 0.15s ease;
+}
+
+.taskbar-bar.floating {
+  border-radius: var(--taskbar-radius, 12px);
+  border: 1px solid var(--winzen-border, rgba(255, 255, 255, 0.12));
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
 .taskbar-zone {

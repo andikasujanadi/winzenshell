@@ -166,7 +166,19 @@ public partial class SettingsWebWindow : Window
                     int heightPx = root.TryGetProperty("taskbarHeightPx", out var htProp) ? htProp.GetInt32() : 48;
                     int marginPx = root.TryGetProperty("floatingMarginPx", out var mgProp) ? mgProp.GetInt32() : 0;
                     string? theme = root.TryGetProperty("theme", out var tmProp) ? tmProp.GetString() : null;
-                    _shellState.UpdateWorkAreaConfig(respect, dockEdge, heightPx, marginPx, theme);
+                    int? cornerRadius = root.TryGetProperty("taskbarCornerRadiusPx", out var crProp) ? crProp.GetInt32() : null;
+                    string? accent = root.TryGetProperty("accentColor", out var acProp) ? acProp.GetString() : null;
+                    _shellState.UpdateWorkAreaConfig(respect, dockEdge, heightPx, marginPx, theme, cornerRadius, accent);
+                    break;
+
+                case "set_accent_color":
+                    string newAccent = root.TryGetProperty("accentColor", out var nacProp) ? nacProp.GetString() ?? "#3684E3" : "#3684E3";
+                    _shellState.UpdateAccentColor(newAccent);
+                    break;
+
+                case "set_corner_radius":
+                    int newRadius = root.TryGetProperty("taskbarCornerRadiusPx", out var ncrProp) ? ncrProp.GetInt32() : 12;
+                    _shellState.UpdateCornerRadius(newRadius);
                     break;
 
                 case "set_theme":

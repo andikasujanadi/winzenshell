@@ -63,6 +63,10 @@ function initSettingsPage() {
   const labelHeightVal = document.getElementById('labelHeightVal');
   const inputFloatingMargin = document.getElementById('inputFloatingMargin');
   const labelMarginVal = document.getElementById('labelMarginVal');
+  const inputCornerRadius = document.getElementById('inputCornerRadius');
+  const labelRadiusVal = document.getElementById('labelRadiusVal');
+  const accentSwatchesContainer = document.getElementById('accentSwatchesContainer');
+  let currentAccentColor = '#3684E3';
 
   // Native Taskbar Telemetry
   const valTrayHwnd = document.getElementById('valTrayHwnd');
@@ -120,6 +124,8 @@ function initSettingsPage() {
       dockEdge: selectDockEdge.value,
       taskbarHeightPx: parseInt(inputTaskbarHeight.value, 10) || 48,
       floatingMarginPx: parseInt(inputFloatingMargin.value, 10) || 0,
+      taskbarCornerRadiusPx: inputCornerRadius ? (parseInt(inputCornerRadius.value, 10) || 12) : 12,
+      accentColor: currentAccentColor,
       theme: selectTheme ? selectTheme.value : 'dark'
     });
   }
@@ -204,6 +210,40 @@ function initSettingsPage() {
   });
   inputFloatingMargin.addEventListener('change', sendWorkAreaConfig);
 
+  if (inputCornerRadius) {
+    inputCornerRadius.addEventListener('input', () => {
+      if (labelRadiusVal) labelRadiusVal.textContent = `${inputCornerRadius.value}px`;
+    });
+    inputCornerRadius.addEventListener('change', sendWorkAreaConfig);
+  }
+
+  function updateAccentColorUI(color) {
+    currentAccentColor = color || '#3684E3';
+    document.documentElement.style.setProperty('--win11-accent', currentAccentColor);
+    document.documentElement.style.setProperty('--winzen-accent', currentAccentColor);
+    if (accentSwatchesContainer) {
+      accentSwatchesContainer.querySelectorAll('.accent-swatch').forEach(btn => {
+        const btnColor = btn.dataset.color;
+        if (btnColor && btnColor.toLowerCase() === currentAccentColor.toLowerCase()) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+    }
+  }
+
+  if (accentSwatchesContainer) {
+    accentSwatchesContainer.querySelectorAll('.accent-swatch').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const color = btn.dataset.color;
+        if (!color) return;
+        updateAccentColorUI(color);
+        window.winzen.shell.setAccentColor(color);
+      });
+    });
+  }
+
   document.getElementById('btnEmergencySidebar').addEventListener('click', () => {
     window.winzen.shell.emergencyRestore();
   });
@@ -280,6 +320,13 @@ function initSettingsPage() {
       labelHeightVal.textContent = `${s.taskbarHeightPx || 48}px`;
       inputFloatingMargin.value = s.floatingMarginPx || 0;
       labelMarginVal.textContent = `${s.floatingMarginPx || 0}px`;
+      if (inputCornerRadius) {
+        inputCornerRadius.value = s.taskbarCornerRadiusPx ?? 12;
+        if (labelRadiusVal) labelRadiusVal.textContent = `${s.taskbarCornerRadiusPx ?? 12}px`;
+      }
+      if (s.accentColor) {
+        updateAccentColorUI(s.accentColor);
+      }
 
       latestWidgets = (data.widgets || []).slice().sort((a, b) => (a.order ?? 10) - (b.order ?? 10));
       const activeWinWidget = latestWidgets.find((w) => w.id === 'community.zen-active-windows');

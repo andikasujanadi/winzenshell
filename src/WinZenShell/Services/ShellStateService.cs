@@ -76,6 +76,8 @@ public class ShellSettings
     public string DockEdge { get; set; } = "Bottom"; // "Bottom" or "Top"
     public int TaskbarHeightPx { get; set; } = 48;
     public int FloatingMarginPx { get; set; } = 0;
+    public int TaskbarCornerRadiusPx { get; set; } = 12;
+    public string AccentColor { get; set; } = "#3684E3";
     public string Theme { get; set; } = "dark"; // "dark" or "light"
     public Dictionary<string, WidgetStateOverride> WidgetOverrides { get; set; } = new();
     public List<ControlCenterItemConfig> ControlCenterWidgets { get; set; } = new();
@@ -218,13 +220,24 @@ public class ShellStateService
         BroadcastState();
     }
 
-    public void UpdateWorkAreaConfig(bool respectWorkArea, string dockEdge, int heightPx, int marginPx, string? theme = null)
+    public void UpdateWorkAreaConfig(
+        bool respectWorkArea,
+        string dockEdge,
+        int heightPx,
+        int marginPx,
+        string? theme = null,
+        int? cornerRadiusPx = null,
+        string? accentColor = null)
     {
         _settings.RespectDesktopWorkArea = respectWorkArea;
         if (!string.IsNullOrWhiteSpace(dockEdge))
             _settings.DockEdge = dockEdge;
         _settings.TaskbarHeightPx = Math.Clamp(heightPx, 32, 96);
         _settings.FloatingMarginPx = Math.Clamp(marginPx, 0, 24);
+        if (cornerRadiusPx.HasValue)
+            _settings.TaskbarCornerRadiusPx = Math.Clamp(cornerRadiusPx.Value, 0, 32);
+        if (!string.IsNullOrWhiteSpace(accentColor))
+            _settings.AccentColor = accentColor;
         if (!string.IsNullOrWhiteSpace(theme))
             _settings.Theme = string.Equals(theme, "light", StringComparison.OrdinalIgnoreCase) ? "light" : "dark";
         SaveSettings();
@@ -232,6 +245,23 @@ public class ShellStateService
         SyncTaskbarAndWorkArea();
 
         _statusBanner = respectWorkArea ? "Work area saved" : "Overlay mode";
+        BroadcastState();
+    }
+
+    public void UpdateAccentColor(string accentColor)
+    {
+        if (string.IsNullOrWhiteSpace(accentColor)) return;
+        _settings.AccentColor = accentColor;
+        SaveSettings();
+        _statusBanner = $"Accent color set to {accentColor}";
+        BroadcastState();
+    }
+
+    public void UpdateCornerRadius(int radiusPx)
+    {
+        _settings.TaskbarCornerRadiusPx = Math.Clamp(radiusPx, 0, 32);
+        SaveSettings();
+        _statusBanner = $"Corner radius set to {_settings.TaskbarCornerRadiusPx}px";
         BroadcastState();
     }
 

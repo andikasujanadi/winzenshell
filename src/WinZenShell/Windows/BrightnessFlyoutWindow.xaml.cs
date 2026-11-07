@@ -25,9 +25,10 @@ public partial class BrightnessFlyoutWindow : Window
         BrightnessSlider.ValueChanged += OnSliderValueChanged;
     }
 
-    public void ShowAt(double anchorScreenX, double anchorWidth, double taskbarTop, double taskbarHeight, string dockEdge, string? theme = null)
+    public void ShowAt(double anchorScreenX, double anchorWidth, double taskbarTop, double taskbarHeight, string dockEdge, string? theme = null, string? accent = null)
     {
         ApplyTheme(theme);
+        ApplyAccentColor(accent);
         _isUpdatingUi = true;
         int current = _brightnessService.GetBrightness();
         BrightnessSlider.Value = current;
@@ -89,6 +90,17 @@ public partial class BrightnessFlyoutWindow : Window
             if (PercentLabel != null)
                 PercentLabel.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xFF, 0xFF, 0xFF));
         }
+    }
+
+    public void ApplyAccentColor(string? hex)
+    {
+        if (string.IsNullOrWhiteSpace(hex)) return;
+        try
+        {
+            var color = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(hex);
+            Resources["AccentBrush"] = new System.Windows.Media.SolidColorBrush(color);
+        }
+        catch { }
     }
 
     public void UpdateBrightness(int percent)
