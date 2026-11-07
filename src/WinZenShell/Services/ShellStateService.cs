@@ -309,7 +309,7 @@ public class ShellStateService
             ShowStartText = showStartText,
             DisplayMode = !string.IsNullOrWhiteSpace(displayMode) ? displayMode : (existing?.DisplayMode ?? "widget"),
             AspectRatio = !string.IsNullOrWhiteSpace(aspectRatio) ? aspectRatio : (existing?.AspectRatio ?? "1:1"),
-            BatteryIconStyle = !string.IsNullOrWhiteSpace(batteryIconStyle) ? batteryIconStyle : (existing?.BatteryIconStyle ?? "hyperos"),
+            BatteryIconStyle = !string.IsNullOrWhiteSpace(batteryIconStyle) ? batteryIconStyle : (existing?.BatteryIconStyle ?? "win11"),
             BatteryPercentMode = !string.IsNullOrWhiteSpace(batteryPercentMode) ? batteryPercentMode : (existing?.BatteryPercentMode ?? "outside-right")
         };
         SaveSettings();

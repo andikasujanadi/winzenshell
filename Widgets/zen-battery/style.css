@@ -112,51 +112,7 @@
   background: var(--batt-low) !important;
 }
 
-/* 1. HyperOS 4 Style */
-.style-hyperos .batt-housing {
-  position: relative;
-  width: 32px;
-  height: 16px;
-  border-radius: 9999px;
-  border: 1.5px solid var(--batt-border);
-  padding: 1.5px;
-  display: flex;
-  align-items: center;
-  overflow: hidden;
-}
-
-.style-hyperos .batt-fill-bar {
-  height: 100%;
-  border-radius: 9999px;
-  background: var(--batt-fill);
-  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  min-width: 4px;
-}
-
-.style-hyperos .pct-inside {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 8px;
-  font-weight: 800;
-  color: #ffffff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
-  pointer-events: none;
-}
-
-.style-hyperos .batt-bolt {
-  position: absolute;
-  right: 4px;
-  width: 9px;
-  height: 9px;
-  fill: #ffffff;
-  filter: drop-shadow(0 0 2px rgba(0,0,0,0.8));
-  display: none;
-}
-
-/* 2. Windows 11 Fluent Style */
+/* 1. Windows 11 Fluent Style */
 .style-win11 .batt-row {
   display: flex;
   align-items: center;
@@ -212,7 +168,7 @@
   display: none;
 }
 
-/* 3. Windows 10 Metro Style */
+/* 2. Windows 10 Metro Style */
 .style-win10 .batt-row {
   display: flex;
   align-items: center;
@@ -267,7 +223,7 @@
   display: none;
 }
 
-/* 4. macOS Style */
+/* 3. macOS Style */
 .style-macos .batt-row {
   display: flex;
   align-items: center;
@@ -327,116 +283,4 @@
   display: none;
 }
 
-/* 5. Vertical Classic Style */
-.style-vertical-classic .batt-col {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
 
-.style-vertical-classic .batt-cap {
-  width: 5px;
-  height: 2px;
-  border-radius: 1px 1px 0 0;
-  background: var(--batt-border);
-  margin-bottom: 1px;
-}
-
-.style-vertical-classic .batt-housing {
-  position: relative;
-  width: 13px;
-  height: 22px;
-  border-radius: 3px;
-  border: 1.5px solid var(--batt-border);
-  padding: 1.5px;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  overflow: hidden;
-}
-
-.style-vertical-classic .batt-fill-bar {
-  width: 100%;
-  border-radius: 1px;
-  background: var(--batt-fill);
-  transition: height 0.3s ease;
-}
-
-.style-vertical-classic .pct-inside {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 7px;
-  font-weight: 700;
-  color: #ffffff;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
-}
-
-.style-vertical-classic .batt-bolt {
-  position: absolute;
-  inset: 0;
-  margin: auto;
-  width: 8px;
-  height: 8px;
-  fill: #ffffff;
-  filter: drop-shadow(0 0 2px rgba(0,0,0,0.8));
-  display: none;
-}
-
-/* 6. Horizontal Classic AA Style */
-.style-horizontal-classic .batt-row {
-  display: flex;
-  align-items: center;
-}
-
-.style-horizontal-classic .batt-housing {
-  position: relative;
-  width: 26px;
-  height: 14px;
-  border-radius: 2.5px;
-  border: 1.5px solid var(--batt-border);
-  padding: 1.5px;
-  display: flex;
-  align-items: center;
-  overflow: hidden;
-}
-
-.style-horizontal-classic .batt-cap {
-  width: 3px;
-  height: 7px;
-  border-radius: 0 2px 2px 0;
-  background: var(--batt-border);
-  margin-left: 1px;
-}
-
-.style-horizontal-classic .batt-fill-bar {
-  height: 100%;
-  border-radius: 1px;
-  background: var(--batt-fill);
-  transition: width 0.3s ease;
-}
-
-.style-horizontal-classic .pct-inside {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 7.5px;
-  font-weight: 700;
-  color: #ffffff;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
-}
-
-.style-horizontal-classic .batt-bolt {
-  position: absolute;
-  inset: 0;
-  margin: auto;
-  width: 9px;
-  height: 9px;
-  fill: #ffffff;
-  filter: drop-shadow(0 0 2px rgba(0,0,0,0.8));
-  display: none;
-}

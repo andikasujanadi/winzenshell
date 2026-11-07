@@ -60,7 +60,7 @@ public class WidgetManifest
     public bool ShowStartText { get; set; } = false;
 
     [JsonPropertyName("batteryIconStyle")]
-    public string BatteryIconStyle { get; set; } = "hyperos";
+    public string BatteryIconStyle { get; set; } = "win11";
 
     [JsonPropertyName("batteryPercentMode")]
     public string BatteryPercentMode { get; set; } = "outside-right";
@@ -382,7 +382,7 @@ public class WidgetStateOverride
     public bool ShowStartText { get; set; } = false;
     public string DisplayMode { get; set; } = "widget";
     public string AspectRatio { get; set; } = "1:1";
-    public string BatteryIconStyle { get; set; } = "hyperos";
+    public string BatteryIconStyle { get; set; } = "win11";
     public string BatteryPercentMode { get; set; } = "outside-right";
 }
 

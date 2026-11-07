@@ -3,7 +3,7 @@ const iconWrap = root.getElementById('iconWrap');
 const pctLeft = root.getElementById('pctLeft');
 const pctRight = root.getElementById('pctRight');
 
-let currentStyle = (typeof widgetConfig !== 'undefined' && widgetConfig && widgetConfig.batteryIconStyle) || 'hyperos';
+let currentStyle = (typeof widgetConfig !== 'undefined' && widgetConfig && widgetConfig.batteryIconStyle) || 'win11';
 let currentMode = (typeof widgetConfig !== 'undefined' && widgetConfig && widgetConfig.batteryPercentMode) || 'outside-right';
 
 let lastMetrics = null;
@@ -12,27 +12,6 @@ const BOLT_SVG = `<svg class="batt-bolt" viewBox="0 0 16 16"><path d="M9.5 1L3 8
 
 function buildIconHtml(style) {
   switch (style) {
-    case 'hyperos':
-      return `
-        <div class="batt-housing">
-          <div class="batt-fill-bar" id="fillBar"></div>
-          ${BOLT_SVG}
-          <span class="pct-inside" id="pctInside">--</span>
-        </div>
-      `;
-
-    case 'win11':
-      return `
-        <div class="batt-row">
-          <div class="batt-housing">
-            <div class="batt-fill-bar" id="fillBar"></div>
-            ${BOLT_SVG}
-            <span class="pct-inside" id="pctInside">--</span>
-          </div>
-          <div class="batt-cap"></div>
-        </div>
-      `;
-
     case 'win10':
       return `
         <div class="batt-row">
@@ -57,19 +36,7 @@ function buildIconHtml(style) {
         </div>
       `;
 
-    case 'vertical-classic':
-      return `
-        <div class="batt-col">
-          <div class="batt-cap"></div>
-          <div class="batt-housing">
-            <div class="batt-fill-bar" id="fillBar"></div>
-            ${BOLT_SVG}
-            <span class="pct-inside" id="pctInside">--</span>
-          </div>
-        </div>
-      `;
-
-    case 'horizontal-classic':
+    case 'win11':
     default:
       return `
         <div class="batt-row">
@@ -89,8 +56,7 @@ function applyStyleAndMode(style, mode) {
 
   // Clear previous classes
   batteryRoot.classList.remove(
-    'style-hyperos', 'style-win11', 'style-win10', 'style-macos',
-    'style-vertical-classic', 'style-horizontal-classic',
+    'style-win11', 'style-win10', 'style-macos',
     'mode-outside-right', 'mode-outside-left', 'mode-inside', 'mode-hide'
   );
 
@@ -120,13 +86,8 @@ function updateBatteryDisplay(m) {
   if (pctRight) pctRight.textContent = `${pct}%`;
   if (pctInside) {
     if (isCharging) {
-      if (currentStyle === 'vertical-classic') {
-        pctInside.innerHTML = `<span style="font-size:7px;line-height:1;">⚡</span><span style="font-size:6.5px;line-height:1;">${pct}</span>`;
-        pctInside.style.flexDirection = 'column';
-      } else {
-        pctInside.innerHTML = `<span style="font-size:7px;margin-right:1px;line-height:1;">⚡</span>${pct}`;
-        pctInside.style.flexDirection = 'row';
-      }
+      pctInside.innerHTML = `<span style="font-size:7px;margin-right:1px;line-height:1;">⚡</span>${pct}`;
+      pctInside.style.flexDirection = 'row';
     } else {
       pctInside.textContent = `${pct}`;
       pctInside.style.flexDirection = 'row';
@@ -134,13 +95,8 @@ function updateBatteryDisplay(m) {
   }
 
   if (fillBar) {
-    if (currentStyle === 'vertical-classic') {
-      fillBar.style.height = `${pct}%`;
-      fillBar.style.width = '100%';
-    } else {
-      fillBar.style.width = `${pct}%`;
-      fillBar.style.height = '100%';
-    }
+    fillBar.style.width = `${pct}%`;
+    fillBar.style.height = '100%';
   }
 
   if (batteryRoot) {
@@ -171,7 +127,7 @@ window.addEventListener('winzen:state', (e) => {
   const cfg = state.widgets.find((w) => w.id === 'community.zen-battery');
   if (!cfg) return;
 
-  const newStyle = cfg.batteryIconStyle || 'hyperos';
+  const newStyle = cfg.batteryIconStyle || 'win11';
   const newMode = cfg.batteryPercentMode || 'outside-right';
 
   if (newStyle !== currentStyle || newMode !== currentMode) {

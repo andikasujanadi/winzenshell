@@ -63,7 +63,7 @@ function initTaskbar() {
         startIcon: w.startIcon || 'windows',
         startText: w.startText || 'Start',
         showStartText: !!w.showStartText,
-        batteryIconStyle: w.batteryIconStyle || 'hyperos',
+        batteryIconStyle: w.batteryIconStyle || 'win11',
         batteryPercentMode: w.batteryPercentMode || 'outside-right',
         html: w.htmlContent,
         css: w.cssContent,

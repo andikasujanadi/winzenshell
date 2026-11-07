@@ -11,6 +11,6 @@
   "autoWidth": true,
   "supportedModes": ["widget"],
   "enabled": true,
-  "batteryIconStyle": "hyperos",
+  "batteryIconStyle": "win11",
   "batteryPercentMode": "outside-right"
 }

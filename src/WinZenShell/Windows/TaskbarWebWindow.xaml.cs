@@ -455,7 +455,7 @@ public partial class TaskbarWebWindow : Window
                     else if (cmd.StartsWith("test_battery", StringComparison.OrdinalIgnoreCase))
                     {
                         var parts = cmd.Split(' ');
-                        string bStyle = parts.Length > 1 ? parts[1] : "hyperos";
+                        string bStyle = parts.Length > 1 ? parts[1] : "win11";
                         string bMode = parts.Length > 2 ? parts[2] : "outside-right";
                         _shellState.UpdateWidgetState(
                             "community.zen-battery",

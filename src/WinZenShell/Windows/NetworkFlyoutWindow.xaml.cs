@@ -34,14 +34,42 @@ public partial class NetworkFlyoutWindow : Window
     private const string PATH_LOCK = "M6 5V4a2 2 0 1 1 4 0v1h1a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h1zm1-1a1 1 0 1 1 2 0v1H7V4zm1 4a1 1 0 1 0 0 2 1 1 0 0 0 0-2z";
 
     public DateTime LastDeactivatedTime { get; private set; } = DateTime.MinValue;
+    private DateTime _suppressDeactivationUntil = DateTime.MinValue;
 
     public NetworkFlyoutWindow(NetworkService networkService)
     {
         InitializeComponent();
         _networkService = networkService;
+        _networkService.NetworkChanged += (_, _) => OnNetworkChanged();
 
         Deactivated += (_, _) =>
         {
+            if (DateTime.UtcNow < _suppressDeactivationUntil)
+            {
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    if (IsVisible)
+                    {
+                        Activate();
+                        Focus();
+                    }
+                }));
+                return;
+            }
+
+            if (IsMouseOver)
+            {
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    if (IsVisible)
+                    {
+                        Activate();
+                        Focus();
+                    }
+                }));
+                return;
+            }
+
             LastDeactivatedTime = DateTime.UtcNow;
             Hide();
         };
@@ -50,6 +78,27 @@ public partial class NetworkFlyoutWindow : Window
         {
             if (e.Key == Key.Escape) Hide();
         };
+    }
+
+    public void OnNetworkChanged()
+    {
+        Dispatcher.InvokeAsync(async () =>
+        {
+            if (!IsVisible) return;
+
+            // When LAN is unplugged/plugged, prevent OS notification/focus loss from closing flyout
+            _suppressDeactivationUntil = DateTime.UtcNow.AddSeconds(4.0);
+
+            UpdateActiveConnectionDisplay();
+            await RefreshNetworksAsync();
+
+            try
+            {
+                Activate();
+                Focus();
+            }
+            catch { }
+        });
     }
 
     public void ShowAt(
@@ -61,6 +110,7 @@ public partial class NetworkFlyoutWindow : Window
         string theme,
         string accentColor)
     {
+        _suppressDeactivationUntil = DateTime.UtcNow.AddMilliseconds(800);
         ApplyTheme(theme);
         ApplyAccentColor(accentColor);
 

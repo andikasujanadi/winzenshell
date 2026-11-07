@@ -899,19 +899,16 @@ function initSettingsPage() {
           </label>
         `;
       } else if (isBattery) {
-        const curStyle = w.batteryIconStyle || 'hyperos';
+        const curStyle = w.batteryIconStyle || 'win11';
         const curMode = w.batteryPercentMode || 'outside-right';
 
         specializedOptionsHtml = `
           <div class="subrow-field">
             <label>Battery icon style</label>
             <select class="win11-select w-batteryicon">
-              <option value="hyperos" ${curStyle === 'hyperos' ? 'selected' : ''}>HyperOS 4</option>
               <option value="win11" ${curStyle === 'win11' ? 'selected' : ''}>Windows 11 (Fluent)</option>
               <option value="win10" ${curStyle === 'win10' ? 'selected' : ''}>Windows 10</option>
               <option value="macos" ${curStyle === 'macos' ? 'selected' : ''}>macOS</option>
-              <option value="vertical-classic" ${curStyle === 'vertical-classic' ? 'selected' : ''}>Vertical Classic</option>
-              <option value="horizontal-classic" ${curStyle === 'horizontal-classic' ? 'selected' : ''}>Horizontal Classic</option>
             </select>
           </div>
           <div class="subrow-field">
@@ -1059,7 +1056,7 @@ function initSettingsPage() {
           startIcon: startIconSelect ? startIconSelect.value : (w.startIcon || 'chromeos'),
           startText: startTextInput ? startTextInput.value : (w.startText || 'Start'),
           showStartText: showStartTextInput ? showStartTextInput.checked : !!w.showStartText,
-          batteryIconStyle: batteryIconSelect ? batteryIconSelect.value : (w.batteryIconStyle || 'hyperos'),
+          batteryIconStyle: batteryIconSelect ? batteryIconSelect.value : (w.batteryIconStyle || 'win11'),
           batteryPercentMode: batteryPercentSelect ? batteryPercentSelect.value : (w.batteryPercentMode || 'outside-right'),
           displayMode: displayModeSelect ? displayModeSelect.value : (w.displayMode || (w.supportedModes && w.supportedModes[0] ? w.supportedModes[0] : 'widget')),
           aspectRatio: w.aspectRatio || '1:1'
