@@ -12,7 +12,7 @@
         ResizeMode="NoResize"
         ShowInTaskbar="False"
         ShowActivated="False"
-        Topmost="True"
+        Topmost="False"
         IsHitTestVisible="False"
         Focusable="False"
         SnapsToDevicePixels="True"

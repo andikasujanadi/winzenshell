@@ -35,7 +35,6 @@ public partial class TaskbarWebWindow : Window
     private WindowSelectorFlyoutWindow? _windowSelectorFlyout;
     private NetworkFlyoutWindow? _networkFlyout;
     private readonly NetworkService _networkService;
-    private TaskbarBackdropWindow? _backdropWindow;
     private FileSystemWatcher? _triggerWatcher;
     private Forms.ContextMenuStrip? _activeNativeMenu;
     private IntPtr _hwnd = IntPtr.Zero;
@@ -54,7 +53,6 @@ public partial class TaskbarWebWindow : Window
     {
         InitializeComponent();
         TaskbarWebView.DefaultBackgroundColor = System.Drawing.Color.FromArgb(255, 28, 28, 28);
-        _backdropWindow = new TaskbarBackdropWindow();
         _shellState = shellState;
         _metricsService = metricsService;
         _brightnessService = brightnessService;
@@ -98,7 +96,6 @@ public partial class TaskbarWebWindow : Window
         {
             _metricsTimer.Stop();
             _fullscreenTimer.Stop();
-            try { _backdropWindow?.Close(); } catch { }
         };
     }
 
@@ -115,11 +112,6 @@ public partial class TaskbarWebWindow : Window
 
         var source = HwndSource.FromHwnd(_hwnd);
         source?.AddHook(WndProc);
-
-        if (_backdropWindow != null && !_backdropWindow.IsVisible)
-        {
-            _backdropWindow.Show();
-        }
 
         _shellState.SyncTaskbarAndWorkArea();
 
@@ -195,6 +187,28 @@ public partial class TaskbarWebWindow : Window
                 try { File.Delete(triggerPath); } catch { }
             }
             if (string.IsNullOrWhiteSpace(cmd)) return;
+
+            if (cmd.StartsWith("dump_debug", StringComparison.OrdinalIgnoreCase))
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    string info = $"TaskbarWeb: Vis={Visibility}, Left={Left}, Top={Top}, W={Width}, H={Height}, ActW={ActualWidth}, ActH={ActualHeight}\n" +
+                                  $"TaskbarWebView: Vis={TaskbarWebView?.Visibility}, W={TaskbarWebView?.Width}, H={TaskbarWebView?.Height}, ActW={TaskbarWebView?.ActualWidth}, ActH={TaskbarWebView?.ActualHeight}, Hwnd={TaskbarWebView?.Handle}\n";
+                    File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "taskbar_debug.txt"), info);
+                });
+                return;
+            }
+
+            if (cmd.StartsWith("test_fullscreen_toggle", StringComparison.OrdinalIgnoreCase))
+            {
+                Dispatcher.InvokeAsync(async () =>
+                {
+                    SetFullscreenState(true);
+                    await System.Threading.Tasks.Task.Delay(600);
+                    SetFullscreenState(false);
+                });
+                return;
+            }
 
             if (cmd.StartsWith("capture_taskbar", StringComparison.OrdinalIgnoreCase))
             {
@@ -476,6 +490,28 @@ public partial class TaskbarWebWindow : Window
                             bMode);
                         BroadcastMetrics();
                     }
+                    else if (cmd.StartsWith("capture_screen_bar", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var parts = cmd.Split(' ');
+                        string outPath = parts.Length > 1 ? parts[1] : Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "screen_bar_capture.png");
+                        if (Win32Api.GetWindowRect(_hwnd, out var wr))
+                        {
+                            int cx = Math.Max(0, wr.Left - 4);
+                            int cy = Math.Max(0, wr.Top - 4);
+                            int cw = wr.Width + 8;
+                            int ch = wr.Height + 8;
+                            using var bmp = new Bitmap(cw, ch, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+                            using (var g = Graphics.FromImage(bmp))
+                            {
+                                IntPtr destHdc = g.GetHdc();
+                                IntPtr screenHdc = Win32Api.GetDC(IntPtr.Zero);
+                                Win32Api.BitBlt(destHdc, 0, 0, cw, ch, screenHdc, cx, cy, Win32Api.SRCCOPY);
+                                Win32Api.ReleaseDC(IntPtr.Zero, screenHdc);
+                                g.ReleaseHdc(destHdc);
+                            }
+                            bmp.Save(outPath, System.Drawing.Imaging.ImageFormat.Png);
+                        }
+                    }
                     else if (cmd.StartsWith("capture_screen_corner", StringComparison.OrdinalIgnoreCase))
                     {
                         var parts = cmd.Split(' ');
@@ -606,16 +642,6 @@ public partial class TaskbarWebWindow : Window
         int borderColor = unchecked((int)0xFFFFFFFE); // DWMWA_COLOR_NONE
         Win32Api.DwmSetWindowAttribute(_hwnd, 34, ref borderColor, sizeof(int));
 
-        if (_backdropWindow != null)
-        {
-            if (IsVisible && !_backdropWindow.IsVisible)
-            {
-                _backdropWindow.Show();
-            }
-            _backdropWindow.SyncPositionBehind(_hwnd, Left, Top, Width, Height);
-            _backdropWindow.UpdateBackdropAppearance(isLight, margin > 0, isTop, radius);
-        }
-
         if (margin > 0 && radius > 0 && Win32Api.GetWindowRect(_hwnd, out var winRect))
         {
             int w = winRect.Width;
@@ -624,19 +650,16 @@ public partial class TaskbarWebWindow : Window
             if (dpiScale <= 0) dpiScale = 1.0;
             int radiusPhysical = (int)Math.Round(radius * dpiScale);
             int effRadius = Math.Min(Math.Max(0, radiusPhysical), Math.Min(w, h) / 2);
+            int diameter = effRadius * 2;
 
-            int inset = Math.Min(3, Math.Max(1, effRadius / 2));
-            int innerRadius = Math.Max(0, effRadius - inset);
-            int diameter = innerRadius * 2;
-
-            IntPtr hRgn = Win32Api.CreateRoundRectRgn(inset, inset, w - inset, h - inset, diameter, diameter);
+            IntPtr hRgn = Win32Api.CreateRoundRectRgn(0, 0, w + 1, h + 1, diameter, diameter);
             if (Win32Api.SetWindowRgn(_hwnd, hRgn, true) == 0)
             {
                 Win32Api.DeleteObject(hRgn);
             }
             if (TaskbarWebView.Handle != IntPtr.Zero)
             {
-                IntPtr childRgn = Win32Api.CreateRoundRectRgn(inset, inset, w - inset, h - inset, diameter, diameter);
+                IntPtr childRgn = Win32Api.CreateRoundRectRgn(0, 0, w + 1, h + 1, diameter, diameter);
                 if (Win32Api.SetWindowRgn(TaskbarWebView.Handle, childRgn, true) == 0)
                 {
                     Win32Api.DeleteObject(childRgn);
@@ -659,14 +682,17 @@ public partial class TaskbarWebWindow : Window
         {
             if (visible)
             {
-                _backdropWindow?.Show();
                 Show();
+                if (_hwnd != IntPtr.Zero)
+                {
+                    Win32Api.SetWindowPos(_hwnd, Win32Api.HWND_TOPMOST, 0, 0, 0, 0,
+                        Win32Api.SWP_NOMOVE | Win32Api.SWP_NOSIZE | Win32Api.SWP_NOACTIVATE | Win32Api.SWP_SHOWWINDOW);
+                }
                 _shellState.SyncTaskbarAndWorkArea();
             }
             else
             {
                 Hide();
-                _backdropWindow?.Hide();
             }
         });
     }
@@ -1789,15 +1815,35 @@ public partial class TaskbarWebWindow : Window
                 _brightnessFlyout?.Hide();
                 _controlCenterFlyout?.Hide();
                 Visibility = Visibility.Hidden;
-                if (_backdropWindow != null) _backdropWindow.Visibility = Visibility.Hidden;
             }
             else
             {
                 if (_shellState.Settings.EnableWinZenTaskbar)
                 {
-                    if (_backdropWindow != null) _backdropWindow.Visibility = Visibility.Visible;
                     Visibility = Visibility.Visible;
+                    if (_hwnd != IntPtr.Zero)
+                    {
+                        Win32Api.SetWindowPos(_hwnd, Win32Api.HWND_TOPMOST, 0, 0, 0, 0,
+                            Win32Api.SWP_NOMOVE | Win32Api.SWP_NOSIZE | Win32Api.SWP_NOACTIVATE | Win32Api.SWP_SHOWWINDOW);
+                    }
+
                     _shellState.SyncTaskbarAndWorkArea();
+                    ApplyTaskbarCornerRegion();
+
+                    if (TaskbarWebView != null)
+                    {
+                        if (TaskbarWebView.Handle != IntPtr.Zero)
+                        {
+                            Win32Api.ShowWindow(TaskbarWebView.Handle, Win32Api.SW_SHOW);
+                            Win32Api.InvalidateRect(TaskbarWebView.Handle, IntPtr.Zero, true);
+                        }
+                        TaskbarWebView.InvalidateVisual();
+                    }
+
+                    if (_webViewReady && TaskbarWebView?.CoreWebView2 != null)
+                    {
+                        _shellState.BroadcastState();
+                    }
                 }
             }
         });

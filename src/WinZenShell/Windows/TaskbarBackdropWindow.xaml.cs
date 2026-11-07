@@ -65,14 +65,14 @@ public partial class TaskbarBackdropWindow : Window
 
     public void SyncPositionBehind(IntPtr taskbarHwnd, double dipLeft, double dipTop, double dipWidth, double dipHeight)
     {
-        Left = dipLeft;
-        Top = dipTop;
-        Width = dipWidth;
-        Height = dipHeight;
-        UpdateLayout();
+        if (Math.Abs(Left - dipLeft) > 0.5) Left = dipLeft;
+        if (Math.Abs(Top - dipTop) > 0.5) Top = dipTop;
+        if (Math.Abs(Width - dipWidth) > 0.5) Width = dipWidth;
+        if (Math.Abs(Height - dipHeight) > 0.5) Height = dipHeight;
 
         if (_hwnd != IntPtr.Zero && taskbarHwnd != IntPtr.Zero && Win32Api.GetWindowRect(taskbarHwnd, out var rc))
         {
+            // Position backdrop window directly behind taskbarHwnd
             Win32Api.SetWindowPos(
                 _hwnd,
                 taskbarHwnd,
@@ -81,6 +81,20 @@ public partial class TaskbarBackdropWindow : Window
                 rc.Width,
                 rc.Height,
                 Win32Api.SWP_NOACTIVATE);
+
+            // Re-assert taskbarHwnd as topmost
+            Win32Api.SetWindowPos(
+                taskbarHwnd,
+                Win32Api.HWND_TOPMOST,
+                0, 0, 0, 0,
+                Win32Api.SWP_NOMOVE | Win32Api.SWP_NOSIZE | Win32Api.SWP_NOACTIVATE);
+
+            // Guarantee _hwnd stays behind taskbarHwnd
+            Win32Api.SetWindowPos(
+                _hwnd,
+                taskbarHwnd,
+                0, 0, 0, 0,
+                Win32Api.SWP_NOMOVE | Win32Api.SWP_NOSIZE | Win32Api.SWP_NOACTIVATE);
         }
     }
 
