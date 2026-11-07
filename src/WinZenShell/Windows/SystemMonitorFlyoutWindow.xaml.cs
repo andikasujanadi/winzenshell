@@ -25,6 +25,18 @@ public partial class SystemMonitorFlyoutWindow : Window
         Loaded += (_, _) => UpdateTelemetry();
     }
 
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+        IntPtr hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+        int ncrp = 1; // DWMNCRP_DISABLED
+        Win32Api.DwmSetWindowAttribute(hwnd, 2, ref ncrp, sizeof(int));
+        int borderColor = unchecked((int)0xFFFFFFFE); // DWMWA_COLOR_NONE
+        Win32Api.DwmSetWindowAttribute(hwnd, 34, ref borderColor, sizeof(int));
+        int cornerPref = 1; // DWMWCP_DONOTROUND
+        Win32Api.DwmSetWindowAttribute(hwnd, 33, ref cornerPref, sizeof(int));
+    }
+
     public void UpdateTelemetry(SystemMetricsSnapshot? snapshot = null)
     {
         snapshot ??= _metricsService.GetSnapshot(IntPtr.Zero, IntPtr.Zero);
@@ -103,6 +115,11 @@ public partial class SystemMonitorFlyoutWindow : Window
         bool isLight = string.Equals(theme, "light", StringComparison.OrdinalIgnoreCase);
         if (isLight)
         {
+            Resources["TaskMgrBtnBg"] = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xFF, 0xFF, 0xFF));
+            Resources["TaskMgrBtnBorder"] = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(0x28, 0, 0, 0));
+            Resources["TaskMgrBtnFg"] = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x1B, 0x1B, 0x1B));
+            Resources["TaskMgrBtnHover"] = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xF0, 0xF0, 0xF0));
+
             OuterBorder.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xF3, 0xF3, 0xF3));
             OuterBorder.BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(0x28, 0x00, 0x00, 0x00));
             CpuCard.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xFF, 0xFF, 0xFF));
@@ -117,6 +134,11 @@ public partial class SystemMonitorFlyoutWindow : Window
         }
         else
         {
+            Resources["TaskMgrBtnBg"] = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x26, 0x26, 0x26));
+            Resources["TaskMgrBtnBorder"] = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x38, 0x38, 0x38));
+            Resources["TaskMgrBtnFg"] = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xFF, 0xFF, 0xFF));
+            Resources["TaskMgrBtnHover"] = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x33, 0x33, 0x33));
+
             OuterBorder.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x1E, 0x1E, 0x1E));
             OuterBorder.BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x3E, 0x3E, 0x3E));
             CpuCard.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x25, 0x25, 0x25));

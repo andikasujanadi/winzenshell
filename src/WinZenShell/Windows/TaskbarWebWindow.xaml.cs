@@ -585,6 +585,7 @@ public partial class TaskbarWebWindow : Window
         OuterBorder.Background = isLight
             ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xF3, 0xF3, 0xF3))
             : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x1C, 0x1C, 0x1C));
+        Background = OuterBorder.Background;
 
         TaskbarWebView.DefaultBackgroundColor = isLight
             ? System.Drawing.Color.FromArgb(255, 0xF3, 0xF3, 0xF3)
@@ -1807,8 +1808,11 @@ public partial class TaskbarWebWindow : Window
         IntPtr fgWnd = Win32Api.GetForegroundWindow();
         if (fgWnd == IntPtr.Zero) return false;
 
-        // Ignore our own taskbar and flyouts
+        // Ignore our own taskbar, settings window, and all internal shell flyouts
         if (fgWnd == _hwnd) return _isFullscreenActive;
+        Win32Api.GetWindowThreadProcessId(fgWnd, out uint fgPid);
+        if (fgPid == Environment.ProcessId) return _isFullscreenActive;
+
         if (_controlCenterFlyout != null && _controlCenterFlyout.IsVisible)
         {
             try

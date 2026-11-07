@@ -332,6 +332,8 @@ function initSettingsPage() {
       selectDockEdge.value = s.dockEdge || 'Bottom';
       if (selectTheme) {
         selectTheme.value = s.theme || 'dark';
+        document.documentElement.setAttribute('data-theme', selectTheme.value);
+        document.body.className = selectTheme.value === 'light' ? 'theme-light' : 'theme-dark';
       }
       inputTaskbarHeight.value = s.taskbarHeightPx || 48;
       labelHeightVal.textContent = `${s.taskbarHeightPx || 48}px`;

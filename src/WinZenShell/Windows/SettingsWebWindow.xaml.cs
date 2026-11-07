@@ -51,9 +51,7 @@ public partial class SettingsWebWindow : Window
         base.OnSourceInitialized(e);
         _hwnd = new WindowInteropHelper(this).Handle;
 
-        // Enable Windows 11 Immersive Dark Mode titlebar
-        int dark = 1;
-        Win32Api.DwmSetWindowAttribute(_hwnd, Win32Api.DWMWA_USE_IMMERSIVE_DARK_MODE, ref dark, sizeof(int));
+        ApplyTheme(_shellState.Settings.Theme);
 
         // Register Emergency Hotkey: Ctrl + Shift + Alt + Z to restore native taskbar from anywhere
         Win32Api.RegisterHotKey(
@@ -64,6 +62,32 @@ public partial class SettingsWebWindow : Window
 
         var source = HwndSource.FromHwnd(_hwnd);
         source?.AddHook(WndProc);
+    }
+
+    public void ApplyTheme(string? theme)
+    {
+        bool isLight = string.Equals(theme, "light", StringComparison.OrdinalIgnoreCase);
+        if (_hwnd != IntPtr.Zero)
+        {
+            int dark = isLight ? 0 : 1;
+            Win32Api.DwmSetWindowAttribute(_hwnd, Win32Api.DWMWA_USE_IMMERSIVE_DARK_MODE, ref dark, sizeof(int));
+        }
+
+        var bg = isLight
+            ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xF3, 0xF3, 0xF3))
+            : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x20, 0x20, 0x20));
+        Background = bg;
+        if (Content is System.Windows.Controls.Grid grid)
+        {
+            grid.Background = bg;
+        }
+
+        if (SettingsWebView != null)
+        {
+            SettingsWebView.DefaultBackgroundColor = isLight
+                ? System.Drawing.Color.FromArgb(243, 243, 243)
+                : System.Drawing.Color.FromArgb(32, 32, 32);
+        }
     }
 
     private void OnWindowClosed(object? sender, EventArgs e)
@@ -99,6 +123,7 @@ public partial class SettingsWebWindow : Window
             core.NavigationCompleted += (_, _) =>
             {
                 _webViewReady = true;
+                ApplyTheme(_shellState.Settings.Theme);
                 PushStateToWeb(_shellState.BuildPayload());
             };
 
@@ -116,7 +141,11 @@ public partial class SettingsWebWindow : Window
 
     private void OnShellStateChanged(ShellFullStatePayload payload)
     {
-        Dispatcher.Invoke(() => PushStateToWeb(payload));
+        Dispatcher.Invoke(() =>
+        {
+            ApplyTheme(payload.Settings.Theme);
+            PushStateToWeb(payload);
+        });
     }
 
     private void PushStateToWeb(ShellFullStatePayload payload)

@@ -14,6 +14,10 @@
 
     <Window.Resources>
         <SolidColorBrush x:Key="AccentBrush" Color="#3684E3"/>
+        <SolidColorBrush x:Key="TaskMgrBtnBg" Color="#262626"/>
+        <SolidColorBrush x:Key="TaskMgrBtnBorder" Color="#383838"/>
+        <SolidColorBrush x:Key="TaskMgrBtnFg" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="TaskMgrBtnHover" Color="#333333"/>
     </Window.Resources>
 
     <!-- 100% Solid Opaque Universal Fluent Surface -->
@@ -125,10 +129,10 @@
             <Button Grid.Row="4"
                     x:Name="BtnOpenTaskMgr"
                     Height="32"
-                    Background="#262626"
-                    BorderBrush="#383838"
+                    Background="{DynamicResource TaskMgrBtnBg}"
+                    BorderBrush="{DynamicResource TaskMgrBtnBorder}"
                     BorderThickness="1"
-                    Foreground="#FFFFFF"
+                    Foreground="{DynamicResource TaskMgrBtnFg}"
                     FontSize="12"
                     FontWeight="Medium"
                     Cursor="Hand"
@@ -139,13 +143,12 @@
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
                                 <Path Data="M1 3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V3zm1 0v10h12V3H2zm2 7.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 .4.2l1.6 2.133 2.4-5.6a.5.5 0 0 1 .92 0l1.6 3.733H13a.5.5 0 0 1 0 1h-1.5a.5.5 0 0 1-.46-.31L9.6 7.467 7.2 13.067a.5.5 0 0 1-.92 0L4.8 11H3.5a.5.5 0 0 1-.5-.5z"
                                       Fill="{DynamicResource AccentBrush}" Width="13" Height="13" Stretch="Uniform" Margin="0,0,7,0"/>
-                                <TextBlock Text="Open Task Manager" VerticalAlignment="Center"/>
+                                <TextBlock Text="Open Task Manager" Foreground="{TemplateBinding Foreground}" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="BtnBorder" Property="Background" Value="#333333"/>
-                                <Setter TargetName="BtnBorder" Property="BorderBrush" Value="#4C4C4C"/>
+                                <Setter TargetName="BtnBorder" Property="Background" Value="{DynamicResource TaskMgrBtnHover}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>

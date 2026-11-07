@@ -28,6 +28,13 @@ public partial class TaskbarBackdropWindow : Window
         exStyle |= Win32Api.WS_EX_TOOLWINDOW | Win32Api.WS_EX_TOPMOST | Win32Api.WS_EX_TRANSPARENT | Win32Api.WS_EX_NOACTIVATE;
         exStyle &= ~Win32Api.WS_EX_APPWINDOW;
         Win32Api.SetWindowLong(_hwnd, Win32Api.GWL_EXSTYLE, exStyle);
+
+        int ncrp = 1; // DWMNCRP_DISABLED
+        Win32Api.DwmSetWindowAttribute(_hwnd, 2, ref ncrp, sizeof(int));
+        int borderColor = unchecked((int)0xFFFFFFFE); // DWMWA_COLOR_NONE
+        Win32Api.DwmSetWindowAttribute(_hwnd, 34, ref borderColor, sizeof(int));
+        int cornerPref = 1; // DWMWCP_DONOTROUND
+        Win32Api.DwmSetWindowAttribute(_hwnd, 33, ref cornerPref, sizeof(int));
     }
 
     public void UpdateBackdropAppearance(bool isLight, bool isFloating, bool isTop, int radiusPx)

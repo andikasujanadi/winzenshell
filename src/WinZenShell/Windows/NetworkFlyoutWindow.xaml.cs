@@ -80,6 +80,18 @@ public partial class NetworkFlyoutWindow : Window
         };
     }
 
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+        IntPtr hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+        int ncrp = 1; // DWMNCRP_DISABLED
+        Win32Api.DwmSetWindowAttribute(hwnd, 2, ref ncrp, sizeof(int));
+        int borderColor = unchecked((int)0xFFFFFFFE); // DWMWA_COLOR_NONE
+        Win32Api.DwmSetWindowAttribute(hwnd, 34, ref borderColor, sizeof(int));
+        int cornerPref = 1; // DWMWCP_DONOTROUND
+        Win32Api.DwmSetWindowAttribute(hwnd, 33, ref cornerPref, sizeof(int));
+    }
+
     public void OnNetworkChanged()
     {
         Dispatcher.InvokeAsync(async () =>
@@ -349,9 +361,13 @@ public partial class NetworkFlyoutWindow : Window
                 var btnConnect = new WpfButton
                 {
                     Content = "Connect",
-                    Background = new SolidColorBrush(MediaColor.FromArgb(0x18, 0xFF, 0xFF, 0xFF)),
+                    Background = isLight
+                        ? new SolidColorBrush(MediaColor.FromRgb(0xFF, 0xFF, 0xFF))
+                        : new SolidColorBrush(MediaColor.FromArgb(0x18, 0xFF, 0xFF, 0xFF)),
                     Foreground = primaryText,
-                    BorderBrush = cardBorder,
+                    BorderBrush = isLight
+                        ? new SolidColorBrush(MediaColor.FromArgb(0x28, 0, 0, 0))
+                        : cardBorder,
                     BorderThickness = new Thickness(1),
                     Padding = new Thickness(8, 3, 8, 3),
                     FontSize = 11,
@@ -532,6 +548,11 @@ public partial class NetworkFlyoutWindow : Window
         {
             Resources["ScrollBarThumbBrush"] = new SolidColorBrush(MediaColor.FromArgb(0x35, 0, 0, 0));
             Resources["ScrollBarThumbHoverBrush"] = new SolidColorBrush(MediaColor.FromArgb(0x60, 0, 0, 0));
+            Resources["ToolBtnBg"] = new SolidColorBrush(MediaColor.FromRgb(0xFF, 0xFF, 0xFF));
+            Resources["ToolBtnBorder"] = new SolidColorBrush(MediaColor.FromArgb(0x28, 0, 0, 0));
+            Resources["ToolBtnFg"] = new SolidColorBrush(MediaColor.FromRgb(0x1B, 0x1B, 0x1B));
+            Resources["ToolBtnHover"] = new SolidColorBrush(MediaColor.FromRgb(0xF0, 0xF0, 0xF0));
+
             OuterBorder.Background = new SolidColorBrush(MediaColor.FromRgb(0xF3, 0xF3, 0xF3));
             OuterBorder.BorderBrush = new SolidColorBrush(MediaColor.FromArgb(0x28, 0, 0, 0));
             TxtHeaderTitle.Foreground = new SolidColorBrush(MediaColor.FromRgb(0x1B, 0x1B, 0x1B));
@@ -540,11 +561,17 @@ public partial class NetworkFlyoutWindow : Window
             TxtStatusName.Foreground = new SolidColorBrush(MediaColor.FromRgb(0x1B, 0x1B, 0x1B));
             TxtStatusDetail.Foreground = new SolidColorBrush(MediaColor.FromRgb(0x66, 0x66, 0x66));
             TxtAvailableHeader.Foreground = new SolidColorBrush(MediaColor.FromRgb(0x44, 0x44, 0x44));
+            if (BtnWindowsNetworksPrompt != null) BtnWindowsNetworksPrompt.Foreground = new SolidColorBrush(MediaColor.FromRgb(0x66, 0x66, 0x66));
         }
         else
         {
             Resources["ScrollBarThumbBrush"] = new SolidColorBrush(MediaColor.FromArgb(0x4A, 0xFF, 0xFF, 0xFF));
             Resources["ScrollBarThumbHoverBrush"] = new SolidColorBrush(MediaColor.FromArgb(0x7A, 0xFF, 0xFF, 0xFF));
+            Resources["ToolBtnBg"] = new SolidColorBrush(MediaColor.FromRgb(0x26, 0x26, 0x26));
+            Resources["ToolBtnBorder"] = new SolidColorBrush(MediaColor.FromRgb(0x38, 0x38, 0x38));
+            Resources["ToolBtnFg"] = new SolidColorBrush(MediaColor.FromRgb(0xCC, 0xCC, 0xCC));
+            Resources["ToolBtnHover"] = new SolidColorBrush(MediaColor.FromRgb(0x33, 0x33, 0x33));
+
             OuterBorder.Background = new SolidColorBrush(MediaColor.FromRgb(0x1E, 0x1E, 0x1E));
             OuterBorder.BorderBrush = new SolidColorBrush(MediaColor.FromRgb(0x3E, 0x3E, 0x3E));
             TxtHeaderTitle.Foreground = new SolidColorBrush(MediaColor.FromRgb(0xFF, 0xFF, 0xFF));
@@ -553,6 +580,7 @@ public partial class NetworkFlyoutWindow : Window
             TxtStatusName.Foreground = new SolidColorBrush(MediaColor.FromRgb(0xFF, 0xFF, 0xFF));
             TxtStatusDetail.Foreground = new SolidColorBrush(MediaColor.FromRgb(0xA0, 0xA0, 0xA0));
             TxtAvailableHeader.Foreground = new SolidColorBrush(MediaColor.FromRgb(0xCC, 0xCC, 0xCC));
+            if (BtnWindowsNetworksPrompt != null) BtnWindowsNetworksPrompt.Foreground = new SolidColorBrush(MediaColor.FromRgb(0x88, 0x88, 0x88));
         }
 
         if (HeaderIconPath != null) HeaderIconPath.Fill = _accentBrush;

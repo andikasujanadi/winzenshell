@@ -14,6 +14,7 @@ public partial class AppLauncherFlyoutWindow : Window
     private readonly Action _openSettingsCallback;
     private readonly ShellStateService? _shellState;
     private bool _webViewReady;
+    private IntPtr _hwnd = IntPtr.Zero;
     public DateTime LastDeactivatedTime { get; private set; } = DateTime.MinValue;
 
     public AppLauncherFlyoutWindow(
@@ -37,6 +38,48 @@ public partial class AppLauncherFlyoutWindow : Window
         if (_shellState != null)
         {
             _shellState.StateChanged += payload => Dispatcher.Invoke(() => ApplyTheme(payload.Settings.Theme, payload.Settings.AccentColor));
+        }
+    }
+
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+        _hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+        int ncrp = 1; // DWMNCRP_DISABLED
+        Win32Api.DwmSetWindowAttribute(_hwnd, 2, ref ncrp, sizeof(int));
+        int borderColor = unchecked((int)0xFFFFFFFE); // DWMWA_COLOR_NONE
+        Win32Api.DwmSetWindowAttribute(_hwnd, 34, ref borderColor, sizeof(int));
+        int cornerPref = 1; // DWMWCP_DONOTROUND
+        Win32Api.DwmSetWindowAttribute(_hwnd, 33, ref cornerPref, sizeof(int));
+
+        ApplyCornerClipping();
+    }
+
+    public void ApplyCornerClipping()
+    {
+        if (_hwnd == IntPtr.Zero) return;
+        if (Win32Api.GetWindowRect(_hwnd, out var winRect))
+        {
+            int w = winRect.Width;
+            int h = winRect.Height;
+            double dpiScale = System.Windows.Media.VisualTreeHelper.GetDpi(this).DpiScaleX;
+            if (dpiScale <= 0) dpiScale = 1.0;
+            int radiusPhysical = (int)Math.Round(16 * dpiScale);
+            int diameter = radiusPhysical * 2;
+
+            IntPtr hRgn = Win32Api.CreateRoundRectRgn(0, 0, w, h, diameter, diameter);
+            if (Win32Api.SetWindowRgn(_hwnd, hRgn, true) == 0)
+            {
+                Win32Api.DeleteObject(hRgn);
+            }
+            if (LauncherWebView != null && LauncherWebView.Handle != IntPtr.Zero)
+            {
+                IntPtr childRgn = Win32Api.CreateRoundRectRgn(0, 0, w, h, diameter, diameter);
+                if (Win32Api.SetWindowRgn(LauncherWebView.Handle, childRgn, true) == 0)
+                {
+                    Win32Api.DeleteObject(childRgn);
+                }
+            }
         }
     }
 
@@ -89,6 +132,7 @@ public partial class AppLauncherFlyoutWindow : Window
             core.NavigationCompleted += (_, _) =>
             {
                 _webViewReady = true;
+                ApplyCornerClipping();
                 ApplyTheme(_shellState?.Settings.Theme, _shellState?.Settings.AccentColor);
                 PushAppsData();
             };
@@ -240,6 +284,7 @@ public partial class AppLauncherFlyoutWindow : Window
         Left = left;
         Top = top;
 
+        ApplyCornerClipping();
         ApplyTheme(_shellState?.Settings.Theme, _shellState?.Settings.AccentColor);
         Show();
         Activate();

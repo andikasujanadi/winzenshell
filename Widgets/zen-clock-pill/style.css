@@ -75,14 +75,14 @@
   font-weight: 600;
   line-height: 1.1;
   letter-spacing: 0.2px;
-  color: #ffffff;
+  color: var(--winzen-text, #ffffff);
 }
 
 .in-control-center.cc-aspect-1-1 .date,
 .in-control-center[data-aspect-ratio="1:1"] .date {
   font-size: 11.5px;
   font-weight: 400;
-  color: #9ca3af;
+  color: var(--winzen-text-secondary, #9ca3af);
   letter-spacing: 0.2px;
 }
 
@@ -102,11 +102,11 @@
 .in-control-center[data-aspect-ratio="1:2"] .time {
   font-size: 16px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--winzen-text, #ffffff);
 }
 
 .in-control-center.cc-aspect-1-2 .date,
 .in-control-center[data-aspect-ratio="1:2"] .date {
   font-size: 11.5px;
-  color: #9ca3af;
+  color: var(--winzen-text-secondary, #9ca3af);
 }

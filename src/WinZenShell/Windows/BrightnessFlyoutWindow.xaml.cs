@@ -25,6 +25,18 @@ public partial class BrightnessFlyoutWindow : Window
         BrightnessSlider.ValueChanged += OnSliderValueChanged;
     }
 
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+        IntPtr hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+        int ncrp = 1; // DWMNCRP_DISABLED
+        Native.Win32Api.DwmSetWindowAttribute(hwnd, 2, ref ncrp, sizeof(int));
+        int borderColor = unchecked((int)0xFFFFFFFE); // DWMWA_COLOR_NONE
+        Native.Win32Api.DwmSetWindowAttribute(hwnd, 34, ref borderColor, sizeof(int));
+        int cornerPref = 1; // DWMWCP_DONOTROUND
+        Native.Win32Api.DwmSetWindowAttribute(hwnd, 33, ref cornerPref, sizeof(int));
+    }
+
     public void ShowAt(double anchorScreenX, double anchorWidth, double taskbarTop, double taskbarHeight, string dockEdge, string? theme = null, string? accent = null)
     {
         ApplyTheme(theme);
@@ -98,7 +110,10 @@ public partial class BrightnessFlyoutWindow : Window
         try
         {
             var color = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(hex);
-            Resources["AccentBrush"] = new System.Windows.Media.SolidColorBrush(color);
+            var brush = new System.Windows.Media.SolidColorBrush(color);
+            Resources["AccentBrush"] = brush;
+            Resources["SliderTrackFill"] = brush;
+            if (BrightnessIconPath != null) BrightnessIconPath.Fill = brush;
         }
         catch { }
     }
