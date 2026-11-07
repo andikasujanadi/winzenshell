@@ -77,6 +77,7 @@ public class SystemMetricsService
     private readonly Dictionary<string, string> _exeIconCache = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, string> _appExePathMap = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, string> _appIconMap = new(StringComparer.OrdinalIgnoreCase);
+    private IntPtr _lastForegroundAppHwnd = IntPtr.Zero;
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
     private class MEMORYSTATUSEX
@@ -426,6 +427,30 @@ public class SystemMetricsService
         IntPtr shellWnd = Win32Api.GetShellWindow();
         IntPtr foregroundWnd = Win32Api.GetForegroundWindow();
 
+        uint fgPid = 0;
+        if (foregroundWnd != IntPtr.Zero)
+        {
+            Win32Api.GetWindowThreadProcessId(foregroundWnd, out fgPid);
+        }
+
+        if (foregroundWnd != IntPtr.Zero &&
+            foregroundWnd != shellWnd &&
+            foregroundWnd != ignoreTaskbarHwnd &&
+            fgPid != (uint)Environment.ProcessId &&
+            !Win32Api.IsIconic(foregroundWnd))
+        {
+            _lastForegroundAppHwnd = foregroundWnd;
+        }
+        else if (_lastForegroundAppHwnd != IntPtr.Zero &&
+                 (!Win32Api.IsWindowVisible(_lastForegroundAppHwnd) || Win32Api.IsIconic(_lastForegroundAppHwnd)))
+        {
+            _lastForegroundAppHwnd = IntPtr.Zero;
+        }
+
+        IntPtr effectiveForeground = (fgPid == (uint)Environment.ProcessId)
+            ? _lastForegroundAppHwnd
+            : foregroundWnd;
+
         Win32Api.EnumWindows((hWnd, _) =>
         {
             if (hWnd == shellWnd || hWnd == ignoreTaskbarHwnd)
@@ -544,14 +569,16 @@ public class SystemMetricsService
 
             string friendlyName = GetFriendlyAppName(procName, title);
 
+            bool isMin = Win32Api.IsIconic(hWnd);
+
             discovered.Add(new RunningWindowItem
             {
                 Hwnd = hwndKey,
                 Title = title.Length > 28 ? title[..28] + "…" : title,
                 ProcessName = friendlyName,
                 AppId = appId,
-                IsMinimized = Win32Api.IsIconic(hWnd),
-                IsActive = hWnd == foregroundWnd,
+                IsMinimized = isMin,
+                IsActive = !isMin && (hWnd == effectiveForeground),
                 IconDataUrl = iconDataUrl,
                 OrderIndex = orderIdx,
                 ExePath = exePath ?? ""
@@ -603,16 +630,6 @@ public class SystemMetricsService
                     out hIcon);
             }
 
-            if (hIcon == IntPtr.Zero)
-            {
-                hIcon = Win32Api.GetClassLongPtr(hWnd, Win32Api.GCLP_HICON);
-            }
-
-            if (hIcon == IntPtr.Zero)
-            {
-                hIcon = Win32Api.GetClassLongPtr(hWnd, Win32Api.GCLP_HICONSM);
-            }
-
             if (hIcon != IntPtr.Zero)
             {
                 using var ico = Icon.FromHandle(hIcon);
@@ -624,7 +641,7 @@ public class SystemMetricsService
                 }
             }
 
-            // 2. Fallback: Extract associated icon from process executable path
+            // 2. Extract associated icon from process executable path (gives real yellow folder icon for explorer.exe, etc.)
             if (pid > 0)
             {
                 string? exePath = TryGetProcessExePath(pid);
@@ -648,6 +665,24 @@ public class SystemMetricsService
                             return dataUrl;
                         }
                     }
+                }
+            }
+
+            // 3. Fallback to window class icon
+            hIcon = Win32Api.GetClassLongPtr(hWnd, Win32Api.GCLP_HICON);
+            if (hIcon == IntPtr.Zero)
+            {
+                hIcon = Win32Api.GetClassLongPtr(hWnd, Win32Api.GCLP_HICONSM);
+            }
+
+            if (hIcon != IntPtr.Zero)
+            {
+                using var ico = Icon.FromHandle(hIcon);
+                string dataUrl = IconToPngDataUrl(ico);
+                if (!string.IsNullOrEmpty(dataUrl))
+                {
+                    _hwndIconCache[key] = dataUrl;
+                    return dataUrl;
                 }
             }
         }
@@ -697,7 +732,7 @@ public class SystemMetricsService
         }
     }
 
-    public void ActivateOrToggleWindow(long hwndVal)
+    public void ActivateOrToggleWindow(long hwndVal, bool? wasActiveHint = null)
     {
         IntPtr hWnd = new IntPtr(hwndVal);
         if (hWnd == IntPtr.Zero) return;
@@ -706,15 +741,46 @@ public class SystemMetricsService
         {
             Win32Api.ShowWindow(hWnd, Win32Api.SW_RESTORE);
             Win32Api.SetForegroundWindow(hWnd);
+            _lastForegroundAppHwnd = hWnd;
         }
-        else if (Win32Api.GetForegroundWindow() == hWnd)
+        else if (wasActiveHint == true || Win32Api.GetForegroundWindow() == hWnd || _lastForegroundAppHwnd == hWnd)
         {
             Win32Api.ShowWindow(hWnd, Win32Api.SW_MINIMIZE);
+            if (_lastForegroundAppHwnd == hWnd)
+                _lastForegroundAppHwnd = IntPtr.Zero;
         }
         else
         {
+            Win32Api.ShowWindow(hWnd, Win32Api.SW_SHOW);
             Win32Api.SetForegroundWindow(hWnd);
+            _lastForegroundAppHwnd = hWnd;
         }
+    }
+
+    public void ActivateWindowOnly(long hwndVal)
+    {
+        IntPtr hWnd = new IntPtr(hwndVal);
+        if (hWnd == IntPtr.Zero) return;
+
+        if (Win32Api.IsIconic(hWnd))
+        {
+            Win32Api.ShowWindow(hWnd, Win32Api.SW_RESTORE);
+        }
+        else
+        {
+            Win32Api.ShowWindow(hWnd, Win32Api.SW_SHOW);
+        }
+        Win32Api.SetForegroundWindow(hWnd);
+        _lastForegroundAppHwnd = hWnd;
+    }
+
+    public void MinimizeWindow(long hwndVal)
+    {
+        IntPtr hWnd = new IntPtr(hwndVal);
+        if (hWnd == IntPtr.Zero) return;
+        Win32Api.ShowWindow(hWnd, Win32Api.SW_MINIMIZE);
+        if (_lastForegroundAppHwnd == hWnd)
+            _lastForegroundAppHwnd = IntPtr.Zero;
     }
 
     public void TriggerWindowsStartMenu()

@@ -89,16 +89,17 @@
   color: var(--winzen-text-secondary, #c5c5c5);
 }
 
-/* Multi-window combined stacked indicator */
-.win-pill.combined::before {
-  content: '';
-  position: absolute;
-  top: 3px;
-  right: 4px;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--winzen-accent, #60cdff);
+/* Multi-window combined stacked indicator (Windows 11 stacked card edge) */
+.win-pill.combined {
+  background: rgba(255, 255, 255, 0.045);
+  border-color: rgba(255, 255, 255, 0.07);
+  box-shadow: 3px 0 0 -1px var(--winzen-bg, #1c1c1c), 4px 0 0 0 rgba(255, 255, 255, 0.14);
+  margin-right: 3px;
+}
+
+.win-pill.combined.active {
+  background: var(--winzen-surface-active, rgba(255, 255, 255, 0.0837));
+  border-color: var(--winzen-border, rgba(255, 255, 255, 0.09));
 }
 
 .win-badge {

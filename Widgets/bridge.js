@@ -37,8 +37,21 @@
       }
     },
     tasks: {
-      activateWindow(hwnd) {
-        postToNative({ action: 'activate_window', hwnd: Number(hwnd) });
+      activateWindow(hwnd, wasActive = undefined) {
+        const msg = { action: 'activate_window', hwnd: Number(hwnd) };
+        if (typeof wasActive === 'boolean') msg.wasActive = wasActive;
+        postToNative(msg);
+      },
+      toggleWindowSelector(itemPayload) {
+        postToNative({
+          action: 'toggle_window_selector',
+          appId: String((itemPayload && itemPayload.appId) || ''),
+          processName: String((itemPayload && itemPayload.processName) || ''),
+          iconDataUrl: String((itemPayload && itemPayload.iconDataUrl) || ''),
+          x: Number((itemPayload && itemPayload.x) || 0),
+          width: Number((itemPayload && itemPayload.width) || 38),
+          windows: Array.isArray(itemPayload && itemPayload.windows) ? itemPayload.windows : []
+        });
       },
       closeWindow(hwnd) {
         postToNative({ action: 'close_window', hwnd: Number(hwnd) });

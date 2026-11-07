@@ -32,6 +32,7 @@ public partial class TaskbarWebWindow : Window
     private ClockFlyoutWindow? _clockFlyout;
     private AppLauncherFlyoutWindow? _appLauncherFlyout;
     private SystemMonitorFlyoutWindow? _systemMonitorFlyout;
+    private WindowSelectorFlyoutWindow? _windowSelectorFlyout;
     private FileSystemWatcher? _triggerWatcher;
     private Forms.ContextMenuStrip? _activeNativeMenu;
     private IntPtr _hwnd = IntPtr.Zero;
@@ -49,7 +50,7 @@ public partial class TaskbarWebWindow : Window
         Action openSettingsCallback)
     {
         InitializeComponent();
-        TaskbarWebView.DefaultBackgroundColor = System.Drawing.Color.Transparent;
+        TaskbarWebView.DefaultBackgroundColor = System.Drawing.Color.FromArgb(255, 28, 28, 28);
         _shellState = shellState;
         _metricsService = metricsService;
         _brightnessService = brightnessService;
@@ -298,6 +299,47 @@ public partial class TaskbarWebWindow : Window
                     {
                         CloseAllFlyouts();
                     }
+                    else if (cmd.StartsWith("open_window_selector", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var parts = cmd.Split(' ');
+                        string outPath = parts.Length > 1 ? parts[1] : "";
+                        var snap = _metricsService.GetSnapshot(_hwnd, IntPtr.Zero);
+                        var multiGroup = System.Linq.Enumerable.FirstOrDefault(
+                            System.Linq.Enumerable.GroupBy(snap.Windows, w => (w.AppId ?? w.ProcessName).ToLowerInvariant()),
+                            g => System.Linq.Enumerable.Count(g) > 1);
+                        var targetWins = multiGroup != null
+                            ? System.Linq.Enumerable.ToList(multiGroup)
+                            : System.Linq.Enumerable.Take(snap.Windows, 2).ToList();
+                        if (targetWins.Count > 0)
+                        {
+                            var first = targetWins[0];
+                            var entries = System.Linq.Enumerable.Select(targetWins, w => new SelectorWindowEntry
+                            {
+                                Hwnd = w.Hwnd,
+                                Title = w.Title,
+                                IsActive = w.IsActive,
+                                IsMinimized = w.IsMinimized
+                            }).ToList();
+
+                            _windowSelectorFlyout ??= new WindowSelectorFlyoutWindow(_metricsService, BroadcastMetrics);
+                            _windowSelectorFlyout.ShowAt(
+                                first.AppId,
+                                first.ProcessName,
+                                first.IconDataUrl,
+                                entries,
+                                mon.Left + (mon.Width / 2.0) - 20,
+                                38,
+                                Top,
+                                Height,
+                                _shellState.Settings.DockEdge,
+                                _shellState.Settings.Theme);
+
+                            if (!string.IsNullOrWhiteSpace(outPath))
+                            {
+                                _windowSelectorFlyout.CaptureToFile(outPath);
+                            }
+                        }
+                    }
                     else if (cmd.StartsWith("toggle_volume", StringComparison.OrdinalIgnoreCase))
                     {
                         _volumeFlyout ??= new VolumeFlyoutWindow(_audioService);
@@ -418,7 +460,33 @@ public partial class TaskbarWebWindow : Window
             Height = rect.Height;
             TaskbarWebView.Width = rect.Width;
             TaskbarWebView.Height = rect.Height;
+            ApplyTaskbarCornerRegion();
         });
+    }
+
+    private void ApplyTaskbarCornerRegion()
+    {
+        if (_hwnd == IntPtr.Zero) return;
+        int margin = _shellState.Settings.FloatingMarginPx;
+        int radius = _shellState.Settings.TaskbarCornerRadiusPx;
+        if (margin > 0 && radius > 0 && Win32Api.GetWindowRect(_hwnd, out var winRect))
+        {
+            int w = winRect.Width;
+            int h = winRect.Height;
+            int diameter = radius * 2;
+            IntPtr hRgn = Win32Api.CreateRoundRectRgn(0, 0, w + 1, h + 1, diameter, diameter);
+            if (hRgn != IntPtr.Zero)
+            {
+                if (Win32Api.SetWindowRgn(_hwnd, hRgn, true) == 0)
+                {
+                    Win32Api.DeleteObject(hRgn);
+                }
+            }
+        }
+        else
+        {
+            Win32Api.SetWindowRgn(_hwnd, IntPtr.Zero, true);
+        }
     }
 
     private void OnTaskbarVisibilityRequested(bool visible)
@@ -439,7 +507,11 @@ public partial class TaskbarWebWindow : Window
 
     private void OnShellStateChanged(ShellFullStatePayload payload)
     {
-        Dispatcher.Invoke(() => PushStateToWeb(payload));
+        Dispatcher.Invoke(() =>
+        {
+            ApplyTaskbarCornerRegion();
+            PushStateToWeb(payload);
+        });
     }
 
     private void PushStateToWeb(ShellFullStatePayload payload)
@@ -518,9 +590,61 @@ public partial class TaskbarWebWindow : Window
                 case "activate_window":
                     if (root.TryGetProperty("hwnd", out var hwndProp) && hwndProp.TryGetInt64(out long hwndVal))
                     {
-                        _metricsService.ActivateOrToggleWindow(hwndVal);
-                        BroadcastMetrics();
+                        bool? wasActive = root.TryGetProperty("wasActive", out var waProp) &&
+                                          (waProp.ValueKind == JsonValueKind.True || waProp.ValueKind == JsonValueKind.False)
+                            ? waProp.GetBoolean()
+                            : null;
+                        Dispatcher.Invoke(() => CloseAllFlyouts());
+                        _metricsService.ActivateOrToggleWindow(hwndVal, wasActive);
+                        System.Threading.Tasks.Task.Delay(60).ContinueWith(_ => Dispatcher.Invoke(BroadcastMetrics));
                     }
+                    break;
+
+                case "toggle_window_selector":
+                    string wsAppId = root.TryGetProperty("appId", out var wsAidProp) ? wsAidProp.GetString() ?? "" : "";
+                    string wsProc = root.TryGetProperty("processName", out var wsProcProp) ? wsProcProp.GetString() ?? "App" : "App";
+                    string wsIcon = root.TryGetProperty("iconDataUrl", out var wsIcoProp) ? wsIcoProp.GetString() ?? "" : "";
+                    double wsX = root.TryGetProperty("x", out var wsXProp) && wsXProp.TryGetDouble(out double wsXd) ? wsXd : 0;
+                    double wsW = root.TryGetProperty("width", out var wsWProp) && wsWProp.TryGetDouble(out double wsWd) ? wsWd : 38;
+                    var wsList = new List<SelectorWindowEntry>();
+                    if (root.TryGetProperty("windows", out var wsWins) && wsWins.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var item in wsWins.EnumerateArray())
+                        {
+                            wsList.Add(new SelectorWindowEntry
+                            {
+                                Hwnd = item.TryGetProperty("hwnd", out var hP) && hP.TryGetInt64(out long hv) ? hv : 0,
+                                Title = item.TryGetProperty("title", out var tP) ? tP.GetString() ?? "" : "",
+                                IsActive = item.TryGetProperty("isActive", out var aP) && aP.GetBoolean(),
+                                IsMinimized = item.TryGetProperty("isMinimized", out var mP) && mP.GetBoolean()
+                            });
+                        }
+                    }
+
+                    Dispatcher.Invoke(() =>
+                    {
+                        _windowSelectorFlyout ??= new WindowSelectorFlyoutWindow(_metricsService, BroadcastMetrics);
+                        bool sameApp = string.Equals(_windowSelectorFlyout.CurrentAppId, wsAppId, StringComparison.OrdinalIgnoreCase);
+                        bool wasJustOpen = sameApp && (_windowSelectorFlyout.IsVisible ||
+                            (DateTime.UtcNow - _windowSelectorFlyout.LastDeactivatedTime).TotalMilliseconds < 350);
+
+                        CloseAllFlyouts();
+
+                        if (!wasJustOpen && wsList.Count > 0)
+                        {
+                            _windowSelectorFlyout.ShowAt(
+                                wsAppId,
+                                wsProc,
+                                wsIcon,
+                                wsList,
+                                Left + wsX,
+                                wsW,
+                                Top,
+                                Height,
+                                _shellState.Settings.DockEdge,
+                                _shellState.Settings.Theme);
+                        }
+                    });
                     break;
 
                 case "hide_app":
@@ -1329,6 +1453,8 @@ public partial class TaskbarWebWindow : Window
             _systemMonitorFlyout.Hide();
         if (_appLauncherFlyout != null && _appLauncherFlyout != except && _appLauncherFlyout.IsVisible)
             _appLauncherFlyout.Hide();
+        if (_windowSelectorFlyout != null && _windowSelectorFlyout != except && _windowSelectorFlyout.IsVisible)
+            _windowSelectorFlyout.Hide();
     }
 
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)

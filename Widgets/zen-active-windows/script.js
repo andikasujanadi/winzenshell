@@ -168,8 +168,8 @@ window.addEventListener('winzen:metrics', (e) => {
     const tooltip = item.isClosedPinned
       ? `${item.processName}\nLeft-click: Open\nRight-click: Options`
       : (isMulti
-          ? `${item.processName} (${item.windows.length} windows)\nLeft-click: Cycle windows\nRight-click: Options`
-          : `${item.processName} — ${item.title}\nLeft-click: Switch / Minimize\nRight-click: Options`);
+          ? `${item.processName} (${item.windows.length} windows)\nLeft-click: Select window\nRight-click: Options`
+          : `${item.processName} — ${item.title}\nLeft-click: ${hasActive ? 'Minimize' : 'Switch to window'}\nRight-click: Options`);
     btn.title = tooltip;
 
     const iconHtml = getAppIconHtml(item);
@@ -181,13 +181,14 @@ window.addEventListener('winzen:metrics', (e) => {
         : escapeHtml(item.title || item.processName);
       const badgeHtml = isMulti ? `<span class="win-badge">${item.windows.length}</span>` : '';
       labelHtml = `<span class="win-title">${displayTitle}</span>${badgeHtml}`;
-    } else if (isMulti) {
-      labelHtml = `<span class="win-badge">${item.windows.length}</span>`;
     }
 
     btn.innerHTML = `${iconHtml}${labelHtml}`;
 
-    // Left-click: Launch if closed pinned, or Activate / Cycle
+    // Left-click:
+    // - Closed pinned app -> Launch
+    // - Single running window -> Activate if inactive/minimized, Minimize if active
+    // - Multiple running windows -> Open Windows 11 Popup Window Selector
     btn.addEventListener('click', (ev) => {
       ev.stopPropagation();
       closeContextMenu();
@@ -202,17 +203,36 @@ window.addEventListener('winzen:metrics', (e) => {
       }
 
       if (!isMulti) {
-        window.winzen.tasks.activateWindow(item.windows[0].hwnd);
+        const win0 = item.windows[0];
+        const isCurrentlyActive = !!(win0.isActive && !win0.isMinimized);
+        if (window.winzen && window.winzen.tasks && typeof window.winzen.tasks.activateWindow === 'function') {
+          window.winzen.tasks.activateWindow(win0.hwnd, isCurrentlyActive);
+        } else {
+          window.winzen.send('activate_window', { hwnd: Number(win0.hwnd), wasActive: isCurrentlyActive });
+        }
         return;
       }
 
-      // Multi-window cycling
-      const activeIdx = item.windows.findIndex((w) => w.isActive);
-      if (activeIdx === -1) {
-        window.winzen.tasks.activateWindow(item.windows[0].hwnd);
+      // Multi-window: Open Windows 11 Popup Window Selector anchored to this button
+      const rect = btn.getBoundingClientRect();
+      const payload = {
+        appId: item.appId || '',
+        processName: item.processName || '',
+        iconDataUrl: item.iconDataUrl || '',
+        x: rect.left,
+        width: rect.width,
+        windows: item.windows.map((w) => ({
+          hwnd: Number(w.hwnd),
+          title: String(w.title || item.processName || ''),
+          isActive: !!w.isActive,
+          isMinimized: !!w.isMinimized
+        }))
+      };
+
+      if (window.winzen && window.winzen.tasks && typeof window.winzen.tasks.toggleWindowSelector === 'function') {
+        window.winzen.tasks.toggleWindowSelector(payload);
       } else {
-        const nextIdx = (activeIdx + 1) % item.windows.length;
-        window.winzen.tasks.activateWindow(item.windows[nextIdx].hwnd);
+        window.winzen.send('toggle_window_selector', payload);
       }
     });
 
