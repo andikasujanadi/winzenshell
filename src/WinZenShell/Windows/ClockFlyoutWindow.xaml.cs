@@ -11,6 +11,7 @@ namespace WinZenShell.Windows;
 public partial class ClockFlyoutWindow : Window
 {
     private readonly DispatcherTimer _tickTimer;
+    private SolidColorBrush _accentBrush = new(System.Windows.Media.Color.FromRgb(0x36, 0x84, 0xE3));
 
     public DateTime LastDeactivatedTime { get; private set; } = DateTime.MinValue;
 
@@ -96,8 +97,9 @@ public partial class ClockFlyoutWindow : Window
         TxtTimezone.Text = $"UTC{offsetStr} • {tz.StandardName}";
     }
 
-    public void ShowAt(double anchorScreenX, double anchorWidth, double taskbarTop, double taskbarHeight, string dockEdge, string? theme = null)
+    public void ShowAt(double anchorScreenX, double anchorWidth, double taskbarTop, double taskbarHeight, string dockEdge, string? theme = null, string? accent = null)
     {
+        ApplyAccentColor(accent);
         ApplyTheme(theme);
         UpdateClock();
         if (!_tickTimer.IsEnabled)
@@ -139,6 +141,22 @@ public partial class ClockFlyoutWindow : Window
         Focus();
     }
 
+    public void ApplyAccentColor(string? hex)
+    {
+        if (string.IsNullOrWhiteSpace(hex)) return;
+        try
+        {
+            var color = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(hex);
+            _accentBrush = new SolidColorBrush(color);
+            Resources["AccentBrush"] = _accentBrush;
+            if (HeaderIconPath != null) HeaderIconPath.Fill = _accentBrush;
+            if (SecondHandLine != null) SecondHandLine.Stroke = _accentBrush;
+            if (CenterPivotOuter != null) CenterPivotOuter.Fill = _accentBrush;
+            if (TxtDigitalDate != null) TxtDigitalDate.Foreground = _accentBrush;
+        }
+        catch { }
+    }
+
     public void ApplyTheme(string? theme)
     {
         bool isLight = string.Equals(theme, "light", StringComparison.OrdinalIgnoreCase);
@@ -150,7 +168,7 @@ public partial class ClockFlyoutWindow : Window
             DigitalCard.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xFF, 0xFF, 0xFF));
             DigitalCard.BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(0x18, 0x00, 0x00, 0x00));
             TxtDigitalTime.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x1B, 0x1B, 0x1B));
-            TxtDigitalDate.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x00, 0x67, 0xC0));
+            TxtDigitalDate.Foreground = _accentBrush;
             TzBadge.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xEA, 0xEA, 0xEA));
             TxtTimezone.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x5C, 0x5C, 0x5C));
         }
@@ -162,10 +180,13 @@ public partial class ClockFlyoutWindow : Window
             DigitalCard.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x26, 0x26, 0x26));
             DigitalCard.BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x38, 0x38, 0x38));
             TxtDigitalTime.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xFF, 0xFF, 0xFF));
-            TxtDigitalDate.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x60, 0xCD, 0xFF));
+            TxtDigitalDate.Foreground = _accentBrush;
             TzBadge.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x22, 0x22, 0x22));
             TxtTimezone.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xA4, 0xA4, 0xA4));
         }
+        if (HeaderIconPath != null) HeaderIconPath.Fill = _accentBrush;
+        if (SecondHandLine != null) SecondHandLine.Stroke = _accentBrush;
+        if (CenterPivotOuter != null) CenterPivotOuter.Fill = _accentBrush;
     }
 
     private void OnCloseClicked(object sender, RoutedEventArgs e)

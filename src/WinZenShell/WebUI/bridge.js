@@ -255,7 +255,11 @@
     if (msg.type === 'state_update' && msg.payload) {
       window.winzen.state = msg.payload;
       const theme = (msg.payload.settings && msg.payload.settings.theme) || 'dark';
+      const accent = (msg.payload.settings && msg.payload.settings.accentColor) || '#3684E3';
       document.documentElement.setAttribute('data-theme', theme);
+      document.documentElement.style.setProperty('--winzen-accent', accent);
+      document.documentElement.style.setProperty('--winzen-border-accent', accent);
+      document.documentElement.style.setProperty('--win11-accent', accent);
       if (document.body) {
         if (theme === 'light') {
           document.body.classList.add('theme-light');
@@ -266,7 +270,7 @@
         }
       }
       window.dispatchEvent(new CustomEvent('winzen:state', { detail: msg.payload }));
-      window.dispatchEvent(new CustomEvent('winzen:theme', { detail: { theme } }));
+      window.dispatchEvent(new CustomEvent('winzen:theme', { detail: { theme, accentColor: accent } }));
     } else if (msg.type === 'metrics_update' && msg.payload) {
       window.winzen.metrics = msg.payload;
       window.dispatchEvent(new CustomEvent('winzen:metrics', { detail: msg.payload }));

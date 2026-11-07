@@ -1,4 +1,6 @@
-@import url("../universal-theme.css");
+/* ==========================================================================
+   WinZenShell Virtual Desktops Widget
+   ========================================================================== */
 
 * {
   box-sizing: border-box;
@@ -315,7 +317,7 @@ html, body {
   font-size: 11px;
   font-weight: 700;
   color: var(--winzen-accent, #60cdff);
-  background: rgba(96, 205, 255, 0.15);
+  background: color-mix(in srgb, var(--winzen-accent, #60cdff) 16%, transparent);
   padding: 1px 6px;
   border-radius: 4px;
   font-variant-numeric: tabular-nums;
@@ -324,7 +326,7 @@ html, body {
 :host([data-theme="light"]) .vd-icon-badge,
 :host(.theme-light) .vd-icon-badge {
   color: var(--winzen-accent, #0067c0);
-  background: rgba(0, 103, 192, 0.12);
+  background: color-mix(in srgb, var(--winzen-accent, #0067c0) 14%, transparent);
 }
 
 .vd-icon-label {

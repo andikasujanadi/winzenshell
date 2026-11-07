@@ -36,11 +36,11 @@ public partial class AppLauncherFlyoutWindow : Window
         _appLauncherService.AppsLoaded += OnAppsLoaded;
         if (_shellState != null)
         {
-            _shellState.StateChanged += payload => Dispatcher.Invoke(() => ApplyTheme(payload.Settings.Theme));
+            _shellState.StateChanged += payload => Dispatcher.Invoke(() => ApplyTheme(payload.Settings.Theme, payload.Settings.AccentColor));
         }
     }
 
-    private void ApplyTheme(string? theme)
+    public void ApplyTheme(string? theme, string? accentColor = null)
     {
         bool isLight = string.Equals(theme, "light", StringComparison.OrdinalIgnoreCase);
         if (isLight)
@@ -57,10 +57,12 @@ public partial class AppLauncherFlyoutWindow : Window
         if (_webViewReady && LauncherWebView.CoreWebView2 != null)
         {
             string th = isLight ? "light" : "dark";
+            string acc = accentColor ?? _shellState?.Settings.AccentColor ?? "#3684E3";
             LauncherWebView.CoreWebView2.PostWebMessageAsJson(JsonSerializer.Serialize(new
             {
                 type = "theme_update",
-                theme = th
+                theme = th,
+                accentColor = acc
             }));
         }
     }
@@ -86,7 +88,7 @@ public partial class AppLauncherFlyoutWindow : Window
             core.NavigationCompleted += (_, _) =>
             {
                 _webViewReady = true;
-                ApplyTheme(_shellState?.Settings.Theme);
+                ApplyTheme(_shellState?.Settings.Theme, _shellState?.Settings.AccentColor);
                 PushAppsData();
             };
 
@@ -117,11 +119,13 @@ public partial class AppLauncherFlyoutWindow : Window
         {
             var payload = _appLauncherService.GetAppsPayload();
             string theme = _shellState?.Settings.Theme ?? "dark";
+            string accentColor = _shellState?.Settings.AccentColor ?? "#3684E3";
             string json = JsonSerializer.Serialize(new
             {
                 type = "apps_data",
                 payload,
-                theme
+                theme,
+                accentColor
             }, new JsonSerializerOptions
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase
@@ -235,7 +239,7 @@ public partial class AppLauncherFlyoutWindow : Window
         Left = left;
         Top = top;
 
-        ApplyTheme(_shellState?.Settings.Theme);
+        ApplyTheme(_shellState?.Settings.Theme, _shellState?.Settings.AccentColor);
         Show();
         Activate();
         Focus();

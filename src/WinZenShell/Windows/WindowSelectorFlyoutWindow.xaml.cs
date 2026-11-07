@@ -223,7 +223,7 @@ public partial class WindowSelectorFlyoutWindow : Window
         double flyoutHeight = DesiredSize.Height > 30 ? DesiredSize.Height : fallbackH;
 
         double left = anchorScreenX + (anchorWidth / 2.0) - (flyoutWidth / 2.0);
-        const double floatingGap = 2.0;
+        const double floatingGap = 8.0;
         double top;
 
         if (string.Equals(dockEdge, "Top", StringComparison.OrdinalIgnoreCase))

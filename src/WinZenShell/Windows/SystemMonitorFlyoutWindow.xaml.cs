@@ -9,6 +9,7 @@ namespace WinZenShell.Windows;
 public partial class SystemMonitorFlyoutWindow : Window
 {
     private readonly SystemMetricsService _metricsService;
+    private System.Windows.Media.SolidColorBrush _accentBrush = new(System.Windows.Media.Color.FromRgb(0x36, 0x84, 0xE3));
     public DateTime LastDeactivatedTime { get; private set; } = DateTime.MinValue;
 
     public SystemMonitorFlyoutWindow(SystemMetricsService metricsService)
@@ -42,8 +43,9 @@ public partial class SystemMonitorFlyoutWindow : Window
         TxtRamDetails.Text = $"{snapshot.MemoryUsedGb:0.0} GB of {snapshot.MemoryTotalGb:0.0} GB in use";
     }
 
-    public void ShowAt(double anchorScreenX, double anchorWidth, double taskbarTop, double taskbarHeight, string dockEdge, string? theme = null)
+    public void ShowAt(double anchorScreenX, double anchorWidth, double taskbarTop, double taskbarHeight, string dockEdge, string? theme = null, string? accent = null)
     {
+        ApplyAccentColor(accent);
         ApplyTheme(theme);
         UpdateTelemetry();
 
@@ -81,6 +83,21 @@ public partial class SystemMonitorFlyoutWindow : Window
         Focus();
     }
 
+    public void ApplyAccentColor(string? hex)
+    {
+        if (string.IsNullOrWhiteSpace(hex)) return;
+        try
+        {
+            var color = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(hex);
+            _accentBrush = new System.Windows.Media.SolidColorBrush(color);
+            Resources["AccentBrush"] = _accentBrush;
+            if (HeaderChipIcon != null) HeaderChipIcon.Fill = _accentBrush;
+            if (TxtCpuVal != null) TxtCpuVal.Foreground = _accentBrush;
+            if (BarCpu != null) BarCpu.Background = _accentBrush;
+        }
+        catch { }
+    }
+
     public void ApplyTheme(string? theme)
     {
         bool isLight = string.Equals(theme, "light", StringComparison.OrdinalIgnoreCase);
@@ -95,8 +112,8 @@ public partial class SystemMonitorFlyoutWindow : Window
             TxtHeaderTitle.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x1B, 0x1B, 0x1B));
             LblCpu.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x1B, 0x1B, 0x1B));
             LblRam.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x1B, 0x1B, 0x1B));
-            TxtCpuVal.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x00, 0x67, 0xC0));
-            BarCpu.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x00, 0x67, 0xC0));
+            TxtCpuVal.Foreground = _accentBrush;
+            BarCpu.Background = _accentBrush;
         }
         else
         {
@@ -109,9 +126,10 @@ public partial class SystemMonitorFlyoutWindow : Window
             TxtHeaderTitle.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xFF, 0xFF, 0xFF));
             LblCpu.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xFF, 0xFF, 0xFF));
             LblRam.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xFF, 0xFF, 0xFF));
-            TxtCpuVal.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x60, 0xCD, 0xFF));
-            BarCpu.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x60, 0xCD, 0xFF));
+            TxtCpuVal.Foreground = _accentBrush;
+            BarCpu.Background = _accentBrush;
         }
+        if (HeaderChipIcon != null) HeaderChipIcon.Fill = _accentBrush;
     }
 
     private void OnCloseClicked(object sender, RoutedEventArgs e)

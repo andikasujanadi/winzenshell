@@ -201,7 +201,7 @@ public partial class App : System.Windows.Application
         {
             ForeColor = Color.FromArgb(245, 245, 245),
             Padding = new Forms.Padding(6, 5, 10, 5),
-            Image = TaskbarWebWindow.CreateFluentIcon("settings")
+            Image = TaskbarWebWindow.CreateFluentIcon("settings", false, TaskbarWebWindow.ParseDrawingAccentColor(_shellStateService?.Settings.AccentColor))
         };
         openItem.Click += (_, _) => ShowAndFocusSettingsWindow();
 

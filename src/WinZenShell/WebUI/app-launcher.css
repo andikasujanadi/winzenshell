@@ -45,14 +45,14 @@ body {
 
 .search-box:focus-within {
   background: rgba(255, 255, 255, 0.12);
-  border-color: #60cdff;
-  box-shadow: 0 0 0 2px rgba(96, 205, 255, 0.25);
+  border-color: var(--winzen-accent, #3684e3);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--winzen-accent, #3684e3) 28%, transparent);
 }
 
 .search-icon {
   width: 18px;
   height: 18px;
-  color: #60cdff;
+  color: var(--winzen-accent, #3684e3);
   flex-shrink: 0;
 }
 
@@ -178,8 +178,8 @@ body {
 }
 
 .app-item.selected {
-  background: rgba(96, 205, 255, 0.18);
-  border-color: rgba(96, 205, 255, 0.4);
+  background: color-mix(in srgb, var(--winzen-accent, #3684e3) 18%, transparent);
+  border-color: color-mix(in srgb, var(--winzen-accent, #3684e3) 45%, transparent);
 }
 
 .app-icon-wrap {
@@ -208,7 +208,7 @@ body {
 .app-icon-fallback {
   width: 28px;
   height: 28px;
-  color: #60cdff;
+  color: var(--winzen-accent, #3684e3);
 }
 
 .app-name {

@@ -97,14 +97,15 @@ body {
 }
 
 .cc-edit-btn.is-active {
-  background: #60cdff;
+  background: var(--winzen-accent, #3684e3);
   color: #000000;
-  border-color: #60cdff;
+  border-color: var(--winzen-accent, #3684e3);
   font-weight: 600;
 }
 
 .cc-edit-btn.is-active:hover {
-  background: #78d5ff;
+  background: var(--winzen-accent, #3684e3);
+  filter: brightness(1.08);
   color: #000000;
 }
 
@@ -134,18 +135,18 @@ body {
 .cc-add-btn {
   height: 28px;
   padding: 0 10px;
-  background: #60cdff;
+  background: var(--winzen-accent, #3684e3);
   color: #000000;
   border: none;
   border-radius: 4px;
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.1s ease;
+  transition: background 0.1s ease, filter 0.1s ease;
 }
 
 .cc-add-btn:hover {
-  background: #78d5ff;
+  filter: brightness(1.08);
 }
 
 /* Edit Mode Card Controls */
@@ -173,7 +174,7 @@ body {
 
 .cc-btn-resize:hover {
   background: #444444;
-  color: #60cdff;
+  color: var(--winzen-accent, #3684e3);
 }
 
 .cc-btn-delete {
@@ -189,7 +190,7 @@ body {
 
 /* Jiggle effect on editing */
 .is-editing .cc-card {
-  outline: 1px dashed rgba(96, 205, 255, 0.5);
+  outline: 1px dashed color-mix(in srgb, var(--winzen-accent, #3684e3) 55%, transparent);
   cursor: grab;
 }
 
@@ -199,11 +200,11 @@ body {
 
 .cc-card.dragging {
   opacity: 0.4;
-  outline: 2px dashed #60cdff;
+  outline: 2px dashed var(--winzen-accent, #3684e3);
 }
 
 .cc-card.drag-over {
-  border-color: #60cdff;
+  border-color: var(--winzen-accent, #3684e3);
   background: #2d2d2d;
 }
 
@@ -277,7 +278,7 @@ body {
 .cc-card-value {
   font-size: 11px;
   font-weight: 600;
-  color: #60cdff;
+  color: var(--winzen-accent, #3684e3);
 }
 
 .cc-card-content {

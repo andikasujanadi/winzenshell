@@ -218,11 +218,19 @@
       const theme = data.theme || 'dark';
       document.documentElement.setAttribute('data-theme', theme);
       document.body.classList.toggle('theme-light', theme === 'light');
+      if (data.accentColor) {
+        document.documentElement.style.setProperty('--winzen-accent', data.accentColor);
+      }
     } else if (data.type === 'apps_data' || data.action === 'apps_data') {
       const payload = data.payload || data;
-      if (payload.theme) {
-        document.documentElement.setAttribute('data-theme', payload.theme);
-        document.body.classList.toggle('theme-light', payload.theme === 'light');
+      const theme = data.theme || payload.theme;
+      if (theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        document.body.classList.toggle('theme-light', theme === 'light');
+      }
+      const accent = data.accentColor || payload.accentColor;
+      if (accent) {
+        document.documentElement.style.setProperty('--winzen-accent', accent);
       }
       allApps = Array.isArray(payload.all) ? payload.all : [];
       recentApps = Array.isArray(payload.recent) ? payload.recent : [];

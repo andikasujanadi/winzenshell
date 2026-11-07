@@ -94,7 +94,12 @@ public partial class VolumeFlyoutWindow : Window
         try
         {
             var color = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(hex);
-            Resources["AccentBrush"] = new System.Windows.Media.SolidColorBrush(color);
+            var brush = new System.Windows.Media.SolidColorBrush(color);
+            Resources["AccentBrush"] = brush;
+            if (SpeakerPath != null && _audioService != null && !_audioService.GetMute() && _audioService.GetVolume() > 0)
+            {
+                SpeakerPath.Fill = brush;
+            }
         }
         catch { }
     }
@@ -139,9 +144,8 @@ public partial class VolumeFlyoutWindow : Window
             {
                 string p = volumePercent > 66 ? PathHigh : (volumePercent > 33 ? PathMed : PathLow);
                 SpeakerPath.Data = System.Windows.Media.Geometry.Parse(p);
-                SpeakerPath.Fill = _isLightTheme
-                    ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x00, 0x67, 0xC0))
-                    : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x60, 0xCD, 0xFF));
+                SpeakerPath.Fill = Resources["AccentBrush"] as System.Windows.Media.Brush
+                    ?? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x36, 0x84, 0xE3));
             }
         }
 

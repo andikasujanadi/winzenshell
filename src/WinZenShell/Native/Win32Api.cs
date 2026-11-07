@@ -412,7 +412,10 @@ public static class Win32Api
                                 cb = Marshal.SizeOf<STARTUPINFO>(),
                                 lpDesktop = "Winsta0\\Default"
                             };
-                            if (CreateProcess(exePath, $"\"{exePath}\"", IntPtr.Zero, IntPtr.Zero, false, 0, IntPtr.Zero, AppDomain.CurrentDomain.BaseDirectory, ref si, out var pi))
+                            const uint CREATE_BREAKAWAY_FROM_JOB = 0x01000000;
+                            PROCESS_INFORMATION pi;
+                            if (CreateProcess(exePath, $"\"{exePath}\"", IntPtr.Zero, IntPtr.Zero, false, CREATE_BREAKAWAY_FROM_JOB, IntPtr.Zero, AppDomain.CurrentDomain.BaseDirectory, ref si, out pi) ||
+                                CreateProcess(exePath, $"\"{exePath}\"", IntPtr.Zero, IntPtr.Zero, false, 0, IntPtr.Zero, AppDomain.CurrentDomain.BaseDirectory, ref si, out pi))
                             {
                                 if (pi.hProcess != IntPtr.Zero) CloseHandle(pi.hProcess);
                                 if (pi.hThread != IntPtr.Zero) CloseHandle(pi.hThread);

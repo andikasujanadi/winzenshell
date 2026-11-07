@@ -929,7 +929,7 @@ body.theme-light .accent-swatch.active {
 }
 
 .rp-zone.drag-active {
-  background: rgba(96, 205, 255, 0.08);
+  background: color-mix(in srgb, var(--win11-accent, #60cdff) 10%, transparent);
   outline: 1.5px dashed var(--win11-accent);
   border-color: transparent;
 }
@@ -979,7 +979,7 @@ body.theme-light .accent-swatch.active {
   font-weight: 700;
   padding: 1px 6px;
   border-radius: 10px;
-  background: rgba(96, 205, 255, 0.15);
+  background: color-mix(in srgb, var(--win11-accent, #60cdff) 16%, transparent);
   color: var(--win11-accent);
 }
 
@@ -1131,7 +1131,7 @@ body.theme-light .accent-swatch.active {
   box-sizing: border-box;
   border-radius: 5px;
   border: 1.5px dashed var(--win11-accent);
-  background: rgba(96, 205, 255, 0.12);
+  background: color-mix(in srgb, var(--win11-accent, #60cdff) 14%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1145,8 +1145,8 @@ body.theme-light .accent-swatch.active {
 }
 
 @keyframes pulsePreviewSlot {
-  0%, 100% { border-color: #60cdff; background: rgba(96, 205, 255, 0.12); }
-  50% { border-color: #92e0ff; background: rgba(96, 205, 255, 0.22); }
+  0%, 100% { border-color: var(--win11-accent); background: color-mix(in srgb, var(--win11-accent, #60cdff) 12%, transparent); }
+  50% { border-color: var(--win11-accent); background: color-mix(in srgb, var(--win11-accent, #60cdff) 24%, transparent); }
 }
 
 body.is-dragging-preview-chip {
@@ -1202,7 +1202,7 @@ body.is-dragging-preview-chip * {
 
 .region-dropzone.drag-over {
   outline: 1px dashed var(--win11-accent);
-  background: rgba(96, 205, 255, 0.05);
+  background: color-mix(in srgb, var(--win11-accent, #60cdff) 8%, transparent);
 }
 
 .region-empty {

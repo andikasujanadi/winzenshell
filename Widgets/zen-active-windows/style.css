@@ -115,7 +115,7 @@
   font-size: 10px;
   font-weight: 600;
   color: var(--winzen-accent, #60cdff);
-  background: var(--winzen-accent-subtle, rgba(96, 205, 255, 0.15));
+  background: color-mix(in srgb, var(--winzen-accent, #60cdff) 18%, transparent);
   border-radius: 8px;
   padding: 1px 5px;
   margin-left: 2px;
@@ -133,7 +133,7 @@
 .win-fallback-icon {
   width: 16px;
   height: 16px;
-  color: #60cdff;
+  color: var(--winzen-accent, #60cdff);
   flex-shrink: 0;
   display: block;
 }
@@ -226,7 +226,7 @@
 .menu-item svg {
   width: 16px;
   height: 16px;
-  color: #60cdff;
+  color: var(--winzen-accent, #60cdff);
   flex-shrink: 0;
 }
 

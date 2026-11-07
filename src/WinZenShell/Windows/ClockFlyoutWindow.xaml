@@ -12,6 +12,10 @@
         SnapsToDevicePixels="True"
         UseLayoutRounding="True">
 
+    <Window.Resources>
+        <SolidColorBrush x:Key="AccentBrush" Color="#3684E3"/>
+    </Window.Resources>
+
     <!-- 100% Solid Opaque Universal Fluent Background so desktop icons/wallpaper never bleed through -->
     <Border x:Name="OuterBorder"
             Background="#1E1E1E"
@@ -30,8 +34,9 @@
             <!-- Header -->
             <DockPanel Grid.Row="0" Margin="0,0,0,12" LastChildFill="False">
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center">
-                    <Path Data="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"
-                          Fill="#60CDFF"
+                    <Path x:Name="HeaderIconPath"
+                          Data="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"
+                          Fill="{DynamicResource AccentBrush}"
                           Width="14" Height="14"
                           Stretch="Uniform"
                           Margin="0,0,8,0"/>
@@ -122,9 +127,10 @@
                     </Line.RenderTransform>
                 </Line>
 
-                <!-- Second Hand (Vibrant Cyan Blue with Tail) -->
-                <Line X1="80" Y1="94" X2="80" Y2="18"
-                      Stroke="#60CDFF"
+                <!-- Second Hand (Accent with Tail) -->
+                <Line x:Name="SecondHandLine"
+                      X1="80" Y1="94" X2="80" Y2="18"
+                      Stroke="{DynamicResource AccentBrush}"
                       StrokeThickness="1.8"
                       StrokeStartLineCap="Round"
                       StrokeEndLineCap="Round">
@@ -134,8 +140,9 @@
                 </Line>
 
                 <!-- Center Pivot -->
-                <Ellipse Width="9" Height="9"
-                         Fill="#60CDFF"
+                <Ellipse x:Name="CenterPivotOuter"
+                         Width="9" Height="9"
+                         Fill="{DynamicResource AccentBrush}"
                          HorizontalAlignment="Center"
                          VerticalAlignment="Center"/>
                 <Ellipse Width="3.5" Height="3.5"
@@ -163,7 +170,7 @@
                                TextAlignment="Center"/>
                     <TextBlock x:Name="TxtDigitalDate"
                                Text="Loading date..."
-                               Foreground="#60CDFF"
+                               Foreground="{DynamicResource AccentBrush}"
                                FontSize="13"
                                FontWeight="SemiBold"
                                TextAlignment="Center"

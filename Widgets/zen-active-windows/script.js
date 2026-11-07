@@ -592,7 +592,7 @@ function openContextMenu(ev, item, anchorBtn) {
         <span class="menu-header-title">${escapeHtml(headerTitle)}</span>
       </div>
       <button class="menu-item btn-launch">
-        <svg viewBox="0 0 16 16" fill="none" stroke="#60cdff" stroke-width="1.25" stroke-linecap="round"><path d="M7.5 8.5L13 3M9.5 3H13V6.5M6.5 3.5H3V13H12.5V9.5"/></svg>
+        <svg viewBox="0 0 16 16" fill="none" stroke="var(--winzen-accent, #60cdff)" stroke-width="1.25" stroke-linecap="round"><path d="M7.5 8.5L13 3M9.5 3H13V6.5M6.5 3.5H3V13H12.5V9.5"/></svg>
         <span>Open</span>
       </button>
       <div class="menu-divider"></div>
@@ -631,7 +631,7 @@ function openContextMenu(ev, item, anchorBtn) {
         .map(
           (w, i) => `
           <button class="menu-item btn-switch-win" data-hwnd="${w.hwnd}">
-            <svg viewBox="0 0 16 16" fill="none" stroke="${w.isActive ? '#60cdff' : '#c5c5c5'}" stroke-width="1.2"><rect x="2" y="2.5" width="12" height="10.5" rx="1.5"/><line x1="2" y1="5.5" x2="14" y2="5.5"/></svg>
+            <svg viewBox="0 0 16 16" fill="none" stroke="${w.isActive ? 'var(--winzen-accent, #60cdff)' : '#c5c5c5'}" stroke-width="1.2"><rect x="2" y="2.5" width="12" height="10.5" rx="1.5"/><line x1="2" y1="5.5" x2="14" y2="5.5"/></svg>
             <span class="menu-item-text">${w.isActive ? '● ' : ''}${escapeHtml(w.title || `Window ${i + 1}`)}</span>
           </button>
         `
@@ -648,7 +648,7 @@ function openContextMenu(ev, item, anchorBtn) {
       ${
         !isMulti
           ? `<button class="menu-item btn-focus">
-              <svg viewBox="0 0 16 16" fill="none" stroke="#60cdff" stroke-width="1.3"><rect x="2" y="2" width="9" height="8" stroke="#8ca0b4" stroke-width="1.1"/><rect x="5" y="5" width="9" height="8" fill="#2c2c2c"/><line x1="5" y1="7.5" x2="14" y2="7.5"/></svg>
+              <svg viewBox="0 0 16 16" fill="none" stroke="var(--winzen-accent, #60cdff)" stroke-width="1.3"><rect x="2" y="2" width="9" height="8" stroke="#8ca0b4" stroke-width="1.1"/><rect x="5" y="5" width="9" height="8" fill="#2c2c2c"/><line x1="5" y1="7.5" x2="14" y2="7.5"/></svg>
               <span>Switch to window</span>
             </button>`
           : ''

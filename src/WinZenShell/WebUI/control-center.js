@@ -84,12 +84,17 @@ function initControlCenter() {
   }
 
   let currentTheme = 'dark';
+  let currentAccent = '#3684E3';
 
   function applyStateUpdate(state) {
     if (!state) return;
     currentTheme = (state.settings && state.settings.theme) || 'dark';
+    currentAccent = (state.settings && state.settings.accentColor) || '#3684E3';
     document.documentElement.setAttribute('data-theme', currentTheme);
     document.body.className = currentTheme === 'light' ? 'theme-light' : 'theme-dark';
+    document.documentElement.style.setProperty('--winzen-accent', currentAccent);
+    document.documentElement.style.setProperty('--winzen-border-accent', currentAccent);
+    document.documentElement.style.setProperty('--win11-accent', currentAccent);
 
     availableWidgets = (state.widgets || []).slice();
     const ccList = state.controlCenterWidgets || [];
@@ -226,6 +231,9 @@ function initControlCenter() {
 
       content.dataset.theme = currentTheme;
       content.setAttribute('data-theme', currentTheme);
+      content.style.setProperty('--winzen-accent', currentAccent);
+      content.style.setProperty('--winzen-border-accent', currentAccent);
+      content.style.setProperty('--win11-accent', currentAccent);
 
       const shadow = content.attachShadow({ mode: 'open' });
       const styleEl = document.createElement('style');
@@ -237,13 +245,13 @@ function initControlCenter() {
           --winzen-surface-active: rgba(255, 255, 255, 0.04);
           --winzen-border: rgba(255, 255, 255, 0.08);
           --winzen-border-subtle: rgba(255, 255, 255, 0.05);
-          --winzen-border-accent: #60cdff;
+          --winzen-border-accent: ${currentAccent};
           --winzen-text: #ffffff;
           --winzen-text-secondary: #c5c5c5;
           --winzen-text-muted: #888888;
-          --winzen-accent: #60cdff;
-          --winzen-accent-hover: #78d4ff;
-          --winzen-accent-pressed: #0098e6;
+          --winzen-accent: ${currentAccent};
+          --winzen-accent-hover: ${currentAccent};
+          --winzen-accent-pressed: ${currentAccent};
           --winzen-purple: #c084fc;
           --winzen-danger: #f87171;
           --winzen-radius-xs: 4px;
@@ -272,13 +280,13 @@ function initControlCenter() {
           --winzen-surface-subtle: #f9f9f9;
           --winzen-border: rgba(0, 0, 0, 0.082);
           --winzen-border-subtle: rgba(0, 0, 0, 0.05);
-          --winzen-border-accent: #0067c0;
+          --winzen-border-accent: ${currentAccent};
           --winzen-text: #1b1b1b;
           --winzen-text-secondary: #5c5c5c;
           --winzen-text-muted: #8a8a8a;
-          --winzen-accent: #0067c0;
-          --winzen-accent-hover: #1879cd;
-          --winzen-accent-pressed: #005aa3;
+          --winzen-accent: ${currentAccent};
+          --winzen-accent-hover: ${currentAccent};
+          --winzen-accent-pressed: ${currentAccent};
           --winzen-purple: #7c3aed;
           --winzen-danger: #dc2626;
           color: var(--winzen-text);

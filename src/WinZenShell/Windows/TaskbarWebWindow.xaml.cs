@@ -288,12 +288,12 @@ public partial class TaskbarWebWindow : Window
                     else if (cmd.StartsWith("open_clock", StringComparison.OrdinalIgnoreCase))
                     {
                         _clockFlyout ??= new ClockFlyoutWindow();
-                        _clockFlyout.ShowAt(mon.Right - 320, 34, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme);
+                        _clockFlyout.ShowAt(mon.Right - 320, 34, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
                     }
                     else if (cmd.StartsWith("open_sys_monitor", StringComparison.OrdinalIgnoreCase))
                     {
                         _systemMonitorFlyout ??= new SystemMonitorFlyoutWindow(_metricsService);
-                        _systemMonitorFlyout.ShowAt(mon.Right - 460, 34, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme);
+                        _systemMonitorFlyout.ShowAt(mon.Right - 460, 34, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
                     }
                     else if (cmd.StartsWith("open_launcher", StringComparison.OrdinalIgnoreCase))
                     {
@@ -373,7 +373,7 @@ public partial class TaskbarWebWindow : Window
                         CloseAllFlyouts();
                         if (!wasJustOpen)
                         {
-                            _volumeFlyout.ShowAt(mon.Right - 420, 34, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme);
+                            _volumeFlyout.ShowAt(mon.Right - 420, 34, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
                         }
                     }
                     else if (cmd.StartsWith("toggle_brightness", StringComparison.OrdinalIgnoreCase))
@@ -384,7 +384,7 @@ public partial class TaskbarWebWindow : Window
                         CloseAllFlyouts();
                         if (!wasJustOpen)
                         {
-                            _brightnessFlyout.ShowAt(mon.Right - 420, 34, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme);
+                            _brightnessFlyout.ShowAt(mon.Right - 420, 34, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
                         }
                     }
                     else if (cmd.StartsWith("status_flyout", StringComparison.OrdinalIgnoreCase))
@@ -463,6 +463,23 @@ public partial class TaskbarWebWindow : Window
                             _activeNativeMenu.DrawToBitmap(bmp, new Rectangle(0, 0, bmp.Width, bmp.Height));
                             bmp.Save(outPath, System.Drawing.Imaging.ImageFormat.Png);
                         }
+                    }
+                    else if (cmd.StartsWith("capture_screen_full", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var parts = cmd.Split(' ');
+                        string outPath = parts.Length > 1 ? parts[1] : Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "screen_capture.png");
+                        int w = mon.Width;
+                        int h = mon.Height;
+                        using var bmp = new Bitmap(w, h, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+                        using (var g = Graphics.FromImage(bmp))
+                        {
+                            IntPtr destHdc = g.GetHdc();
+                            IntPtr screenHdc = Win32Api.GetDC(IntPtr.Zero);
+                            Win32Api.BitBlt(destHdc, 0, 0, w, h, screenHdc, mon.Left, mon.Top, Win32Api.SRCCOPY);
+                            Win32Api.ReleaseDC(IntPtr.Zero, screenHdc);
+                            g.ReleaseHdc(destHdc);
+                        }
+                        bmp.Save(outPath, System.Drawing.Imaging.ImageFormat.Png);
                     }
                 }
                 catch (Exception ex)
@@ -613,6 +630,28 @@ public partial class TaskbarWebWindow : Window
         Dispatcher.Invoke(() =>
         {
             ApplyTaskbarCornerRegion();
+            string theme = payload.Settings.Theme;
+            string accent = payload.Settings.AccentColor;
+            if (_brightnessFlyout != null)
+            {
+                _brightnessFlyout.ApplyTheme(theme);
+                _brightnessFlyout.ApplyAccentColor(accent);
+            }
+            if (_volumeFlyout != null)
+            {
+                _volumeFlyout.ApplyTheme(theme);
+                _volumeFlyout.ApplyAccentColor(accent);
+            }
+            if (_clockFlyout != null)
+            {
+                _clockFlyout.ApplyAccentColor(accent);
+                _clockFlyout.ApplyTheme(theme);
+            }
+            if (_systemMonitorFlyout != null)
+            {
+                _systemMonitorFlyout.ApplyAccentColor(accent);
+                _systemMonitorFlyout.ApplyTheme(theme);
+            }
             PushStateToWeb(payload);
         });
     }
@@ -915,7 +954,7 @@ public partial class TaskbarWebWindow : Window
 
                         if (!wasJustOpen)
                         {
-                            _clockFlyout.ShowAt(Left + clkX, clkW, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme);
+                            _clockFlyout.ShowAt(Left + clkX, clkW, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
                         }
                     });
                     break;
@@ -934,7 +973,7 @@ public partial class TaskbarWebWindow : Window
 
                         if (!wasJustOpen)
                         {
-                            _systemMonitorFlyout.ShowAt(Left + smX, smW, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme);
+                            _systemMonitorFlyout.ShowAt(Left + smX, smW, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
                         }
                     });
                     break;
@@ -1133,6 +1172,8 @@ public partial class TaskbarWebWindow : Window
             ? $"{processName} ({windows.Count} windows)"
             : (!string.IsNullOrWhiteSpace(title) ? title : processName);
 
+        Color accentDrawingColor = ParseDrawingAccentColor(_shellState.Settings.AccentColor);
+
         Bitmap? appIcon = GetBitmapFromDataUrl(iconDataUrl);
         var headerItem = new Forms.ToolStripMenuItem(headerText)
         {
@@ -1140,7 +1181,7 @@ public partial class TaskbarWebWindow : Window
             ForeColor = Color.FromArgb(170, 170, 170),
             Font = new Font("Segoe UI", 9.0f, System.Drawing.FontStyle.Bold),
             Padding = new Forms.Padding(6, 6, 10, 5),
-            Image = appIcon ?? CreateFluentIcon("window")
+            Image = appIcon ?? CreateFluentIcon("window", false, accentDrawingColor)
         };
         menu.Items.Add(headerItem);
         menu.Items.Add(new Forms.ToolStripSeparator());
@@ -1152,7 +1193,7 @@ public partial class TaskbarWebWindow : Window
             {
                 ForeColor = Color.FromArgb(245, 245, 245),
                 Padding = new Forms.Padding(6, 5, 10, 5),
-                Image = CreateFluentIcon("launch")
+                Image = CreateFluentIcon("launch", false, accentDrawingColor)
             };
             launchItem.Click += (_, _) =>
             {
@@ -1169,7 +1210,7 @@ public partial class TaskbarWebWindow : Window
             {
                 ForeColor = Color.FromArgb(245, 245, 245),
                 Padding = new Forms.Padding(6, 5, 10, 5),
-                Image = CreateFluentIcon("unpin")
+                Image = CreateFluentIcon("unpin", false, accentDrawingColor)
             };
             unpinClosedItem.Click += (_, _) =>
             {
@@ -1192,9 +1233,9 @@ public partial class TaskbarWebWindow : Window
                 string itemLabel = string.IsNullOrWhiteSpace(w.Title) ? $"Window {i + 1}" : w.Title;
                 var winItem = new Forms.ToolStripMenuItem(itemLabel)
                 {
-                    ForeColor = w.IsActive ? Color.FromArgb(96, 205, 255) : Color.FromArgb(245, 245, 245),
+                    ForeColor = w.IsActive ? accentDrawingColor : Color.FromArgb(245, 245, 245),
                     Padding = new Forms.Padding(6, 5, 10, 5),
-                    Image = CreateFluentIcon("window", w.IsActive)
+                    Image = CreateFluentIcon("window", w.IsActive, accentDrawingColor)
                 };
                 long targetHwnd = w.Hwnd;
                 winItem.Click += (_, _) =>
@@ -1213,7 +1254,7 @@ public partial class TaskbarWebWindow : Window
             {
                 ForeColor = Color.FromArgb(245, 245, 245),
                 Padding = new Forms.Padding(6, 5, 10, 5),
-                Image = CreateFluentIcon("focus")
+                Image = CreateFluentIcon("focus", false, accentDrawingColor)
             };
             switchItem.Click += (_, _) =>
             {
@@ -1311,8 +1352,23 @@ public partial class TaskbarWebWindow : Window
         menu.Show(cursorPos, Forms.ToolStripDropDownDirection.AboveRight);
     }
 
-    public static Bitmap CreateFluentIcon(string type, bool isActive = false)
+    public static Color ParseDrawingAccentColor(string? hex)
     {
+        if (!string.IsNullOrWhiteSpace(hex))
+        {
+            try
+            {
+                var c = ColorTranslator.FromHtml(hex);
+                return Color.FromArgb(255, c.R, c.G, c.B);
+            }
+            catch { }
+        }
+        return Color.FromArgb(54, 132, 227);
+    }
+
+    public static Bitmap CreateFluentIcon(string type, bool isActive = false, Color? accentOverride = null)
+    {
+        Color accent = accentOverride ?? Color.FromArgb(54, 132, 227);
         var bmp = new Bitmap(16, 16);
         using var g = Graphics.FromImage(bmp);
         g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
@@ -1321,7 +1377,7 @@ public partial class TaskbarWebWindow : Window
         switch (type.ToLowerInvariant())
         {
             case "window":
-                Color winColor = isActive ? Color.FromArgb(96, 205, 255) : Color.FromArgb(200, 200, 200);
+                Color winColor = isActive ? accent : Color.FromArgb(200, 200, 200);
                 using (var pen = new Pen(winColor, 1.25f))
                 {
                     g.DrawRectangle(pen, 2f, 2.5f, 12f, 10.5f);
@@ -1329,7 +1385,7 @@ public partial class TaskbarWebWindow : Window
                 }
                 if (isActive)
                 {
-                    using var dotBrush = new SolidBrush(Color.FromArgb(96, 205, 255));
+                    using var dotBrush = new SolidBrush(accent);
                     g.FillEllipse(dotBrush, 4f, 7.5f, 2.5f, 2.5f);
                 }
                 break;
@@ -1344,7 +1400,7 @@ public partial class TaskbarWebWindow : Window
                 {
                     g.FillRectangle(frontBrush, 5f, 5f, 9f, 8f);
                 }
-                using (var frontPen = new Pen(Color.FromArgb(96, 205, 255), 1.3f))
+                using (var frontPen = new Pen(accent, 1.3f))
                 {
                     g.DrawRectangle(frontPen, 5f, 5f, 9f, 8f);
                     g.DrawLine(frontPen, 5f, 7.5f, 14f, 7.5f);
@@ -1437,7 +1493,7 @@ public partial class TaskbarWebWindow : Window
 
             case "launch":
                 // Fluent Open in new window / Launch
-                using (var pen = new Pen(Color.FromArgb(96, 205, 255), 1.25f))
+                using (var pen = new Pen(accent, 1.25f))
                 {
                     pen.StartCap = System.Drawing.Drawing2D.LineCap.Round;
                     pen.EndCap = System.Drawing.Drawing2D.LineCap.Round;
@@ -1454,7 +1510,7 @@ public partial class TaskbarWebWindow : Window
                 break;
 
             case "settings":
-                using (var pen = new Pen(Color.FromArgb(96, 205, 255), 1.25f))
+                using (var pen = new Pen(accent, 1.25f))
                 {
                     g.DrawEllipse(pen, 4, 4, 7, 7);
                     g.DrawLine(pen, 8, 1, 8, 4);

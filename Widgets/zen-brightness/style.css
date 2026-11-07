@@ -180,7 +180,7 @@
   height: 16px !important;
   border-radius: 50% !important;
   background: #ffffff !important;
-  border: 3px solid #60cdff !important;
+  border: 3px solid var(--winzen-accent, #60cdff) !important;
   margin-top: -5px !important; /* (6 - 16)/2 = -5px */
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4) !important;
   cursor: pointer !important;
@@ -196,7 +196,7 @@
 .in-control-center[data-aspect-ratio="1:2"] .slider-icon {
   width: 18px;
   height: 18px;
-  color: #60cdff;
+  color: var(--winzen-accent, #60cdff);
 }
 .in-control-center.cc-aspect-1-2 .slider-val,
 .in-control-center[data-aspect-ratio="1:2"] .slider-val {
