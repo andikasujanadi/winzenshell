@@ -64,11 +64,12 @@ public partial class WindowSelectorFlyoutWindow : Window
 
         Deactivated += (_, _) =>
         {
-            LastDeactivatedTime = DateTime.UtcNow;
-            if (IsVisible)
+            FlyoutAnimationHelper.HandleDeactivated(this, () => LastDeactivatedTime = DateTime.UtcNow, () =>
             {
-                HideSelector();
-            }
+                _hoverWatchTimer.Stop();
+                _isTaskbarHovered = false;
+                _isPinnedByClick = false;
+            });
         };
 
         PreviewKeyDown += (_, e) =>
@@ -87,7 +88,7 @@ public partial class WindowSelectorFlyoutWindow : Window
         _isPinnedByClick = false;
         if (IsVisible)
         {
-            Hide();
+            FlyoutAnimationHelper.AnimateHide(this);
         }
     }
 
@@ -253,11 +254,14 @@ public partial class WindowSelectorFlyoutWindow : Window
             left = monitorLeft + sideMargin;
 
         Left = left;
-        Top = top;
 
         if (!IsVisible)
         {
-            Show();
+            FlyoutAnimationHelper.AnimateShow(this, top, dockEdge, activate: false, useOpacityFade: true);
+        }
+        else
+        {
+            Top = top;
         }
         _hoverWatchTimer.Start();
     }

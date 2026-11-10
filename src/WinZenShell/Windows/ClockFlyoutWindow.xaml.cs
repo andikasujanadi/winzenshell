@@ -29,8 +29,7 @@ public partial class ClockFlyoutWindow : Window
 
         Deactivated += (_, _) =>
         {
-            LastDeactivatedTime = DateTime.UtcNow;
-            Hide();
+            FlyoutAnimationHelper.HandleDeactivated(this, () => LastDeactivatedTime = DateTime.UtcNow);
         };
         Loaded += (_, _) => UpdateClock();
     }
@@ -146,11 +145,7 @@ public partial class ClockFlyoutWindow : Window
             left = monitorLeft + sideMargin;
 
         Left = left;
-        Top = top;
-
-        Show();
-        Activate();
-        Focus();
+        FlyoutAnimationHelper.AnimateShow(this, top, dockEdge);
     }
 
     public void ApplyAccentColor(string? hex)
@@ -203,7 +198,7 @@ public partial class ClockFlyoutWindow : Window
 
     private void OnCloseClicked(object sender, RoutedEventArgs e)
     {
-        Hide();
+        FlyoutAnimationHelper.AnimateHide(this);
     }
 
     protected override void OnClosing(System.ComponentModel.CancelEventArgs e)

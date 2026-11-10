@@ -25,16 +25,19 @@ public partial class NetworkFlyoutWindow : Window
     private bool _isScanning = false;
     private string _currentTheme = "dark";
 
-    private const string PATH_WIFI_FULL = "M12 3a9 9 0 0 1 6.36 2.64.75.75 0 0 1-1.06 1.06A7.5 7.5 0 0 0 12 4.5a7.5 7.5 0 0 0-5.3 2.2.75.75 0 0 1-1.06-1.06A9 9 0 0 1 12 3zm0 4a5 5 0 0 1 3.54 1.46.75.75 0 1 1-1.06 1.06 3.5 3.5 0 0 0-4.95 0 .75.75 0 0 1-1.06-1.06A5 5 0 0 1 12 7zm0 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z";
-    private const string PATH_WIFI_MED = "M12 7a5 5 0 0 1 3.54 1.46.75.75 0 1 1-1.06 1.06 3.5 3.5 0 0 0-4.95 0 .75.75 0 0 1-1.06-1.06A5 5 0 0 1 12 7zm0 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z";
-    private const string PATH_WIFI_LOW = "M12 8.5a3 3 0 0 1 2.12.88.75.75 0 1 1-1.06 1.06 1.5 1.5 0 0 0-2.12 0 .75.75 0 0 1-1.06-1.06A3 3 0 0 1 12 8.5zm0 2.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z";
-    private const string PATH_WIFI_MIN = "M12 11a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z";
+    private const string PATH_WIFI_OUTER = "M2.03 8.23A14.10 14.10 0 0 1 21.97 8.23A0.90 0.90 0 0 1 20.70 9.50A12.30 12.30 0 0 0 3.30 9.50A0.90 0.90 0 0 1 2.03 8.23Z";
+    private const string PATH_WIFI_MID   = "M4.91 10.86A10.20 10.20 0 0 1 19.09 10.86A0.90 0.90 0 0 1 17.84 12.16A8.40 8.40 0 0 0 6.16 12.16A0.90 0.90 0 0 1 4.91 10.86Z";
+    private const string PATH_WIFI_INNER = "M7.70 13.59A6.30 6.30 0 0 1 16.30 13.59A0.90 0.90 0 0 1 15.07 14.91A4.50 4.50 0 0 0 8.93 14.91A0.90 0.90 0 0 1 7.70 13.59Z";
+    private const string PATH_WIFI_DOT   = "M12.0 16.40a1.8 1.8 0 1 1 0 3.6 1.8 1.8 0 0 1 0-3.6z";
+    private static readonly Geometry GEO_WIFI_OUTER = Geometry.Parse(PATH_WIFI_OUTER);
+    private static readonly Geometry GEO_WIFI_MID   = Geometry.Parse(PATH_WIFI_MID);
+    private static readonly Geometry GEO_WIFI_INNER = Geometry.Parse(PATH_WIFI_INNER);
+    private static readonly Geometry GEO_WIFI_DOT   = Geometry.Parse(PATH_WIFI_DOT);
     private const string PATH_ETHERNET = "M2 3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H9v1h2a.5.5 0 0 1 0 1H5a.5.5 0 0 1 0-1h2v-1H3a1 1 0 0 1-1-1V3zm1 0v7h10V3H3zM4 14.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5z";
     private const string PATH_OFFLINE = "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8 0-1.85.63-3.55 1.69-4.9L16.9 18.31C15.55 19.37 13.85 20 12 20zm6.31-3.1L7.1 5.69C8.45 4.63 10.15 4 12 4c4.42 0 8 3.58 8 8 0 1.85-.63 3.55-1.69 4.9z";
     private const string PATH_LOCK = "M6 5V4a2 2 0 1 1 4 0v1h1a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h1zm1-1a1 1 0 1 1 2 0v1H7V4zm1 4a1 1 0 1 0 0 2 1 1 0 0 0 0-2z";
 
     public DateTime LastDeactivatedTime { get; private set; } = DateTime.MinValue;
-    private DateTime _suppressDeactivationUntil = DateTime.MinValue;
 
     public NetworkFlyoutWindow(NetworkService networkService)
     {
@@ -44,19 +47,6 @@ public partial class NetworkFlyoutWindow : Window
 
         Deactivated += (_, _) =>
         {
-            if (DateTime.UtcNow < _suppressDeactivationUntil)
-            {
-                Dispatcher.BeginInvoke(new Action(() =>
-                {
-                    if (IsVisible)
-                    {
-                        Activate();
-                        Focus();
-                    }
-                }));
-                return;
-            }
-
             if (IsMouseOver)
             {
                 Dispatcher.BeginInvoke(new Action(() =>
@@ -70,13 +60,12 @@ public partial class NetworkFlyoutWindow : Window
                 return;
             }
 
-            LastDeactivatedTime = DateTime.UtcNow;
-            Hide();
+            FlyoutAnimationHelper.HandleDeactivated(this, () => LastDeactivatedTime = DateTime.UtcNow);
         };
 
         KeyDown += (s, e) =>
         {
-            if (e.Key == Key.Escape) Hide();
+            if (e.Key == Key.Escape) FlyoutAnimationHelper.AnimateHide(this);
         };
     }
 
@@ -97,9 +86,6 @@ public partial class NetworkFlyoutWindow : Window
         Dispatcher.InvokeAsync(async () =>
         {
             if (!IsVisible) return;
-
-            // When LAN is unplugged/plugged, prevent OS notification/focus loss from closing flyout
-            _suppressDeactivationUntil = DateTime.UtcNow.AddSeconds(4.0);
 
             UpdateActiveConnectionDisplay();
             await RefreshNetworksAsync();
@@ -122,7 +108,6 @@ public partial class NetworkFlyoutWindow : Window
         string theme,
         string accentColor)
     {
-        _suppressDeactivationUntil = DateTime.UtcNow.AddMilliseconds(800);
         ApplyTheme(theme);
         ApplyAccentColor(accentColor);
 
@@ -153,40 +138,52 @@ public partial class NetworkFlyoutWindow : Window
             left = monitorLeft + sideMargin;
 
         Left = left;
-        Top = top;
 
         UpdateActiveConnectionDisplay();
         _ = RefreshNetworksAsync();
 
-        Show();
-        Activate();
-        Focus();
+        FlyoutAnimationHelper.AnimateShow(this, top, dockEdge);
     }
 
     public void UpdateActiveConnectionDisplay()
     {
         var status = _networkService.GetNetworkStatus();
+        bool isLight = string.Equals(_currentTheme, "light", StringComparison.OrdinalIgnoreCase);
 
         if (status.NetworkType == "wifi")
         {
-            StatusIconPath.Data = Geometry.Parse(GetWifiSignalPath(status.SignalPercent));
-            StatusIconPath.Fill = _accentBrush;
+            var muted = isLight
+                ? new SolidColorBrush(MediaColor.FromArgb(0x38, 0x1A, 0x1A, 0x1A))
+                : new SolidColorBrush(MediaColor.FromArgb(0x42, 0xFF, 0xFF, 0xFF));
+            StatusIconHost.Content = CreateWifiSignalIcon(status.SignalPercent, _accentBrush, muted, 18);
             TxtStatusName.Text = string.IsNullOrEmpty(status.Ssid) ? "Wi-Fi" : status.Ssid;
             TxtStatusDetail.Text = $"Connected • {status.SignalPercent}% signal{(string.IsNullOrEmpty(status.LocalIp) ? "" : $" • {status.LocalIp}")}";
             BtnDisconnectWifi.Visibility = Visibility.Visible;
         }
         else if (status.NetworkType == "ethernet")
         {
-            StatusIconPath.Data = Geometry.Parse(PATH_ETHERNET);
-            StatusIconPath.Fill = _accentBrush;
+            StatusIconHost.Content = new Path
+            {
+                Data = Geometry.Parse(PATH_ETHERNET),
+                Fill = _accentBrush,
+                Width = 18,
+                Height = 18,
+                Stretch = Stretch.Uniform
+            };
             TxtStatusName.Text = string.IsNullOrEmpty(status.AdapterName) ? "Ethernet" : status.AdapterName;
             TxtStatusDetail.Text = $"Connected{(string.IsNullOrEmpty(status.LocalIp) ? "" : $" • {status.LocalIp}")}";
             BtnDisconnectWifi.Visibility = Visibility.Collapsed;
         }
         else
         {
-            StatusIconPath.Data = Geometry.Parse(PATH_OFFLINE);
-            StatusIconPath.Fill = new SolidColorBrush(MediaColor.FromRgb(0x9E, 0x9E, 0x9E));
+            StatusIconHost.Content = new Path
+            {
+                Data = Geometry.Parse(PATH_OFFLINE),
+                Fill = new SolidColorBrush(MediaColor.FromRgb(0x9E, 0x9E, 0x9E)),
+                Width = 18,
+                Height = 18,
+                Stretch = Stretch.Uniform
+            };
             TxtStatusName.Text = "Not Connected";
             TxtStatusDetail.Text = "No internet access";
             BtnDisconnectWifi.Visibility = Visibility.Collapsed;
@@ -214,8 +211,10 @@ public partial class NetworkFlyoutWindow : Window
         try
         {
             UpdateActiveConnectionDisplay();
-            var networks = await _networkService.ScanWifiNetworksAsync();
-            PopulateNetworksList(networks);
+            var networksTask = _networkService.ScanWifiNetworksAsync();
+            var profilesTask = Task.Run(() => _networkService.GetKnownProfiles());
+            await Task.WhenAll(networksTask, profilesTask);
+            PopulateNetworksList(networksTask.Result, profilesTask.Result);
         }
         catch { }
         finally
@@ -232,7 +231,7 @@ public partial class NetworkFlyoutWindow : Window
         }
     }
 
-    private void PopulateNetworksList(List<WifiNetworkItem> networks)
+    private void PopulateNetworksList(List<WifiNetworkItem> networks, HashSet<string>? knownProfiles = null)
     {
         NetworksContainer.Children.Clear();
 
@@ -256,8 +255,56 @@ public partial class NetworkFlyoutWindow : Window
             return;
         }
 
+        // Only include saved networks that are currently available/in-range, placed on top
+        var savedAvailable = new List<WifiNetworkItem>();
+        var otherAvailable = new List<WifiNetworkItem>();
         foreach (var net in networks)
         {
+            bool isSaved = net.IsKnownProfile || (knownProfiles != null && knownProfiles.Contains(net.Ssid));
+            if (isSaved)
+            {
+                net.IsKnownProfile = true;
+                savedAvailable.Add(net);
+            }
+            else
+            {
+                otherAvailable.Add(net);
+            }
+        }
+
+        var orderedNetworks = new List<WifiNetworkItem>(savedAvailable.Count + otherAvailable.Count);
+        bool showingSavedHeader = savedAvailable.Count > 0;
+        if (showingSavedHeader)
+        {
+            NetworksContainer.Children.Add(new TextBlock
+            {
+                Text = "Saved networks",
+                Foreground = secondaryText,
+                FontSize = 10.5,
+                FontWeight = FontWeights.SemiBold,
+                Margin = new Thickness(2, 0, 0, 6)
+            });
+            orderedNetworks.AddRange(savedAvailable);
+        }
+
+        int otherStartIdx = orderedNetworks.Count;
+        orderedNetworks.AddRange(otherAvailable);
+
+        for (int idx = 0; idx < orderedNetworks.Count; idx++)
+        {
+            if (showingSavedHeader && idx == otherStartIdx && otherAvailable.Count > 0)
+            {
+                NetworksContainer.Children.Add(new TextBlock
+                {
+                    Text = "Other networks",
+                    Foreground = secondaryText,
+                    FontSize = 10.5,
+                    FontWeight = FontWeights.SemiBold,
+                    Margin = new Thickness(2, 4, 0, 6)
+                });
+            }
+
+            var net = orderedNetworks[idx];
             var itemBorder = new Border
             {
                 Background = cardBg,
@@ -275,19 +322,19 @@ public partial class NetworkFlyoutWindow : Window
             topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-            // 1. Wi-Fi Signal Icon
-            var iconPath = new Path
-            {
-                Data = Geometry.Parse(GetWifiSignalPath(net.SignalPercent)),
-                Fill = net.IsConnected ? _accentBrush : primaryText,
-                Width = 14,
-                Height = 14,
-                Stretch = Stretch.Uniform,
-                HorizontalAlignment = WpfHorizontalAlignment.Left,
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            Grid.SetColumn(iconPath, 0);
-            topGrid.Children.Add(iconPath);
+            // 1. Wi-Fi Signal Icon (fixed 24x24 canvas keeps all signal tiers aligned and proportional)
+            var mutedSignal = isLight
+                ? new SolidColorBrush(MediaColor.FromArgb(0x36, 0x1A, 0x1A, 0x1A))
+                : new SolidColorBrush(MediaColor.FromArgb(0x3D, 0xFF, 0xFF, 0xFF));
+            var wifiIcon = CreateWifiSignalIcon(
+                net.SignalPercent,
+                net.IsConnected ? _accentBrush : primaryText,
+                mutedSignal,
+                16);
+            wifiIcon.HorizontalAlignment = WpfHorizontalAlignment.Left;
+            wifiIcon.VerticalAlignment = VerticalAlignment.Center;
+            Grid.SetColumn(wifiIcon, 0);
+            topGrid.Children.Add(wifiIcon);
 
             // 2. Center Text (SSID + Details)
             var textStack = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
@@ -317,6 +364,26 @@ public partial class NetworkFlyoutWindow : Window
                     VerticalAlignment = VerticalAlignment.Center
                 };
                 titleRow.Children.Add(lockPath);
+            }
+
+            if (net.IsKnownProfile && !net.IsConnected)
+            {
+                var savedTag = new Border
+                {
+                    Background = isLight ? new SolidColorBrush(MediaColor.FromArgb(0x12, 0, 0, 0)) : new SolidColorBrush(MediaColor.FromArgb(0x18, 0xFF, 0xFF, 0xFF)),
+                    CornerRadius = new CornerRadius(3),
+                    Padding = new Thickness(5, 1, 5, 1),
+                    Margin = new Thickness(6, 0, 0, 0),
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Child = new TextBlock
+                    {
+                        Text = "Saved",
+                        Foreground = secondaryText,
+                        FontSize = 9.5,
+                        FontWeight = FontWeights.SemiBold
+                    }
+                };
+                titleRow.Children.Add(savedTag);
             }
 
             textStack.Children.Add(titleRow);
@@ -485,12 +552,25 @@ public partial class NetworkFlyoutWindow : Window
         }
     }
 
-    private static string GetWifiSignalPath(int signal)
+    private static Viewbox CreateWifiSignalIcon(
+        int signal,
+        System.Windows.Media.Brush activeBrush,
+        System.Windows.Media.Brush mutedBrush,
+        double size = 16)
     {
-        if (signal >= 70) return PATH_WIFI_FULL;
-        if (signal >= 40) return PATH_WIFI_MED;
-        if (signal >= 15) return PATH_WIFI_LOW;
-        return PATH_WIFI_MIN;
+        var canvas = new Canvas { Width = 24, Height = 24 };
+        canvas.Children.Add(new Path { Data = GEO_WIFI_OUTER, Fill = signal >= 70 ? activeBrush : mutedBrush });
+        canvas.Children.Add(new Path { Data = GEO_WIFI_MID,   Fill = signal >= 40 ? activeBrush : mutedBrush });
+        canvas.Children.Add(new Path { Data = GEO_WIFI_INNER, Fill = signal >= 15 ? activeBrush : mutedBrush });
+        canvas.Children.Add(new Path { Data = GEO_WIFI_DOT,   Fill = signal >= 1  ? activeBrush : mutedBrush });
+
+        return new Viewbox
+        {
+            Width = size,
+            Height = size,
+            Stretch = Stretch.Uniform,
+            Child = canvas
+        };
     }
 
     private void OnRefreshClicked(object sender, RoutedEventArgs e)
@@ -520,7 +600,7 @@ public partial class NetworkFlyoutWindow : Window
 
     private void OnCloseClicked(object sender, RoutedEventArgs e)
     {
-        Hide();
+        FlyoutAnimationHelper.AnimateHide(this);
     }
 
     public void ApplyAccentColor(string? hex)
@@ -532,9 +612,9 @@ public partial class NetworkFlyoutWindow : Window
             _accentBrush = new SolidColorBrush(color);
             Resources["AccentBrush"] = _accentBrush;
             if (HeaderIconPath != null) HeaderIconPath.Fill = _accentBrush;
-            if (StatusIconPath != null) StatusIconPath.Fill = _accentBrush;
             if (TxtScanningIndicator != null) TxtScanningIndicator.Foreground = _accentBrush;
             if (BtnWindowsWifiSettings != null) BtnWindowsWifiSettings.Foreground = _accentBrush;
+            UpdateActiveConnectionDisplay();
         }
         catch { }
     }
@@ -584,7 +664,7 @@ public partial class NetworkFlyoutWindow : Window
         }
 
         if (HeaderIconPath != null) HeaderIconPath.Fill = _accentBrush;
-        if (StatusIconPath != null) StatusIconPath.Fill = _accentBrush;
+        UpdateActiveConnectionDisplay();
     }
 
     protected override void OnClosing(System.ComponentModel.CancelEventArgs e)

@@ -14,9 +14,43 @@ function initControlCenter() {
   let availableWidgets = [];
   let draggedCardId = null;
 
-  const SVG_PENCIL = '<path d="M12.146.146a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1 0 .708l-9.5 9.5a.5.5 0 0 1-.168.11l-4 1.5a.5.5 0 0 1-.65-.65l1.5-4a.5.5 0 0 1 .11-.168l9.5-9.5zm1.414 2.122-1.414-1.414L11 2.036l1.414 1.414 1.146-1.146zm-2.121.707-8.293 8.293-.854 2.276 2.276-.854 8.293-8.293-1.422-1.422z"/>';
-  const SVG_CHECK = '<path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>';
+  const SVG_PENCIL = '<path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm17.71-10.21a1.003 1.003 0 0 0 0-1.42l-2.34-2.34a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.82z"/>';
+  const SVG_CHECK = '<path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>';
   const editSvg = document.getElementById('editIconPencil');
+  const ccHeader = document.querySelector('.cc-header');
+  let lastSentHeight = 0;
+
+  function scheduleResize() {
+    const measureAndSend = () => {
+      if (!ccGrid || !window.winzen || typeof window.winzen.send !== 'function') return;
+      const headerH = ccHeader ? ccHeader.offsetHeight : 50;
+      const footerH = isEditing && ccEditFooter ? ccEditFooter.offsetHeight : 0;
+
+      let maxBottom = 0;
+      const children = ccGrid.children;
+      if (children.length === 0) {
+        maxBottom = 96;
+      } else {
+        for (let i = 0; i < children.length; i++) {
+          const ch = children[i];
+          const bottom = ch.offsetTop + ch.offsetHeight;
+          if (bottom > maxBottom) maxBottom = bottom;
+        }
+        maxBottom += 14;
+      }
+
+      const total = Math.ceil(headerH + maxBottom + footerH + 4);
+      if (total > 100 && Math.abs(total - lastSentHeight) >= 2) {
+        lastSentHeight = total;
+        window.winzen.send('resize_control_center', { height: total });
+      }
+    };
+
+    requestAnimationFrame(() => {
+      measureAndSend();
+      setTimeout(measureAndSend, 60);
+    });
+  }
 
   if (btnClose) {
     btnClose.addEventListener('click', () => {
@@ -47,6 +81,7 @@ function initControlCenter() {
       if (editSvg) editSvg.innerHTML = SVG_PENCIL;
       ccEditFooter.style.display = 'none';
     }
+    scheduleResize();
   }
 
   function populateAddSelect() {
@@ -333,7 +368,9 @@ function initControlCenter() {
             inControlCenter: true,
             aspectRatio: ratio,
             batteryIconStyle: w.batteryIconStyle,
-            batteryPercentMode: w.batteryPercentMode
+            batteryPercentMode: w.batteryPercentMode,
+            startIcon: w.startIcon,
+            startIconColorMode: w.startIconColorMode
           };
           const fn = new Function('root', 'document', 'winzen', 'widgetConfig', w.jsContent);
           fn(shadow, shadow, window.winzen, configCopy);
@@ -346,6 +383,7 @@ function initControlCenter() {
     if (window.winzen.metrics) {
       window.dispatchEvent(new CustomEvent('winzen:metrics', { detail: window.winzen.metrics }));
     }
+    scheduleResize();
   }
 
   window.addEventListener('winzen:metrics', (e) => {

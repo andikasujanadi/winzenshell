@@ -1,8 +1,8 @@
 {
   "id": "community.zen-virtual-desktops",
-  "name": "Zen Virtual Desktops",
+  "name": "Virtual Desktops",
   "version": "1.0.0",
-  "author": "WinZen Team",
+  "author": "Official",
   "description": "Interactive Windows 11 Virtual Desktop Switcher with direct desktop selection, mouse wheel cycling, and Task View integration.",
   "slot": "left",
   "order": 20,

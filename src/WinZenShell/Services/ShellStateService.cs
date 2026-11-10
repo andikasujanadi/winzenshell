@@ -54,6 +54,18 @@ public class ControlCenterItemPayload
 
     [JsonPropertyName("batteryPercentMode")]
     public string? BatteryPercentMode { get; set; }
+
+    [JsonPropertyName("startIcon")]
+    public string? StartIcon { get; set; }
+
+    [JsonPropertyName("startIconColorMode")]
+    public string? StartIconColorMode { get; set; }
+
+    [JsonPropertyName("showSeconds")]
+    public bool ShowSeconds { get; set; } = true;
+
+    [JsonPropertyName("showDate")]
+    public bool ShowDate { get; set; } = true;
 }
 
 public class PinnedAppEntry
@@ -85,6 +97,7 @@ public class ShellSettings
     public int TaskbarCornerRadiusPx { get; set; } = 12;
     public string AccentColor { get; set; } = "#3684E3";
     public string Theme { get; set; } = "dark"; // "dark" or "light"
+    public bool EnableAnimations { get; set; } = true;
     public Dictionary<string, WidgetStateOverride> WidgetOverrides { get; set; } = new();
     public List<ControlCenterItemConfig> ControlCenterWidgets { get; set; } = new();
     public List<PinnedAppEntry> PinnedApps { get; set; } = new();
@@ -174,6 +187,8 @@ public class ShellStateService
                 new() { Id = "community.zen-system-monitor", Order = 30, AspectRatio = "1:1", Enabled = true }
             };
         }
+
+        FlyoutAnimationHelper.AnimationsEnabled = _settings.EnableAnimations;
     }
 
     public void SaveSettings()
@@ -223,6 +238,15 @@ public class ShellStateService
         SyncTaskbarAndWorkArea();
 
         _statusBanner = enable ? "Taskbar enabled" : "Taskbar disabled";
+        BroadcastState();
+    }
+
+    public void ToggleAnimations(bool enable)
+    {
+        _settings.EnableAnimations = enable;
+        FlyoutAnimationHelper.AnimationsEnabled = enable;
+        SaveSettings();
+        _statusBanner = enable ? "Animations enabled" : "Animations disabled";
         BroadcastState();
     }
 
@@ -295,7 +319,10 @@ public class ShellStateService
         string? aspectRatio = null,
         bool? showThumbnails = null,
         string? batteryIconStyle = null,
-        string? batteryPercentMode = null)
+        string? batteryPercentMode = null,
+        string? startIconColorMode = null,
+        bool? showSeconds = null,
+        bool? showDate = null)
     {
         int? existingOrder = _settings.WidgetOverrides.TryGetValue(widgetId, out var prev) ? prev.Order : null;
         var existing = _settings.WidgetOverrides.TryGetValue(widgetId, out var existingOv) ? existingOv : null;
@@ -311,12 +338,15 @@ public class ShellStateService
             CombineApps = combineApps,
             ShowThumbnails = showThumbnails ?? (existing?.ShowThumbnails ?? true),
             StartIcon = !string.IsNullOrWhiteSpace(startIcon) ? startIcon : (existing?.StartIcon ?? "windows"),
+            StartIconColorMode = !string.IsNullOrWhiteSpace(startIconColorMode) ? startIconColorMode : (existing?.StartIconColorMode ?? "text"),
             StartText = startText != null ? startText : (existing?.StartText ?? "Start"),
             ShowStartText = showStartText,
             DisplayMode = !string.IsNullOrWhiteSpace(displayMode) ? displayMode : (existing?.DisplayMode ?? "widget"),
             AspectRatio = !string.IsNullOrWhiteSpace(aspectRatio) ? aspectRatio : (existing?.AspectRatio ?? "1:1"),
             BatteryIconStyle = !string.IsNullOrWhiteSpace(batteryIconStyle) ? batteryIconStyle : (existing?.BatteryIconStyle ?? "win11"),
-            BatteryPercentMode = !string.IsNullOrWhiteSpace(batteryPercentMode) ? batteryPercentMode : (existing?.BatteryPercentMode ?? "outside-right")
+            BatteryPercentMode = !string.IsNullOrWhiteSpace(batteryPercentMode) ? batteryPercentMode : (existing?.BatteryPercentMode ?? "outside-right"),
+            ShowSeconds = showSeconds ?? (existing?.ShowSeconds ?? true),
+            ShowDate = showDate ?? (existing?.ShowDate ?? true)
         };
         SaveSettings();
         _statusBanner = "Widget updated";
@@ -347,7 +377,9 @@ public class ShellStateService
                     StartText = current?.StartText ?? "Start",
                     ShowStartText = current?.ShowStartText ?? false,
                     DisplayMode = current?.DisplayMode ?? "widget",
-                    AspectRatio = current?.AspectRatio ?? "1:1"
+                    AspectRatio = current?.AspectRatio ?? "1:1",
+                    ShowSeconds = current?.ShowSeconds ?? true,
+                    ShowDate = current?.ShowDate ?? true
                 };
                 _settings.WidgetOverrides[item.Id] = ov;
             }
@@ -454,6 +486,49 @@ public class ShellStateService
         }
     }
 
+    public void ReorderPinnedApps(List<string> orderedAppKeys)
+    {
+        if (_settings.PinnedApps == null || _settings.PinnedApps.Count <= 1 || orderedAppKeys == null || orderedAppKeys.Count == 0)
+            return;
+
+        var reordered = new List<PinnedAppEntry>(_settings.PinnedApps.Count);
+        var remaining = new List<PinnedAppEntry>(_settings.PinnedApps);
+
+        foreach (string rawKey in orderedAppKeys)
+        {
+            if (string.IsNullOrWhiteSpace(rawKey)) continue;
+            string key = rawKey.Trim();
+            int idx = remaining.FindIndex(p =>
+                string.Equals(p.AppId, key, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(p.ProcessName, key, StringComparison.OrdinalIgnoreCase));
+            if (idx >= 0)
+            {
+                reordered.Add(remaining[idx]);
+                remaining.RemoveAt(idx);
+            }
+        }
+
+        if (remaining.Count > 0)
+            reordered.AddRange(remaining);
+
+        // Only save & broadcast if order actually changed
+        bool changed = false;
+        for (int i = 0; i < reordered.Count; i++)
+        {
+            if (!ReferenceEquals(reordered[i], _settings.PinnedApps[i]))
+            {
+                changed = true;
+                break;
+            }
+        }
+
+        if (!changed) return;
+
+        _settings.PinnedApps = reordered;
+        SaveSettings();
+        BroadcastState();
+    }
+
     public void CreateNewCommunityWidget(string name, string author, string slot, int width)
     {
         var manifest = _widgetManager.CreateCommunityWidgetScaffold(name, author, slot, width);
@@ -516,7 +591,11 @@ public class ShellStateService
                     CssContent = match.CssContent,
                     JsContent = match.JsContent,
                     BatteryIconStyle = match.BatteryIconStyle,
-                    BatteryPercentMode = match.BatteryPercentMode
+                    BatteryPercentMode = match.BatteryPercentMode,
+                    StartIcon = match.StartIcon,
+                    StartIconColorMode = match.StartIconColorMode,
+                    ShowSeconds = match.ShowSeconds,
+                    ShowDate = match.ShowDate
                 });
             }
         }

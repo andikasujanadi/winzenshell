@@ -9,6 +9,8 @@ function initTaskbar() {
   let currentTheme = 'dark';
   let currentAccent = '#3684E3';
   let currentRadius = 12;
+  let currentDockEdge = 'bottom';
+  let currentAnimations = true;
 
   if (btnOpenStudio) {
     btnOpenStudio.addEventListener('click', () => {
@@ -33,14 +35,19 @@ function initTaskbar() {
 
     const isFloating = (settings.floatingMarginPx || 0) > 0;
     const isTop = (settings.dockEdge || 'Bottom').toLowerCase() === 'top';
+    currentDockEdge = isTop ? 'top' : 'bottom';
+    currentAnimations = settings.enableAnimations !== false;
+    document.body.classList.toggle('winzen-no-anim', !currentAnimations);
     if (taskbarBar) {
       taskbarBar.classList.toggle('floating', isFloating);
       taskbarBar.classList.toggle('dock-top', isTop);
       taskbarBar.style.setProperty('--taskbar-radius', `${isFloating ? currentRadius : 0}px`);
     }
 
-    // Update accent and radius on existing widget hosts
+    // Update accent, dock edge, and animations flag on existing widget hosts
     document.querySelectorAll('.widget-host').forEach(host => {
+      host.setAttribute('data-dock', currentDockEdge);
+      host.setAttribute('data-animations', currentAnimations ? 'on' : 'off');
       host.style.setProperty('--winzen-accent', currentAccent);
       host.style.setProperty('--winzen-border-accent', currentAccent);
       host.style.setProperty('--win11-accent', currentAccent);
@@ -61,10 +68,13 @@ function initTaskbar() {
         displayMode: w.displayMode || 'widget',
         aspectRatio: w.aspectRatio || '1:1',
         startIcon: w.startIcon || 'windows',
+        startIconColorMode: w.startIconColorMode || 'text',
         startText: w.startText || 'Start',
         showStartText: !!w.showStartText,
         batteryIconStyle: w.batteryIconStyle || 'win11',
         batteryPercentMode: w.batteryPercentMode || 'outside-right',
+        showSeconds: w.showSeconds !== false,
+        showDate: w.showDate !== false,
         html: w.htmlContent,
         css: w.cssContent,
         js: w.jsContent
@@ -96,6 +106,8 @@ function initTaskbar() {
       host.dataset.inControlCenter = 'false';
       host.dataset.theme = currentTheme;
       host.setAttribute('data-theme', currentTheme);
+      host.setAttribute('data-dock', currentDockEdge);
+      host.setAttribute('data-animations', currentAnimations ? 'on' : 'off');
       host.style.width = isAutoWidth ? 'auto' : (isIconMode ? '34px' : `${w.width || 160}px`);
       host.dataset.widgetId = w.id;
       host.style.setProperty('--winzen-accent', currentAccent);
@@ -195,7 +207,9 @@ function initTaskbar() {
             ...w,
             inControlCenter: false,
             aspectRatio: 'taskbar',
-            displayMode: w.displayMode || 'widget'
+            displayMode: w.displayMode || 'widget',
+            dockEdge: currentDockEdge,
+            animations: currentAnimations
           };
           const fn = new Function('root', 'document', 'winzen', 'widgetConfig', w.jsContent);
           fn(shadow, shadow, window.winzen, taskbarConfig);

@@ -1,0 +1,14 @@
+{
+  "id": "community.zen-system-tray",
+  "name": "System Tray",
+  "version": "1.0.0",
+  "author": "Official",
+  "description": "Displays running system tray icons inline and in a Fluent overflow container.",
+  "entry": "index.html",
+  "slot": "right",
+  "order": 2,
+  "width": 64,
+  "autoWidth": true,
+  "supportedModes": ["widget"],
+  "enabled": true
+}

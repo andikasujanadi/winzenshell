@@ -19,8 +19,7 @@ public partial class SystemMonitorFlyoutWindow : Window
 
         Deactivated += (_, _) =>
         {
-            LastDeactivatedTime = DateTime.UtcNow;
-            Hide();
+            FlyoutAnimationHelper.HandleDeactivated(this, () => LastDeactivatedTime = DateTime.UtcNow);
         };
         Loaded += (_, _) => UpdateTelemetry();
     }
@@ -88,11 +87,7 @@ public partial class SystemMonitorFlyoutWindow : Window
             left = monitorLeft + sideMargin;
 
         Left = left;
-        Top = top;
-
-        Show();
-        Activate();
-        Focus();
+        FlyoutAnimationHelper.AnimateShow(this, top, dockEdge);
     }
 
     public void ApplyAccentColor(string? hex)
@@ -160,7 +155,7 @@ public partial class SystemMonitorFlyoutWindow : Window
 
     private void OnCloseClicked(object sender, RoutedEventArgs e)
     {
-        Hide();
+        FlyoutAnimationHelper.AnimateHide(this);
     }
 
     private void OnOpenTaskMgrClicked(object sender, RoutedEventArgs e)

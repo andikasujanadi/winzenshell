@@ -1,8 +1,8 @@
 {
   "id": "community.zen-system-monitor",
-  "name": "Zen CPU & RAM Telemetry",
+  "name": "CPU & RAM Telemetry",
   "version": "1.1.0",
-  "author": "WinZen Community",
+  "author": "Official",
   "description": "Displays live CPU load and Memory utilization with taskbar icon mode and 1:1 dashboard mode.",
   "slot": "right",
   "order": 3,

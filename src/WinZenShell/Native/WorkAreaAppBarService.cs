@@ -77,6 +77,11 @@ public class WorkAreaAppBarService
     /// Uses both SHAppBarMessage(ABM_QUERYPOS / ABM_SETPOS) and direct SPI_SETWORKAREA so
     /// maximized windows on Windows 11 always respect the custom taskbar even when Shell_TrayWnd is hidden.
     /// </summary>
+    private static bool RectsEqual(Win32Api.RECT a, Win32Api.RECT b)
+    {
+        return a.Left == b.Left && a.Top == b.Top && a.Right == b.Right && a.Bottom == b.Bottom;
+    }
+
     public Win32Api.RECT ApplyTaskbarBoundsAndWorkArea(
         IntPtr taskbarHwnd,
         bool taskbarVisible,
@@ -105,47 +110,76 @@ public class WorkAreaAppBarService
         {
             if (respectWorkArea)
             {
-                RegisterAppBar(taskbarHwnd);
+                var currentWorkArea = new Win32Api.RECT();
+                Win32Api.SystemParametersInfo(Win32Api.SPI_GETWORKAREA, 0, ref currentWorkArea, 0);
 
-                var abd = new Win32Api.APPBARDATA
-                {
-                    cbSize = Marshal.SizeOf<Win32Api.APPBARDATA>(),
-                    hWnd = taskbarHwnd,
-                    uEdge = isTop ? Win32Api.ABE_TOP : Win32Api.ABE_BOTTOM,
-                    rc = new Win32Api.RECT(
-                        monRect.Left,
-                        isTop ? monRect.Top : monRect.Bottom - totalBarFootprint,
-                        monRect.Right,
-                        isTop ? monRect.Top + totalBarFootprint : monRect.Bottom)
-                };
+                int targetEdgePos = isTop ? (monRect.Top + totalBarFootprint) : (monRect.Bottom - totalBarFootprint);
+                bool dockedEdgeMatches = isTop
+                    ? currentWorkArea.Top == targetEdgePos
+                    : currentWorkArea.Bottom == targetEdgePos;
 
-                Win32Api.SHAppBarMessage(Win32Api.ABM_QUERYPOS, ref abd);
-                // Maintain exact requested height on the chosen edge
-                if (isTop)
-                {
-                    abd.rc.Top = monRect.Top;
-                    abd.rc.Bottom = monRect.Top + totalBarFootprint;
-                }
-                else
-                {
-                    abd.rc.Bottom = monRect.Bottom;
-                    abd.rc.Top = monRect.Bottom - totalBarFootprint;
-                }
-                Win32Api.SHAppBarMessage(Win32Api.ABM_SETPOS, ref abd);
+                // Preserve opposite monitor edge if another taskbar (e.g. native bottom taskbar) reserves it
+                int preservedTop = !isTop && !nativeTaskbarHidden && currentWorkArea.Top > monRect.Top
+                    ? currentWorkArea.Top
+                    : monRect.Top;
+                int preservedBottom = isTop && !nativeTaskbarHidden && currentWorkArea.Bottom < monRect.Bottom
+                    ? currentWorkArea.Bottom
+                    : monRect.Bottom;
 
-                // Also explicitly enforce SPI_SETWORKAREA so Windows 11 respects it even when Shell_TrayWnd is SW_HIDE
                 var desiredWorkArea = new Win32Api.RECT
                 {
                     Left = monRect.Left,
                     Right = monRect.Right,
-                    Top = isTop ? (monRect.Top + totalBarFootprint) : monRect.Top,
-                    Bottom = isTop ? monRect.Bottom : (monRect.Bottom - totalBarFootprint)
+                    Top = isTop ? targetEdgePos : preservedTop,
+                    Bottom = isTop ? preservedBottom : targetEdgePos
                 };
-                Win32Api.SystemParametersInfo(
-                    Win32Api.SPI_SETWORKAREA,
-                    0,
-                    ref desiredWorkArea,
-                    Win32Api.SPIF_SENDCHANGE);
+
+                // Skip redundant AppBar / SPI_SETWORKAREA broadcasts when docked edge already matches
+                if (!_isRegistered || _registeredHwnd != taskbarHwnd || !dockedEdgeMatches)
+                {
+                    RegisterAppBar(taskbarHwnd);
+
+                    var abd = new Win32Api.APPBARDATA
+                    {
+                        cbSize = Marshal.SizeOf<Win32Api.APPBARDATA>(),
+                        hWnd = taskbarHwnd,
+                        uEdge = isTop ? Win32Api.ABE_TOP : Win32Api.ABE_BOTTOM,
+                        rc = new Win32Api.RECT(
+                            monRect.Left,
+                            isTop ? monRect.Top : monRect.Bottom - totalBarFootprint,
+                            monRect.Right,
+                            isTop ? monRect.Top + totalBarFootprint : monRect.Bottom)
+                    };
+
+                    Win32Api.SHAppBarMessage(Win32Api.ABM_QUERYPOS, ref abd);
+                    // Maintain exact requested height on the chosen edge
+                    if (isTop)
+                    {
+                        abd.rc.Top = monRect.Top;
+                        abd.rc.Bottom = monRect.Top + totalBarFootprint;
+                    }
+                    else
+                    {
+                        abd.rc.Bottom = monRect.Bottom;
+                        abd.rc.Top = monRect.Bottom - totalBarFootprint;
+                    }
+                    Win32Api.SHAppBarMessage(Win32Api.ABM_SETPOS, ref abd);
+
+                    Win32Api.SystemParametersInfo(Win32Api.SPI_GETWORKAREA, 0, ref currentWorkArea, 0);
+                    bool edgeAfterAppBar = isTop
+                        ? currentWorkArea.Top == targetEdgePos
+                        : currentWorkArea.Bottom == targetEdgePos;
+                    if (!edgeAfterAppBar)
+                    {
+                        desiredWorkArea.Top = isTop ? targetEdgePos : Math.Max(monRect.Top, currentWorkArea.Top);
+                        desiredWorkArea.Bottom = isTop ? Math.Min(monRect.Bottom, currentWorkArea.Bottom) : targetEdgePos;
+                        Win32Api.SystemParametersInfo(
+                            Win32Api.SPI_SETWORKAREA,
+                            0,
+                            ref desiredWorkArea,
+                            Win32Api.SPIF_SENDCHANGE);
+                    }
+                }
             }
             else
             {
@@ -153,16 +187,26 @@ public class WorkAreaAppBarService
                 UnregisterAppBar(taskbarHwnd);
                 if (nativeTaskbarHidden)
                 {
-                    var fullArea = monRect;
-                    Win32Api.SystemParametersInfo(
-                        Win32Api.SPI_SETWORKAREA,
-                        0,
-                        ref fullArea,
-                        Win32Api.SPIF_SENDCHANGE);
+                    var currentWorkArea = new Win32Api.RECT();
+                    Win32Api.SystemParametersInfo(Win32Api.SPI_GETWORKAREA, 0, ref currentWorkArea, 0);
+                    if (!RectsEqual(currentWorkArea, monRect))
+                    {
+                        var fullArea = monRect;
+                        Win32Api.SystemParametersInfo(
+                            Win32Api.SPI_SETWORKAREA,
+                            0,
+                            ref fullArea,
+                            Win32Api.SPIF_SENDCHANGE);
+                    }
                 }
             }
 
-            // Position the custom taskbar window at top-most z-order
+            // Position the custom taskbar window at top-most z-order (only move/resize if bounds changed)
+            uint swpFlags = Win32Api.SWP_NOACTIVATE | Win32Api.SWP_SHOWWINDOW;
+            if (Win32Api.GetWindowRect(taskbarHwnd, out var curWndRect) && RectsEqual(curWndRect, barRect))
+            {
+                swpFlags |= Win32Api.SWP_NOMOVE | Win32Api.SWP_NOSIZE;
+            }
             Win32Api.SetWindowPos(
                 taskbarHwnd,
                 Win32Api.HWND_TOPMOST,
@@ -170,7 +214,7 @@ public class WorkAreaAppBarService
                 barRect.Top,
                 barRect.Width,
                 barRect.Height,
-                Win32Api.SWP_NOACTIVATE | Win32Api.SWP_SHOWWINDOW);
+                swpFlags);
         }
         else
         {

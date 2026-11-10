@@ -17,6 +17,10 @@ public partial class ControlCenterFlyoutWindow : Window
     private readonly Action _openSettingsCallback;
     private bool _webViewReady;
     private IntPtr _hwnd = IntPtr.Zero;
+    private double _desiredHeight = 420;
+    private double _lastTaskbarTop;
+    private double _lastTaskbarHeight = 50;
+    private string _lastDockEdge = "Bottom";
     public DateTime LastDeactivatedTime { get; private set; } = DateTime.MinValue;
 
     public ControlCenterFlyoutWindow(
@@ -35,8 +39,7 @@ public partial class ControlCenterFlyoutWindow : Window
 
         Deactivated += (_, _) =>
         {
-            LastDeactivatedTime = DateTime.UtcNow;
-            Hide();
+            FlyoutAnimationHelper.HandleDeactivated(this, () => LastDeactivatedTime = DateTime.UtcNow);
         };
         Loaded += OnLoaded;
 
@@ -227,7 +230,15 @@ public partial class ControlCenterFlyoutWindow : Window
                     break;
 
                 case "close_control_center":
-                    Hide();
+                    FlyoutAnimationHelper.AnimateHide(this);
+                    break;
+
+                case "resize_control_center":
+                    if (root.TryGetProperty("height", out var hProp) && hProp.TryGetDouble(out double reqH) && reqH > 100)
+                    {
+                        _desiredHeight = reqH;
+                        Dispatcher.Invoke(ApplyDynamicBounds);
+                    }
                     break;
             }
         }
@@ -237,10 +248,38 @@ public partial class ControlCenterFlyoutWindow : Window
         }
     }
 
+    private double ClampTargetHeight(double rawHeight)
+    {
+        var mon = WorkAreaAppBarService.GetPrimaryMonitorInfo().rcMonitor;
+        double dpiScale = System.Windows.Media.VisualTreeHelper.GetDpi(this).DpiScaleY;
+        if (dpiScale <= 0) dpiScale = 1.0;
+        double monitorDipHeight = mon.Height / dpiScale;
+        double maxH = Math.Max(260, Math.Min(560, monitorDipHeight - Math.Max(_lastTaskbarHeight, 50) - 36));
+        return Math.Clamp(Math.Round(rawHeight), 170, maxH);
+    }
+
+    private void ApplyDynamicBounds()
+    {
+        double targetHeight = ClampTargetHeight(_desiredHeight);
+        const double floatingGap = 10.0;
+
+        Height = targetHeight;
+        Top = string.Equals(_lastDockEdge, "Top", StringComparison.OrdinalIgnoreCase)
+            ? _lastTaskbarTop + _lastTaskbarHeight + floatingGap
+            : _lastTaskbarTop - targetHeight - floatingGap;
+
+        Dispatcher.BeginInvoke(new Action(ApplyCornerClipping), System.Windows.Threading.DispatcherPriority.Loaded);
+    }
+
     public void ShowAt(double anchorScreenX, double anchorWidth, double taskbarTop, double taskbarHeight, string dockEdge)
     {
+        _lastTaskbarTop = taskbarTop;
+        _lastTaskbarHeight = taskbarHeight;
+        _lastDockEdge = dockEdge;
+
         double flyoutWidth = Width;
-        double flyoutHeight = Height;
+        double flyoutHeight = ClampTargetHeight(_desiredHeight);
+        Height = flyoutHeight;
 
         double left = anchorScreenX + (anchorWidth / 2.0) - (flyoutWidth / 2.0);
         const double floatingGap = 10.0;
@@ -266,13 +305,10 @@ public partial class ControlCenterFlyoutWindow : Window
             left = monitorLeft + sideMargin;
 
         Left = left;
-        Top = top;
 
         ApplyCornerClipping();
         ApplyTheme(_shellState.Settings.Theme);
-        Show();
-        Activate();
-        Focus();
+        FlyoutAnimationHelper.AnimateShow(this, top, dockEdge, activate: true, useOpacityFade: false);
 
         PushStateToWeb(_shellState.BuildPayload());
         BroadcastMetrics();

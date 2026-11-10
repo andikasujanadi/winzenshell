@@ -127,7 +127,7 @@ function updateBatteryDisplay(m) {
     batteryRoot.classList.toggle('is-charging', isCharging);
     batteryRoot.classList.toggle('is-low', isLow);
     batteryRoot.classList.toggle('is-energy-saver', isEnergySaver);
-    batteryRoot.title = `Battery: ${pct}% • ${statusText} (Click to open Battery Settings)`;
+    batteryRoot.title = `Battery: ${pct}% • ${statusText} (Click for Power & Battery)`;
   }
 }
 
@@ -137,7 +137,13 @@ if (batteryRoot) {
   batteryRoot.addEventListener('click', (ev) => {
     ev.stopPropagation();
     if (window.winzen && typeof window.winzen.send === 'function') {
-      window.winzen.send('open_uri', { uri: 'ms-settings:powersleep' });
+      const rect = batteryRoot.getBoundingClientRect();
+      window.winzen.send('toggle_battery_flyout', {
+        x: rect.left,
+        y: rect.top,
+        width: rect.width,
+        height: rect.height
+      });
     }
   });
 }

@@ -19,9 +19,19 @@
   --win11-text-tertiary: #8a8a8a;
 
   --win11-accent: #60cdff;
-  --win11-accent-hover: #56b9e6;
+  --win11-accent-hover: color-mix(in srgb, var(--win11-accent) 88%, #ffffff);
   --win11-accent-ink: #000000;
   --win11-danger: #ff99a4;
+
+  --win11-slider-track: rgba(255, 255, 255, 0.42);
+  --win11-slider-thumb-outer: #454545;
+  --win11-slider-thumb-ring: rgba(255, 255, 255, 0.1);
+  --win11-slider-thumb-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+}
+
+:root[data-theme="light"],
+html[data-theme="light"] {
+  --win11-accent: #0067c0;
 }
 
 :root[data-theme="light"],
@@ -45,10 +55,14 @@ body.theme-light {
   --win11-text-secondary: #5c5c5c;
   --win11-text-tertiary: #8a8a8a;
 
-  --win11-accent: #0067c0;
-  --win11-accent-hover: #1879cd;
+  --win11-accent-hover: color-mix(in srgb, var(--win11-accent) 88%, #000000);
   --win11-accent-ink: #ffffff;
   --win11-danger: #c42b1c;
+
+  --win11-slider-track: rgba(0, 0, 0, 0.3);
+  --win11-slider-thumb-outer: #ffffff;
+  --win11-slider-thumb-ring: rgba(0, 0, 0, 0.12);
+  --win11-slider-thumb-shadow: 0 1px 4px rgba(0, 0, 0, 0.22);
 }
 
 * {
@@ -117,6 +131,7 @@ body {
   height: 100vh;
   width: 100vw;
   overflow: hidden;
+  border-top: 1px solid var(--win11-stroke-control);
 }
 
 /* Windows 11 NavigationView Left Pane */
@@ -375,7 +390,7 @@ body {
 }
 
 .win11-tool-btn-accent svg {
-  color: #000000;
+  color: var(--win11-accent-ink);
 }
 
 .win11-tool-btn-accent:hover {
@@ -817,9 +832,47 @@ body.theme-light .win11-select option {
 }
 
 .win11-slider {
-  accent-color: var(--win11-accent);
-  height: 32px;
+  -webkit-appearance: none;
+  appearance: none;
+  width: 150px;
+  height: 4px;
+  max-height: 4px;
+  border-radius: 2px;
+  background: var(--win11-slider-track, rgba(255, 255, 255, 0.42));
+  outline: none;
   cursor: pointer;
+  margin: 14px 0;
+  padding: 0;
+}
+
+.win11-slider::-webkit-slider-runnable-track {
+  height: 4px;
+  max-height: 4px;
+  border-radius: 2px;
+  background: transparent;
+}
+
+.win11-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--win11-accent, #60cdff);
+  background-clip: padding-box;
+  border: 4.5px solid var(--win11-slider-thumb-outer, #454545);
+  cursor: pointer;
+  margin-top: -7px;
+  box-shadow: 0 0 0 1px var(--win11-slider-thumb-ring, rgba(255, 255, 255, 0.1)), var(--win11-slider-thumb-shadow, 0 1px 4px rgba(0, 0, 0, 0.45));
+  transition: border-width 0.12s cubic-bezier(0.1, 0.9, 0.2, 1);
+}
+
+.win11-slider::-webkit-slider-thumb:hover {
+  border-width: 3.5px;
+}
+
+.win11-slider:active::-webkit-slider-thumb {
+  border-width: 5.5px;
 }
 
 /* Windows 11 System > Display Style Monitor Preview */
@@ -1189,6 +1242,43 @@ body.theme-light .mon-workarea {
   background: rgba(255, 255, 255, 0.06);
   color: var(--win11-text-tertiary);
   text-transform: uppercase;
+}
+
+.card-title-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.widget-author-tag {
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.2;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--win11-text-secondary);
+  letter-spacing: 0.2px;
+}
+
+.widget-author-tag.is-official {
+  background: color-mix(in srgb, var(--win11-accent) 16%, transparent);
+  border-color: color-mix(in srgb, var(--win11-accent) 38%, transparent);
+  color: var(--win11-accent);
+}
+
+html[data-theme="light"] .widget-author-tag,
+body.theme-light .widget-author-tag {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.09);
+}
+
+html[data-theme="light"] .widget-author-tag.is-official,
+body.theme-light .widget-author-tag.is-official {
+  background: color-mix(in srgb, var(--win11-accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--win11-accent) 32%, transparent);
 }
 
 .rp-chip.is-dragging-source {

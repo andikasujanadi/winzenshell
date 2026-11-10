@@ -24,12 +24,28 @@
   color: var(--winzen-text, #ffffff);
   display: inline-flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
+  text-align: center;
   padding: 0 10px;
   cursor: pointer;
   transition: background-color 0.1s ease, border-color 0.1s ease;
   font-family: var(--winzen-font, 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif);
+}
+
+.clock-pill.no-date {
+  align-items: center;
+}
+
+.clock-pill.no-date .date {
+  display: none;
+}
+
+.clock-pill.no-date .time {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  line-height: 1;
 }
 
 .clock-pill:hover {

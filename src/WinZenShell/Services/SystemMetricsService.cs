@@ -60,6 +60,7 @@ public class SystemMetricsSnapshot
     public string LocalIpAddress { get; set; } = "";
     public string GatewayAddress { get; set; } = "";
     public bool IsNetworkConnected { get; set; } = false;
+    public List<TrayIconItem> TrayIcons { get; set; } = new();
 }
 
 public class SystemMetricsService
@@ -68,6 +69,7 @@ public class SystemMetricsService
     public AudioService? Audio { get; set; }
     public VirtualDesktopService? VirtualDesktops { get; set; }
     public NetworkService? Network { get; set; }
+    public TrayIconService? TrayIcons { get; set; }
 
     private DateTime _lastCpuCheck = DateTime.UtcNow;
     private TimeSpan _lastTotalProcTime = TimeSpan.Zero;
@@ -203,7 +205,8 @@ public class SystemMetricsService
             WifiSignalPercent = wifiSignal,
             LocalIpAddress = localIp,
             GatewayAddress = gatewayIp,
-            IsNetworkConnected = isNetConnected
+            IsNetworkConnected = isNetConnected,
+            TrayIcons = TrayIcons?.GetActiveTrayIcons() ?? new()
         };
     }
 
@@ -522,7 +525,10 @@ public class SystemMetricsService
 
         Win32Api.EnumWindows((hWnd, _) =>
         {
-            if (hWnd == shellWnd || hWnd == ignoreTaskbarHwnd)
+            if (hWnd == shellWnd || hWnd == ignoreTaskbarHwnd || hWnd == ignoreSettingsHwnd)
+                return true;
+            Win32Api.GetWindowThreadProcessId(hWnd, out uint winPid);
+            if (winPid == (uint)Environment.ProcessId)
                 return true;
             if (!Win32Api.IsWindowVisible(hWnd))
                 return true;
@@ -543,8 +549,7 @@ public class SystemMetricsService
             string title = sb.ToString().Trim();
             if (string.IsNullOrWhiteSpace(title) ||
                 title == "Program Manager" ||
-                title == "Windows Input Experience" ||
-                title == "Settings")
+                title == "Windows Input Experience")
                 return true;
 
             long hwndKey = hWnd.ToInt64();
@@ -571,6 +576,9 @@ public class SystemMetricsService
             {
                 // Ignore
             }
+
+            if (string.Equals(procName, "WinZenShell", StringComparison.OrdinalIgnoreCase))
+                return true;
 
             if (string.Equals(procName, "ApplicationFrameHost", StringComparison.OrdinalIgnoreCase))
             {

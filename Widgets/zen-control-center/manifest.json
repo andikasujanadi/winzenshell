@@ -1,8 +1,8 @@
 {
   "id": "community.zen-control-center",
-  "name": "Zen Control Center",
+  "name": "Control Center",
   "version": "1.0.0",
-  "author": "WinZen Team",
+  "author": "Official",
   "description": "Unified Quick Settings and Control Center panel containing modular widgets in an authentic grid.",
   "slot": "right",
   "order": 18,

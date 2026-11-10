@@ -53,6 +53,9 @@ public class WidgetManifest
     [JsonPropertyName("startIcon")]
     public string StartIcon { get; set; } = "windows";
 
+    [JsonPropertyName("startIconColorMode")]
+    public string StartIconColorMode { get; set; } = "text";
+
     [JsonPropertyName("startText")]
     public string StartText { get; set; } = "Start";
 
@@ -64,6 +67,12 @@ public class WidgetManifest
 
     [JsonPropertyName("batteryPercentMode")]
     public string BatteryPercentMode { get; set; } = "outside-right";
+
+    [JsonPropertyName("showSeconds")]
+    public bool ShowSeconds { get; set; } = true;
+
+    [JsonPropertyName("showDate")]
+    public bool ShowDate { get; set; } = true;
 
     [JsonPropertyName("displayMode")]
     public string DisplayMode { get; set; } = "widget"; // "icon" or "widget"
@@ -190,6 +199,8 @@ public class WidgetManagerService
                     manifest.ShowThumbnails = ov.ShowThumbnails;
                     if (!string.IsNullOrWhiteSpace(ov.StartIcon))
                         manifest.StartIcon = ov.StartIcon;
+                    if (!string.IsNullOrWhiteSpace(ov.StartIconColorMode))
+                        manifest.StartIconColorMode = ov.StartIconColorMode;
                     if (ov.StartText != null)
                         manifest.StartText = ov.StartText;
                     manifest.ShowStartText = ov.ShowStartText;
@@ -201,6 +212,8 @@ public class WidgetManagerService
                         manifest.BatteryIconStyle = ov.BatteryIconStyle;
                     if (!string.IsNullOrWhiteSpace(ov.BatteryPercentMode))
                         manifest.BatteryPercentMode = ov.BatteryPercentMode;
+                    manifest.ShowSeconds = ov.ShowSeconds;
+                    manifest.ShowDate = ov.ShowDate;
                 }
 
                 result.Add(manifest);
@@ -378,12 +391,15 @@ public class WidgetStateOverride
     public bool CombineApps { get; set; } = false;
     public bool ShowThumbnails { get; set; } = true;
     public string StartIcon { get; set; } = "windows";
+    public string StartIconColorMode { get; set; } = "text";
     public string StartText { get; set; } = "Start";
     public bool ShowStartText { get; set; } = false;
     public string DisplayMode { get; set; } = "widget";
     public string AspectRatio { get; set; } = "1:1";
     public string BatteryIconStyle { get; set; } = "win11";
     public string BatteryPercentMode { get; set; } = "outside-right";
+    public bool ShowSeconds { get; set; } = true;
+    public bool ShowDate { get; set; } = true;
 }
 
 public class WidgetOrderUpdate

@@ -34,13 +34,17 @@ public partial class TaskbarWebWindow : Window
     private SystemMonitorFlyoutWindow? _systemMonitorFlyout;
     private WindowSelectorFlyoutWindow? _windowSelectorFlyout;
     private NetworkFlyoutWindow? _networkFlyout;
+    private BatteryFlyoutWindow? _batteryFlyout;
+    private TrayOverflowFlyoutWindow? _trayOverflowFlyout;
     private readonly NetworkService _networkService;
+    private readonly TrayIconService _trayIconService;
     private FileSystemWatcher? _triggerWatcher;
     private Forms.ContextMenuStrip? _activeNativeMenu;
     private IntPtr _hwnd = IntPtr.Zero;
     private bool _webViewReady;
     private bool _isApplyingWorkArea;
     private bool _isFullscreenActive;
+    private string _lastDockEdge = "";
 
     public IntPtr Handle => _hwnd;
 
@@ -59,9 +63,11 @@ public partial class TaskbarWebWindow : Window
         _audioService = new AudioService();
         _virtualDesktopService = new VirtualDesktopService();
         _networkService = new NetworkService();
+        _trayIconService = new TrayIconService();
         _metricsService.Audio = _audioService;
         _metricsService.VirtualDesktops = _virtualDesktopService;
         _metricsService.Network = _networkService;
+        _metricsService.TrayIcons = _trayIconService;
         _appLauncherService = appLauncherService;
         _openSettingsCallback = openSettingsCallback;
 
@@ -83,11 +89,12 @@ public partial class TaskbarWebWindow : Window
         {
             Interval = TimeSpan.FromSeconds(1.2)
         };
+        _lastDockEdge = _shellState.Settings.DockEdge;
         _metricsTimer.Tick += (_, _) => BroadcastMetrics();
 
         _fullscreenTimer = new DispatcherTimer
         {
-            Interval = TimeSpan.FromMilliseconds(250)
+            Interval = TimeSpan.FromMilliseconds(100)
         };
         _fullscreenTimer.Tick += (_, _) => CheckFullscreenApp();
 
@@ -103,6 +110,7 @@ public partial class TaskbarWebWindow : Window
     {
         base.OnSourceInitialized(e);
         _hwnd = new WindowInteropHelper(this).Handle;
+        FlyoutAnimationHelper.TaskbarHwnd = _hwnd;
 
         // Set WS_EX_TOOLWINDOW | WS_EX_TOPMOST so taskbar does not appear in Alt+Tab
         int exStyle = Win32Api.GetWindowLong(_hwnd, Win32Api.GWL_EXSTYLE);
@@ -160,6 +168,7 @@ public partial class TaskbarWebWindow : Window
                 BroadcastMetrics();
                 _metricsTimer.Start();
                 _fullscreenTimer.Start();
+                _trayOverflowFlyout ??= new TrayOverflowFlyoutWindow(_trayIconService, _openSettingsCallback, () => Dispatcher.Invoke(BroadcastMetrics));
             };
 
             core.Navigate("https://app.winzenshell.local/taskbar.html");
@@ -353,6 +362,16 @@ public partial class TaskbarWebWindow : Window
                         _systemMonitorFlyout ??= new SystemMonitorFlyoutWindow(_metricsService);
                         _systemMonitorFlyout.ShowAt(mon.Right - 460, 34, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
                     }
+                    else if (cmd.StartsWith("open_battery", StringComparison.OrdinalIgnoreCase))
+                    {
+                        _batteryFlyout ??= new BatteryFlyoutWindow();
+                        _batteryFlyout.ShowAt(mon.Right - 220, 48, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
+                    }
+                    else if (cmd.StartsWith("open_tray", StringComparison.OrdinalIgnoreCase))
+                    {
+                        _trayOverflowFlyout ??= new TrayOverflowFlyoutWindow(_trayIconService, _openSettingsCallback, () => Dispatcher.Invoke(BroadcastMetrics));
+                        _trayOverflowFlyout.ShowAt(mon.Right - 480, 24, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
+                    }
                     else if (cmd.StartsWith("open_launcher", StringComparison.OrdinalIgnoreCase))
                     {
                         _appLauncherFlyout ??= new AppLauncherFlyoutWindow(_appLauncherService, _openSettingsCallback, _shellState);
@@ -463,7 +482,7 @@ public partial class TaskbarWebWindow : Window
                     }
                     else if (cmd.StartsWith("status_flyout", StringComparison.OrdinalIgnoreCase))
                     {
-                        string status = $"Volume={_volumeFlyout?.IsVisible == true};Brightness={_brightnessFlyout?.IsVisible == true};Clock={_clockFlyout?.IsVisible == true};Telemetry={_systemMonitorFlyout?.IsVisible == true};CC={_controlCenterFlyout?.IsVisible == true};Launcher={_appLauncherFlyout?.IsVisible == true};Network={_networkFlyout?.IsVisible == true}";
+                        string status = $"Volume={_volumeFlyout?.IsVisible == true};Brightness={_brightnessFlyout?.IsVisible == true};Clock={_clockFlyout?.IsVisible == true};Telemetry={_systemMonitorFlyout?.IsVisible == true};CC={_controlCenterFlyout?.IsVisible == true};Launcher={_appLauncherFlyout?.IsVisible == true};Network={_networkFlyout?.IsVisible == true};Battery={_batteryFlyout?.IsVisible == true};Tray={_trayOverflowFlyout?.IsVisible == true}";
                         File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "flyout_status.txt"), status);
                     }
                     else if (cmd.StartsWith("volume_click_0", StringComparison.OrdinalIgnoreCase))
@@ -640,6 +659,17 @@ public partial class TaskbarWebWindow : Window
     {
         Dispatcher.Invoke(() =>
         {
+            string currentEdge = _shellState.Settings.DockEdge ?? "Bottom";
+            bool flippedEdge = !string.IsNullOrWhiteSpace(_lastDockEdge) &&
+                               !string.Equals(_lastDockEdge, currentEdge, StringComparison.OrdinalIgnoreCase);
+            _lastDockEdge = currentEdge;
+
+            bool changed = Math.Abs(Left - rect.Left) > 0.5 ||
+                           Math.Abs(Top - rect.Top) > 0.5 ||
+                           Math.Abs(Width - rect.Width) > 0.5 ||
+                           Math.Abs(Height - rect.Height) > 0.5;
+            if (!changed && !flippedEdge) return;
+
             Left = rect.Left;
             Top = rect.Top;
             Width = rect.Width;
@@ -647,6 +677,12 @@ public partial class TaskbarWebWindow : Window
             TaskbarWebView.Width = rect.Width;
             TaskbarWebView.Height = rect.Height;
             ApplyTaskbarCornerRegion();
+
+            if (flippedEdge && IsVisible && !_isFullscreenActive)
+            {
+                bool isTopNow = string.Equals(currentEdge, "Top", StringComparison.OrdinalIgnoreCase);
+                FlyoutAnimationHelper.AnimateTaskbarFlip(this, rect.Top, isTopNow);
+            }
         });
     }
 
@@ -666,7 +702,7 @@ public partial class TaskbarWebWindow : Window
             ? System.Drawing.Color.FromArgb(255, 0xF3, 0xF3, 0xF3)
             : System.Drawing.Color.FromArgb(255, 0x1C, 0x1C, 0x1C);
 
-        if (_hwnd == IntPtr.Zero) return;
+        if (_hwnd == IntPtr.Zero || _isFullscreenActive) return;
 
         int darkAttr = isLight ? 0 : 1;
         Win32Api.DwmSetWindowAttribute(_hwnd, Win32Api.DWMWA_USE_IMMERSIVE_DARK_MODE, ref darkAttr, sizeof(int));
@@ -763,6 +799,16 @@ public partial class TaskbarWebWindow : Window
                 _systemMonitorFlyout.ApplyAccentColor(accent);
                 _systemMonitorFlyout.ApplyTheme(theme);
             }
+            if (_batteryFlyout != null)
+            {
+                _batteryFlyout.ApplyAccentColor(accent);
+                _batteryFlyout.ApplyTheme(theme);
+            }
+            if (_trayOverflowFlyout != null)
+            {
+                _trayOverflowFlyout.ApplyAccentColor(accent);
+                _trayOverflowFlyout.ApplyTheme(theme);
+            }
             PushStateToWeb(payload);
         });
     }
@@ -814,6 +860,10 @@ public partial class TaskbarWebWindow : Window
         if (_brightnessFlyout != null && _brightnessFlyout.IsVisible)
         {
             _brightnessFlyout.UpdateBrightness(snapshot.BrightnessPercent);
+        }
+        if (_batteryFlyout != null && _batteryFlyout.IsVisible)
+        {
+            _batteryFlyout.UpdateStatus();
         }
     }
 
@@ -992,6 +1042,20 @@ public partial class TaskbarWebWindow : Window
                     BroadcastMetrics();
                     break;
 
+                case "reorder_pinned_apps":
+                    if (root.TryGetProperty("appKeys", out var rakProp) && rakProp.ValueKind == JsonValueKind.Array)
+                    {
+                        var keys = new List<string>();
+                        foreach (var item in rakProp.EnumerateArray())
+                        {
+                            string? val = item.GetString();
+                            if (!string.IsNullOrWhiteSpace(val)) keys.Add(val);
+                        }
+                        _shellState.ReorderPinnedApps(keys);
+                        BroadcastMetrics();
+                    }
+                    break;
+
                 case "launch_app":
                     string lExe = root.TryGetProperty("exePath", out var lei) ? lei.GetString() ?? "" : "";
                     string lName = root.TryGetProperty("processName", out var lpn) ? lpn.GetString() ?? "" : "";
@@ -1119,6 +1183,61 @@ public partial class TaskbarWebWindow : Window
                         if (!wasJustOpen)
                         {
                             _networkFlyout.ShowAt(Left + nwX, nwW, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
+                        }
+                    });
+                    break;
+
+                case "toggle_battery_flyout":
+                    double batX = root.TryGetProperty("x", out var batXProp) && batXProp.TryGetDouble(out double batXd) ? batXd : 0;
+                    double batW = root.TryGetProperty("width", out var batWProp) && batWProp.TryGetDouble(out double batWd) ? batWd : 40;
+
+                    Dispatcher.Invoke(() =>
+                    {
+                        _batteryFlyout ??= new BatteryFlyoutWindow();
+                        bool wasJustOpen = _batteryFlyout.IsVisible ||
+                            (DateTime.UtcNow - _batteryFlyout.LastDeactivatedTime).TotalMilliseconds < 350;
+
+                        CloseAllFlyouts();
+
+                        if (!wasJustOpen)
+                        {
+                            _batteryFlyout.ShowAt(Left + batX, batW, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
+                        }
+                    });
+                    break;
+
+                case "toggle_tray_overflow":
+                    double trX = root.TryGetProperty("x", out var trXProp) && trXProp.TryGetDouble(out double trXd) ? trXd : 0;
+                    double trW = root.TryGetProperty("width", out var trWProp) && trWProp.TryGetDouble(out double trWd) ? trWd : 24;
+
+                    Dispatcher.Invoke(() =>
+                    {
+                        _trayOverflowFlyout ??= new TrayOverflowFlyoutWindow(_trayIconService, _openSettingsCallback, () => Dispatcher.Invoke(BroadcastMetrics));
+                        bool wasJustOpen = _trayOverflowFlyout.IsVisible ||
+                            (DateTime.UtcNow - _trayOverflowFlyout.LastDeactivatedTime).TotalMilliseconds < 350;
+
+                        CloseAllFlyouts();
+
+                        if (!wasJustOpen)
+                        {
+                            _trayOverflowFlyout.ShowAt(Left + trX, trW, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
+                        }
+                    });
+                    break;
+
+                case "activate_tray_icon":
+                    string trayId = root.TryGetProperty("id", out var trayIdProp) ? trayIdProp.GetString() ?? "" : "";
+                    bool trayRight = root.TryGetProperty("rightClick", out var trayRightProp) && trayRightProp.GetBoolean();
+                    Dispatcher.Invoke(() =>
+                    {
+                        if (trayRight && trayId.StartsWith("reg:", StringComparison.Ordinal))
+                        {
+                            _trayIconService.TogglePromoted(trayId[4..]);
+                            BroadcastMetrics();
+                        }
+                        else
+                        {
+                            _trayIconService.ActivateTrayIcon(trayId, trayRight, _openSettingsCallback);
                         }
                     });
                     break;
@@ -1775,19 +1894,23 @@ public partial class TaskbarWebWindow : Window
     private void CloseAllFlyouts(Window? except = null)
     {
         if (_brightnessFlyout != null && _brightnessFlyout != except && _brightnessFlyout.IsVisible)
-            _brightnessFlyout.Hide();
+            FlyoutAnimationHelper.AnimateHide(_brightnessFlyout);
         if (_volumeFlyout != null && _volumeFlyout != except && _volumeFlyout.IsVisible)
-            _volumeFlyout.Hide();
+            FlyoutAnimationHelper.AnimateHide(_volumeFlyout);
         if (_controlCenterFlyout != null && _controlCenterFlyout != except && _controlCenterFlyout.IsVisible)
-            _controlCenterFlyout.Hide();
+            FlyoutAnimationHelper.AnimateHide(_controlCenterFlyout);
         if (_clockFlyout != null && _clockFlyout != except && _clockFlyout.IsVisible)
-            _clockFlyout.Hide();
+            FlyoutAnimationHelper.AnimateHide(_clockFlyout);
         if (_systemMonitorFlyout != null && _systemMonitorFlyout != except && _systemMonitorFlyout.IsVisible)
-            _systemMonitorFlyout.Hide();
+            FlyoutAnimationHelper.AnimateHide(_systemMonitorFlyout);
         if (_appLauncherFlyout != null && _appLauncherFlyout != except && _appLauncherFlyout.IsVisible)
-            _appLauncherFlyout.Hide();
+            FlyoutAnimationHelper.AnimateHide(_appLauncherFlyout);
         if (_networkFlyout != null && _networkFlyout != except && _networkFlyout.IsVisible)
-            _networkFlyout.Hide();
+            FlyoutAnimationHelper.AnimateHide(_networkFlyout);
+        if (_batteryFlyout != null && _batteryFlyout != except && _batteryFlyout.IsVisible)
+            FlyoutAnimationHelper.AnimateHide(_batteryFlyout);
+        if (_trayOverflowFlyout != null && _trayOverflowFlyout != except && _trayOverflowFlyout.IsVisible)
+            FlyoutAnimationHelper.AnimateHide(_trayOverflowFlyout);
         if (_windowSelectorFlyout != null && _windowSelectorFlyout != except && _windowSelectorFlyout.IsVisible)
             _windowSelectorFlyout.HideSelector();
     }
@@ -1851,38 +1974,46 @@ public partial class TaskbarWebWindow : Window
         {
             if (_isFullscreenActive)
             {
-                _brightnessFlyout?.Hide();
-                _controlCenterFlyout?.Hide();
-                Visibility = Visibility.Hidden;
+                CloseAllFlyouts();
+                IsHitTestVisible = false;
+
+                // Keep AppBar HWND visible (so Windows keeps the WorkArea reserved) while clipping
+                // all pixels to an empty 0x0 region and sending z-order behind the fullscreen app.
+                if (_hwnd != IntPtr.Zero)
+                {
+                    IntPtr emptyRgn = Win32Api.CreateRectRgn(0, 0, 0, 0);
+                    if (Win32Api.SetWindowRgn(_hwnd, emptyRgn, true) == 0)
+                    {
+                        Win32Api.DeleteObject(emptyRgn);
+                    }
+                    if (TaskbarWebView?.Handle is IntPtr childHwnd && childHwnd != IntPtr.Zero)
+                    {
+                        IntPtr childEmptyRgn = Win32Api.CreateRectRgn(0, 0, 0, 0);
+                        if (Win32Api.SetWindowRgn(childHwnd, childEmptyRgn, true) == 0)
+                        {
+                            Win32Api.DeleteObject(childEmptyRgn);
+                        }
+                    }
+                    Win32Api.SetWindowPos(_hwnd, new IntPtr(1), 0, 0, 0, 0,
+                        Win32Api.SWP_NOMOVE | Win32Api.SWP_NOSIZE | Win32Api.SWP_NOACTIVATE);
+                }
             }
             else
             {
                 if (_shellState.Settings.EnableWinZenTaskbar)
                 {
-                    Visibility = Visibility.Visible;
+                    IsHitTestVisible = true;
+                    if (Visibility != Visibility.Visible)
+                    {
+                        Visibility = Visibility.Visible;
+                    }
+                    ApplyTaskbarCornerRegion();
                     if (_hwnd != IntPtr.Zero)
                     {
                         Win32Api.SetWindowPos(_hwnd, Win32Api.HWND_TOPMOST, 0, 0, 0, 0,
-                            Win32Api.SWP_NOMOVE | Win32Api.SWP_NOSIZE | Win32Api.SWP_NOACTIVATE | Win32Api.SWP_SHOWWINDOW);
+                            Win32Api.SWP_NOMOVE | Win32Api.SWP_NOSIZE | Win32Api.SWP_NOACTIVATE);
                     }
-
-                    _shellState.SyncTaskbarAndWorkArea();
-                    ApplyTaskbarCornerRegion();
-
-                    if (TaskbarWebView != null)
-                    {
-                        if (TaskbarWebView.Handle != IntPtr.Zero)
-                        {
-                            Win32Api.ShowWindow(TaskbarWebView.Handle, Win32Api.SW_SHOW);
-                            Win32Api.InvalidateRect(TaskbarWebView.Handle, IntPtr.Zero, true);
-                        }
-                        TaskbarWebView.InvalidateVisual();
-                    }
-
-                    if (_webViewReady && TaskbarWebView?.CoreWebView2 != null)
-                    {
-                        _shellState.BroadcastState();
-                    }
+                    TaskbarWebView?.InvalidateVisual();
                 }
             }
         });

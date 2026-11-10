@@ -53,6 +53,9 @@ function initSettingsPage() {
   const toggleShowThumbnails = document.getElementById('toggleShowThumbnails');
   const stateShowThumbnails = document.getElementById('stateShowThumbnails');
 
+  const toggleEnableAnimations = document.getElementById('toggleEnableAnimations');
+  const stateEnableAnimations = document.getElementById('stateEnableAnimations');
+
   const hiddenAppsContainer = document.getElementById('hiddenAppsContainer');
   const hiddenAppsSubtitle = document.getElementById('hiddenAppsSubtitle');
   const btnUnhideAllApps = document.getElementById('btnUnhideAllApps');
@@ -142,6 +145,7 @@ function initSettingsPage() {
       window.winzen.shell.setTheme(selectTheme.value);
       document.documentElement.setAttribute('data-theme', selectTheme.value);
       document.body.className = selectTheme.value === 'light' ? 'theme-light' : 'theme-dark';
+      updateAccentColorUI(currentAccentColor);
     });
   }
 
@@ -210,6 +214,15 @@ function initSettingsPage() {
     });
   }
 
+  if (toggleEnableAnimations) {
+    toggleEnableAnimations.addEventListener('change', () => {
+      if (isUpdatingFromHost) return;
+      const anim = toggleEnableAnimations.checked;
+      if (stateEnableAnimations) stateEnableAnimations.textContent = anim ? 'On' : 'Off';
+      window.winzen.send('toggle_animations', { enable: anim });
+    });
+  }
+
   btnUnhideAllApps.addEventListener('click', () => {
     window.winzen.tasks.unhideAllApps();
   });
@@ -217,27 +230,37 @@ function initSettingsPage() {
   toggleRespectWorkArea.addEventListener('change', sendWorkAreaConfig);
   selectDockEdge.addEventListener('change', sendWorkAreaConfig);
 
-  inputTaskbarHeight.addEventListener('input', () => {
-    labelHeightVal.textContent = `${inputTaskbarHeight.value}px`;
-  });
-  inputTaskbarHeight.addEventListener('change', sendWorkAreaConfig);
-
-  inputFloatingMargin.addEventListener('input', () => {
-    labelMarginVal.textContent = `${inputFloatingMargin.value}px`;
-  });
-  inputFloatingMargin.addEventListener('change', sendWorkAreaConfig);
-
-  if (inputCornerRadius) {
-    inputCornerRadius.addEventListener('input', () => {
-      if (labelRadiusVal) labelRadiusVal.textContent = `${inputCornerRadius.value}px`;
-    });
-    inputCornerRadius.addEventListener('change', sendWorkAreaConfig);
+  function updateSliderTrackFill(sliderEl) {
+    if (!sliderEl) return;
+    const min = parseFloat(sliderEl.min || '0');
+    const max = parseFloat(sliderEl.max || '100');
+    const val = parseFloat(sliderEl.value || '0');
+    const pct = max > min ? Math.max(0, Math.min(100, ((val - min) / (max - min)) * 100)) : 0;
+    sliderEl.style.background = `linear-gradient(to right, var(--win11-accent, #60cdff) 0%, var(--win11-accent, #60cdff) ${pct}%, var(--win11-slider-track, rgba(255, 255, 255, 0.42)) ${pct}%, var(--win11-slider-track, rgba(255, 255, 255, 0.42)) 100%)`;
   }
+
+  function bindRangeSlider(sliderEl, labelEl) {
+    if (!sliderEl) return;
+    updateSliderTrackFill(sliderEl);
+    sliderEl.addEventListener('input', () => {
+      if (labelEl) labelEl.textContent = `${sliderEl.value}px`;
+      updateSliderTrackFill(sliderEl);
+    });
+    sliderEl.addEventListener('change', sendWorkAreaConfig);
+  }
+
+  bindRangeSlider(inputTaskbarHeight, labelHeightVal);
+  bindRangeSlider(inputFloatingMargin, labelMarginVal);
+  bindRangeSlider(inputCornerRadius, labelRadiusVal);
 
   function updateAccentColorUI(color) {
     currentAccentColor = color || '#3684E3';
     document.documentElement.style.setProperty('--win11-accent', currentAccentColor);
     document.documentElement.style.setProperty('--winzen-accent', currentAccentColor);
+    document.documentElement.style.setProperty('--winzen-border-accent', currentAccentColor);
+    updateSliderTrackFill(inputTaskbarHeight);
+    updateSliderTrackFill(inputFloatingMargin);
+    updateSliderTrackFill(inputCornerRadius);
     if (accentSwatchesContainer) {
       accentSwatchesContainer.querySelectorAll('.accent-swatch').forEach(btn => {
         const btnColor = btn.dataset.color;
@@ -329,6 +352,12 @@ function initSettingsPage() {
       toggleRespectWorkArea.checked = !!s.respectDesktopWorkArea;
       stateRespectWorkArea.textContent = s.respectDesktopWorkArea ? 'On' : 'Off';
 
+      if (toggleEnableAnimations) {
+        const animOn = s.enableAnimations !== false;
+        toggleEnableAnimations.checked = animOn;
+        if (stateEnableAnimations) stateEnableAnimations.textContent = animOn ? 'On' : 'Off';
+      }
+
       selectDockEdge.value = s.dockEdge || 'Bottom';
       if (selectTheme) {
         selectTheme.value = s.theme || 'dark';
@@ -337,11 +366,14 @@ function initSettingsPage() {
       }
       inputTaskbarHeight.value = s.taskbarHeightPx || 48;
       labelHeightVal.textContent = `${s.taskbarHeightPx || 48}px`;
+      updateSliderTrackFill(inputTaskbarHeight);
       inputFloatingMargin.value = s.floatingMarginPx || 0;
       labelMarginVal.textContent = `${s.floatingMarginPx || 0}px`;
+      updateSliderTrackFill(inputFloatingMargin);
       if (inputCornerRadius) {
         inputCornerRadius.value = s.taskbarCornerRadiusPx ?? 12;
         if (labelRadiusVal) labelRadiusVal.textContent = `${s.taskbarCornerRadiusPx ?? 12}px`;
+        updateSliderTrackFill(inputCornerRadius);
       }
       if (s.accentColor) {
         updateAccentColorUI(s.accentColor);
@@ -854,6 +886,7 @@ function initSettingsPage() {
       const isWindowSwitcher = w.id === 'community.zen-active-windows';
       const isStartLauncher = w.id === 'community.zen-start-button';
       const isBattery = w.id === 'community.zen-battery';
+      const isClock = w.id === 'community.zen-clock-pill';
 
       const expander = document.createElement('div');
       expander.className = 'win11-expander widget-expander';
@@ -863,6 +896,7 @@ function initSettingsPage() {
 
       if (isStartLauncher) {
         const curIcon = w.startIcon || 'chromeos';
+        const curColorMode = w.startIconColorMode || 'text';
         const curText = w.startText || 'Launcher';
         const showStartText = !!w.showStartText;
 
@@ -874,6 +908,13 @@ function initSettingsPage() {
               <option value="windows" ${curIcon === 'windows' ? 'selected' : ''}>Windows 11</option>
               <option value="win10" ${curIcon === 'win10' ? 'selected' : ''}>Windows 10</option>
               <option value="apple" ${curIcon === 'apple' ? 'selected' : ''}>Apple</option>
+            </select>
+          </div>
+          <div class="subrow-field">
+            <label>Icon color</label>
+            <select class="win11-select w-starticoncolor">
+              <option value="text" ${curColorMode === 'text' ? 'selected' : ''}>Text color</option>
+              <option value="accent" ${curColorMode === 'accent' ? 'selected' : ''}>Accent color</option>
             </select>
           </div>
           <label class="inline-check">
@@ -922,6 +963,17 @@ function initSettingsPage() {
             </select>
           </div>
         `;
+      } else if (isClock) {
+        specializedOptionsHtml = `
+          <label class="inline-check">
+            <input type="checkbox" class="w-showseconds" ${w.showSeconds !== false ? 'checked' : ''} />
+            <span>Show seconds</span>
+          </label>
+          <label class="inline-check">
+            <input type="checkbox" class="w-showdate" ${w.showDate !== false ? 'checked' : ''} />
+            <span>Show date</span>
+          </label>
+        `;
       }
 
       const hasMultipleModes = !w.supportedModes || w.supportedModes.length > 1;
@@ -950,12 +1002,19 @@ function initSettingsPage() {
         `;
       }
 
+      const authorName = (w.author || 'Community').trim();
+      const isOfficial = authorName.toLowerCase() === 'official';
+      const authorTagHtml = `<span class="widget-author-tag ${isOfficial ? 'is-official' : ''}">${escapeHtml(isOfficial ? 'Official' : authorName)}</span>`;
+
       expander.innerHTML = `
         <div class="win11-card">
           <div class="card-left">
             <div class="card-titles">
-              <span class="card-title">${escapeHtml(w.name)}</span>
-              <span class="card-subtitle">${escapeHtml(w.description || 'Community Widget')} · Widgets/${escapeHtml(w.folderName)}</span>
+              <div class="card-title-row">
+                <span class="card-title">${escapeHtml(w.name)}</span>
+                ${authorTagHtml}
+              </div>
+              <span class="card-subtitle">${escapeHtml(w.description || 'Widget')} · Widgets/${escapeHtml(w.folderName)}</span>
             </div>
           </div>
           <div class="card-right">
@@ -1006,10 +1065,13 @@ function initSettingsPage() {
       const combineAppsInput = expander.querySelector('.w-combineapps');
       const showThumbnailsInput = expander.querySelector('.w-showthumbnails');
       const startIconSelect = expander.querySelector('.w-starticon');
+      const startIconColorSelect = expander.querySelector('.w-starticoncolor');
       const showStartTextInput = expander.querySelector('.w-showstarttext');
       const startTextInput = expander.querySelector('.w-starttext');
       const batteryIconSelect = expander.querySelector('.w-batteryicon');
       const batteryPercentSelect = expander.querySelector('.w-batterypercent');
+      const showSecondsInput = expander.querySelector('.w-showseconds');
+      const showDateInput = expander.querySelector('.w-showdate');
 
       btnMoveUp.addEventListener('click', () => {
         swapWidgetOrderInRegion(regionWidgets, index, index - 1, regionKey);
@@ -1055,10 +1117,13 @@ function initSettingsPage() {
           combineApps: combineAppsInput ? combineAppsInput.checked : !!w.combineApps,
           showThumbnails: showThumbnailsInput ? showThumbnailsInput.checked : (w.showThumbnails !== false),
           startIcon: startIconSelect ? startIconSelect.value : (w.startIcon || 'chromeos'),
+          startIconColorMode: startIconColorSelect ? startIconColorSelect.value : (w.startIconColorMode || 'text'),
           startText: startTextInput ? startTextInput.value : (w.startText || 'Start'),
           showStartText: showStartTextInput ? showStartTextInput.checked : !!w.showStartText,
           batteryIconStyle: batteryIconSelect ? batteryIconSelect.value : (w.batteryIconStyle || 'win11'),
           batteryPercentMode: batteryPercentSelect ? batteryPercentSelect.value : (w.batteryPercentMode || 'outside-right'),
+          showSeconds: showSecondsInput ? showSecondsInput.checked : (w.showSeconds !== false),
+          showDate: showDateInput ? showDateInput.checked : (w.showDate !== false),
           displayMode: displayModeSelect ? displayModeSelect.value : (w.displayMode || (w.supportedModes && w.supportedModes[0] ? w.supportedModes[0] : 'widget')),
           aspectRatio: w.aspectRatio || '1:1'
         });
@@ -1074,10 +1139,13 @@ function initSettingsPage() {
       if (combineAppsInput) combineAppsInput.addEventListener('change', pushUpdate);
       if (showThumbnailsInput) showThumbnailsInput.addEventListener('change', pushUpdate);
       if (startIconSelect) startIconSelect.addEventListener('change', pushUpdate);
+      if (startIconColorSelect) startIconColorSelect.addEventListener('change', pushUpdate);
       if (showStartTextInput) showStartTextInput.addEventListener('change', pushUpdate);
       if (startTextInput) startTextInput.addEventListener('change', pushUpdate);
       if (batteryIconSelect) batteryIconSelect.addEventListener('change', pushUpdate);
       if (batteryPercentSelect) batteryPercentSelect.addEventListener('change', pushUpdate);
+      if (showSecondsInput) showSecondsInput.addEventListener('change', pushUpdate);
+      if (showDateInput) showDateInput.addEventListener('change', pushUpdate);
 
       container.appendChild(expander);
     });

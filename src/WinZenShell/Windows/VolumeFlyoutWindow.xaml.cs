@@ -20,8 +20,7 @@ public partial class VolumeFlyoutWindow : Window
 
         Deactivated += (_, _) =>
         {
-            LastDeactivatedTime = DateTime.UtcNow;
-            Hide();
+            FlyoutAnimationHelper.HandleDeactivated(this, () => LastDeactivatedTime = DateTime.UtcNow);
         };
     }
 
@@ -70,11 +69,7 @@ public partial class VolumeFlyoutWindow : Window
             left = monitorLeft + sideMargin;
 
         Left = left;
-        Top = top;
-
-        Show();
-        Activate();
-        Focus();
+        FlyoutAnimationHelper.AnimateShow(this, top, dockEdge);
     }
 
     public void ApplyTheme(string? theme)
@@ -86,6 +81,9 @@ public partial class VolumeFlyoutWindow : Window
             OuterBorder.BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(0x28, 0x00, 0x00, 0x00));
             InnerBorder.Background = System.Windows.Media.Brushes.Transparent;
             InnerBorder.BorderThickness = new Thickness(0);
+            Resources["SliderTrackBrush"] = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(0x4D, 0x00, 0x00, 0x00));
+            Resources["ThumbOuterBrush"] = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xFF, 0xFF, 0xFF));
+            Resources["ThumbBorderBrush"] = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(0x24, 0x00, 0x00, 0x00));
             if (PercentLabel != null)
                 PercentLabel.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x1B, 0x1B, 0x1B));
         }
@@ -95,6 +93,9 @@ public partial class VolumeFlyoutWindow : Window
             OuterBorder.BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x3E, 0x3E, 0x3E));
             InnerBorder.Background = System.Windows.Media.Brushes.Transparent;
             InnerBorder.BorderThickness = new Thickness(0);
+            Resources["SliderTrackBrush"] = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(0x6B, 0xFF, 0xFF, 0xFF));
+            Resources["ThumbOuterBrush"] = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x45, 0x45, 0x45));
+            Resources["ThumbBorderBrush"] = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(0x1A, 0xFF, 0xFF, 0xFF));
             if (PercentLabel != null)
                 PercentLabel.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xFF, 0xFF, 0xFF));
         }

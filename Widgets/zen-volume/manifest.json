@@ -1,8 +1,8 @@
 {
   "id": "community.zen-volume",
-  "name": "Zen Volume",
+  "name": "Volume",
   "version": "1.0.0",
-  "author": "WinZen Team",
+  "author": "Official",
   "description": "Master audio volume control with taskbar icon mode, dedicated flyout, and rich slider widget mode.",
   "slot": "right",
   "order": 18,

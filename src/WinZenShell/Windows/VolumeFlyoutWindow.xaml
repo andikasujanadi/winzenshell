@@ -15,21 +15,26 @@
 
     <Window.Resources>
         <SolidColorBrush x:Key="AccentBrush" Color="#60CDFF"/>
+        <SolidColorBrush x:Key="SliderTrackBrush" Color="#6B6B6B"/>
+        <SolidColorBrush x:Key="ThumbOuterBrush" Color="#454545"/>
+        <SolidColorBrush x:Key="ThumbBorderBrush" Color="#1AFFFFFF"/>
         <Style x:Key="Win11SliderThumb" TargetType="{x:Type Thumb}">
             <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type Thumb}">
                         <Grid Width="22" Height="22" VerticalAlignment="Center" HorizontalAlignment="Center">
-                            <Ellipse x:Name="OuterRing" Width="18" Height="18" Fill="#FFFFFF" VerticalAlignment="Center" HorizontalAlignment="Center"/>
-                            <Ellipse x:Name="InnerRing" Width="8" Height="8" Fill="{DynamicResource AccentBrush}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                            <Ellipse x:Name="OuterRing" Width="18" Height="18" Fill="{DynamicResource ThumbOuterBrush}" Stroke="{DynamicResource ThumbBorderBrush}" StrokeThickness="1" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                            <Ellipse x:Name="InnerRing" Width="9" Height="9" Fill="{DynamicResource AccentBrush}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="OuterRing" Property="Fill" Value="#ECECEC"/>
+                                <Setter TargetName="InnerRing" Property="Width" Value="11"/>
+                                <Setter TargetName="InnerRing" Property="Height" Value="11"/>
                             </Trigger>
                             <Trigger Property="IsDragging" Value="True">
-                                <Setter TargetName="OuterRing" Property="Fill" Value="#FFFFFF"/>
+                                <Setter TargetName="InnerRing" Property="Width" Value="7"/>
+                                <Setter TargetName="InnerRing" Property="Height" Value="7"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -55,7 +60,7 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type RepeatButton}">
-                        <Border Height="6" CornerRadius="3" Background="{DynamicResource AccentBrush}" VerticalAlignment="Center"/>
+                        <Border Height="4" CornerRadius="2" Background="{DynamicResource AccentBrush}" VerticalAlignment="Center"/>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
@@ -69,7 +74,7 @@
                     <ControlTemplate TargetType="{x:Type Slider}">
                         <Grid VerticalAlignment="Center" Height="24">
                             <!-- Background Track -->
-                            <Border Height="6" CornerRadius="3" Background="#383838" VerticalAlignment="Center"/>
+                            <Border Height="4" CornerRadius="2" Background="{DynamicResource SliderTrackBrush}" VerticalAlignment="Center"/>
 
                             <!-- Track with Progress & Thumb -->
                             <Track x:Name="PART_Track">

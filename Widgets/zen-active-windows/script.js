@@ -8,6 +8,9 @@ let combineApps = typeof widgetConfig !== 'undefined' && widgetConfig
 let showThumbnails = typeof widgetConfig !== 'undefined' && widgetConfig
   ? widgetConfig.showThumbnails !== false
   : true;
+let animationsEnabled = typeof widgetConfig !== 'undefined' && widgetConfig
+  ? widgetConfig.animations !== false
+  : true;
 
 let lastCachedMetrics = (typeof window !== 'undefined' && window.winzen && window.winzen.metrics)
   ? window.winzen.metrics
@@ -19,12 +22,19 @@ let customOrder = [];
 let customAppOrder = [];
 let isDraggingItem = false;
 let suppressClickUntil = 0;
+let suppressPinnedResetUntil = 0;
 let lastSig = '';
+let lastPinnedOrderSig = '';
 let activeMenuEl = null;
 let hoverTimer = null;
+let hasRenderedOnce = false;
+const prevStateByKey = new Map();
+const lastKeyByPinnedApp = new Map();
+const launchingPinnedKeys = new Set();
 
 const FALLBACK_SVG = `<svg class="win-fallback-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M2.5 2A1.5 1.5 0 0 0 1 3.5v9A1.5 1.5 0 0 0 2.5 14h11a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 13.5 2h-11zM2 3.5a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 .5.5V5H2V3.5zm0 2.5h12v6.5a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5V6z"/></svg>`;
 const STICKY_NOTES_SVG = `<svg class="win-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" fill="#FFC83B"/><path d="M15 15l6 6h-6v-6z" fill="#E5A823"/><line x1="7" y1="8" x2="17" y2="8" stroke="#7A5200" stroke-width="1.8" stroke-linecap="round"/><line x1="7" y1="12" x2="14" y2="12" stroke="#7A5200" stroke-width="1.8" stroke-linecap="round"/></svg>`;
+const SETTINGS_SVG = `<svg class="win-icon" viewBox="0 0 24 24" fill="none"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 0 0-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 0 0-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" fill="#2B88D8"/><circle cx="12" cy="12" r="3" fill="#ffffff"/></svg>`;
 
 function getAppIconHtml(item) {
   const id = (item.appId || '').toLowerCase();
@@ -34,7 +44,10 @@ function getAppIconHtml(item) {
     return STICKY_NOTES_SVG;
   }
   if (item.iconDataUrl) {
-    return `<img class="win-icon" src="${item.iconDataUrl}" alt="" />`;
+    return `<img class="win-icon" draggable="false" src="${item.iconDataUrl}" alt="" />`;
+  }
+  if (id.includes('systemsettings') || proc.includes('systemsettings') || tit === 'settings') {
+    return SETTINGS_SVG;
   }
   return FALLBACK_SVG;
 }
@@ -54,6 +67,9 @@ function closeContextMenu() {
 
 window.addEventListener('winzen:state', (e) => {
   const state = e.detail;
+  if (state && state.settings) {
+    animationsEnabled = state.settings.enableAnimations !== false;
+  }
   if (!state || !Array.isArray(state.widgets)) return;
   const cfg = state.widgets.find((w) => w.id === 'community.zen-active-windows');
   if (!cfg) return;
@@ -88,7 +104,7 @@ window.addEventListener('winzen:metrics', (e) => {
 
 function syncOrderFromDom() {
   if (!strip) return;
-  const pills = Array.from(strip.querySelectorAll('.win-pill[data-item-key]'));
+  const pills = Array.from(strip.querySelectorAll('.win-pill[data-item-key]:not(.anim-exit)'));
   if (pills.length === 0) return;
 
   customOrder = pills.map((el) => el.dataset.itemKey).filter(Boolean);
@@ -282,7 +298,35 @@ function renderWindows(m) {
     });
   }
 
-  // Apply user's drag-rearranged order (customOrder -> fallback customAppOrder -> discovery order)
+  const pinnedOrderSig = pinnedList.map((p) => (p.appId || p.processName || '').toLowerCase()).join('|');
+  if (lastPinnedOrderSig && pinnedOrderSig !== lastPinnedOrderSig && Date.now() >= suppressPinnedResetUntil) {
+    // External pin/unpin/reorder from settings: reset customAppOrder so new server PinnedApps order wins
+    customAppOrder = [];
+    const curPinnedKeys = new Set(pinnedList.map((p) => (p.appId || p.processName || '').toLowerCase()));
+    customOrder = customOrder.filter((k) => {
+      const ak = k.startsWith('pin:') ? k.slice(4) : '';
+      return !ak || curPinnedKeys.has(ak);
+    });
+  }
+  if (Date.now() >= suppressPinnedResetUntil) {
+    lastPinnedOrderSig = pinnedOrderSig;
+  }
+
+  // Keep slot position in customOrder when a pinned app transitions closed <-> running
+  baseItems.forEach((it) => {
+    if (it.isPinned && it.appKey) {
+      const prevKey = lastKeyByPinnedApp.get(it.appKey);
+      if (prevKey && prevKey !== it.key) {
+        const idx = customOrder.indexOf(prevKey);
+        if (idx !== -1 && !customOrder.includes(it.key)) {
+          customOrder[idx] = it.key;
+        }
+      }
+      lastKeyByPinnedApp.set(it.appKey, it.key);
+    }
+  });
+
+  // Apply user's drag-rearranged order (customOrder -> fallback customAppOrder -> baseItems pinned-first order)
   if (customOrder.length === 0 && customAppOrder.length > 0) {
     baseItems.sort((a, b) => {
       const ia = customAppOrder.indexOf(a.appKey);
@@ -325,234 +369,402 @@ function renderWindows(m) {
   if (sig === lastSig) return;
   lastSig = sig;
 
-  strip.innerHTML = '';
+  const existingPills = new Map();
+  Array.from(strip.querySelectorAll('.win-pill[data-item-key]:not(.anim-exit)')).forEach((el) => {
+    existingPills.set(el.dataset.itemKey, el);
+  });
+
+  strip.querySelectorAll('.empty-win-placeholder, .placeholder').forEach((el) => el.remove());
+
   if (itemsToRender.length === 0) {
-    strip.innerHTML = `<div class="win-pill"><span class="win-title">No open windows</span></div>`;
+    existingPills.forEach((el) => el.remove());
+    const emp = document.createElement('div');
+    emp.className = 'win-pill empty-win-placeholder';
+    emp.innerHTML = `<span class="win-title">No open windows</span>`;
+    strip.appendChild(emp);
+    hasRenderedOnce = true;
+    prevStateByKey.clear();
     return;
   }
 
+  const nextKeys = new Set(itemsToRender.map((it) => it.key));
+  const nextPinnedAppKeys = new Set();
+  const prevClosedPinnedAppKeys = new Set();
+  const prevRunningPinnedAppKeys = new Set();
+
+  itemsToRender.forEach((it) => {
+    if (it.isPinned && it.appKey) nextPinnedAppKeys.add(it.appKey);
+  });
+  prevStateByKey.forEach((st) => {
+    if (st.isPinned && st.appKey) {
+      if (st.isClosedPinned) prevClosedPinnedAppKeys.add(st.appKey);
+      else prevRunningPinnedAppKeys.add(st.appKey);
+    }
+  });
+
+  // 1. Animate closing non-pinned apps (or closing extra unpinned window slots)
+  existingPills.forEach((oldBtn, oldKey) => {
+    if (nextKeys.has(oldKey)) return;
+    const prevSt = prevStateByKey.get(oldKey);
+    const isMorphingPinned = prevSt && prevSt.isPinned && nextPinnedAppKeys.has(prevSt.appKey);
+    if (hasRenderedOnce && animationsEnabled && !isMorphingPinned) {
+      const w = oldBtn.offsetWidth;
+      oldBtn.style.maxWidth = `${w}px`;
+      oldBtn.style.width = `${w}px`;
+      void oldBtn.offsetWidth;
+      oldBtn.removeAttribute('data-item-key');
+      oldBtn.classList.add('anim-exit');
+      setTimeout(() => oldBtn.remove(), 170);
+    } else {
+      oldBtn.remove();
+    }
+  });
+
+  // 2. Create/Update active items in exact order
+  const activeButtons = [];
   itemsToRender.forEach((item) => {
     const isMulti = item.windows.length > 1;
     const hasActive = item.windows.some((w) => w.isActive);
     const allMinimized = item.windows.length > 0 && item.windows.every((w) => w.isMinimized);
 
-    const btn = document.createElement('button');
+    let btn = existingPills.get(item.key);
+    const isNewlyAdded = !btn;
+    if (!btn) {
+      btn = createWindowPillButton(item);
+    }
+    btn._getItem = () => item;
+
+    const preservedAnim = [];
+    if (btn.classList.contains('anim-enter')) preservedAnim.push('anim-enter');
+    if (btn.classList.contains('anim-pin-launch')) preservedAnim.push('anim-pin-launch');
+    if (btn.classList.contains('anim-pin-open')) preservedAnim.push('anim-pin-open');
+
     const classes = ['win-pill'];
     if (item.isClosedPinned) classes.push('pinned');
     if (hasActive) classes.push('active');
     if (allMinimized) classes.push('minimized');
     if (isMulti) classes.push('combined');
     if (!showAppName) classes.push('icon-only');
+    preservedAnim.forEach((c) => classes.push(c));
 
     btn.className = classes.join(' ');
     btn.dataset.itemKey = item.key;
     btn.dataset.appKey = item.appKey || '';
+    btn.dataset.isPinned = item.isPinned ? 'true' : 'false';
     btn.dataset.hwnds = item.windows.map((w) => w.hwnd).join(',');
 
-    const iconHtml = getAppIconHtml(item);
-
-    let labelHtml = '';
-    if (showAppName) {
-      const displayTitle = isMulti
-        ? `${escapeHtml(item.processName)}`
-        : escapeHtml(item.title || item.processName);
-      const badgeHtml = isMulti ? `<span class="win-badge">${item.windows.length}</span>` : '';
-      labelHtml = `<span class="win-title">${displayTitle}</span>${badgeHtml}`;
+    const iconSig = `${item.appId}|${item.processName}|${item.title === 'Settings' ? 's' : ''}|${item.iconDataUrl ? item.iconDataUrl.length : 0}`;
+    if (btn.dataset.iconSig !== iconSig) {
+      btn.dataset.iconSig = iconSig;
+      btn.dataset.labelSig = '';
+      btn.innerHTML = `${getAppIconHtml(item)}${showAppName ? '<span class="win-title"></span><span class="win-badge" style="display:none;"></span>' : ''}`;
     }
 
-    btn.innerHTML = `${iconHtml}${labelHtml}`;
-
-    const buildSelectorPayload = () => {
-      const rect = btn.getBoundingClientRect();
-      return {
-        appId: item.appId || '',
-        processName: item.processName || '',
-        iconDataUrl: item.iconDataUrl || '',
-        x: rect.left,
-        width: rect.width,
-        showThumbnails,
-        windows: item.windows.map((w) => ({
-          hwnd: Number(w.hwnd),
-          title: String(w.title || item.processName || ''),
-          isActive: !!w.isActive,
-          isMinimized: !!w.isMinimized
-        }))
-      };
-    };
-
-    // Drag-to-Rearrange taskbar buttons horizontally
-    btn.addEventListener('pointerdown', (e) => {
-      if (e.button !== 0) return;
-
-      const startX = e.clientX;
-      const pointerId = e.pointerId;
-      let draggedMoved = false;
-
-      const onPointerMove = (moveEv) => {
-        if (!draggedMoved && Math.abs(moveEv.clientX - startX) > 4) {
-          draggedMoved = true;
-          isDraggingItem = true;
-          try {
-            btn.setPointerCapture(pointerId);
-          } catch (_) {}
-          btn.classList.add('dragging');
-          if (hoverTimer) {
-            clearTimeout(hoverTimer);
-            hoverTimer = null;
-          }
-          closeContextMenu();
-          if (window.winzen && window.winzen.tasks && typeof window.winzen.tasks.leaveWindowSelector === 'function') {
-            window.winzen.tasks.leaveWindowSelector();
-          } else if (window.winzen && typeof window.winzen.send === 'function') {
-            window.winzen.send('leave_window_selector');
-          }
+    const labelSig = `${showAppName}|${isMulti}|${item.windows.length}|${item.title}`;
+    if (btn.dataset.labelSig !== labelSig) {
+      btn.dataset.labelSig = labelSig;
+      let titleEl = btn.querySelector('.win-title');
+      let badgeEl = btn.querySelector('.win-badge');
+      if (showAppName) {
+        if (!titleEl) {
+          titleEl = document.createElement('span');
+          titleEl.className = 'win-title';
+          btn.appendChild(titleEl);
         }
-
-        if (!draggedMoved) return;
-
-        const pills = Array.from(strip.querySelectorAll('.win-pill[data-item-key]'));
-        const idx = pills.indexOf(btn);
-        if (idx === -1) return;
-
-        if (idx > 0) {
-          const prev = pills[idx - 1];
-          const prevRect = prev.getBoundingClientRect();
-          if (moveEv.clientX < prevRect.left + prevRect.width / 2) {
-            strip.insertBefore(btn, prev);
-            syncOrderFromDom();
-            return;
-          }
+        titleEl.textContent = isMulti ? (item.processName || '') : (item.title || item.processName || '');
+        if (!badgeEl) {
+          badgeEl = document.createElement('span');
+          badgeEl.className = 'win-badge';
+          btn.appendChild(badgeEl);
         }
-
-        if (idx < pills.length - 1) {
-          const next = pills[idx + 1];
-          const nextRect = next.getBoundingClientRect();
-          if (moveEv.clientX > nextRect.left + nextRect.width / 2) {
-            strip.insertBefore(btn, next.nextSibling);
-            syncOrderFromDom();
-          }
+        if (isMulti) {
+          badgeEl.textContent = String(item.windows.length);
+          badgeEl.style.display = '';
+        } else {
+          badgeEl.style.display = 'none';
         }
-      };
-
-      const onPointerEnd = () => {
-        btn.removeEventListener('pointermove', onPointerMove);
-        btn.removeEventListener('pointerup', onPointerEnd);
-        btn.removeEventListener('pointercancel', onPointerEnd);
-
-        if (draggedMoved) {
-          try {
-            btn.releasePointerCapture(pointerId);
-          } catch (_) {}
-          btn.classList.remove('dragging');
-          syncOrderFromDom();
-          isDraggingItem = false;
-          suppressClickUntil = Date.now() + 140;
-          lastSig = '';
-          if (lastCachedMetrics) {
-            renderWindows(lastCachedMetrics);
-          }
-        }
-      };
-
-      btn.addEventListener('pointermove', onPointerMove);
-      btn.addEventListener('pointerup', onPointerEnd);
-      btn.addEventListener('pointercancel', onPointerEnd);
-    });
-
-    // Hover:
-    // - If showThumbnails is ON: show thumbnail preview for ANY running app (1 or more windows)
-    // - If showThumbnails is OFF: show compact window list ONLY when multi-window (if 1 window, show nothing on hover)
-    btn.addEventListener('mouseenter', () => {
-      if (isDraggingItem) return;
-      if (hoverTimer) {
-        clearTimeout(hoverTimer);
-        hoverTimer = null;
+      } else {
+        if (titleEl) titleEl.remove();
+        if (badgeEl) badgeEl.remove();
       }
+    }
 
-      if (item.isClosedPinned || (!showThumbnails && !isMulti)) {
+    if (hasRenderedOnce && animationsEnabled) {
+      const wasClosedPinJustOpened = !item.isClosedPinned && item.appKey &&
+        (prevClosedPinnedAppKeys.has(item.appKey) || launchingPinnedKeys.has(item.appKey));
+      if (wasClosedPinJustOpened) {
+        launchingPinnedKeys.delete(item.appKey);
+        triggerAnimClass(btn, 'anim-pin-open', 300);
+      } else if (isNewlyAdded) {
+        const isClosingPinMorph = item.isClosedPinned && item.appKey && prevRunningPinnedAppKeys.has(item.appKey);
+        if (!isClosingPinMorph) {
+          triggerAnimClass(btn, 'anim-enter', 220);
+        }
+      }
+    } else if (!item.isClosedPinned && item.appKey) {
+      launchingPinnedKeys.delete(item.appKey);
+    }
+
+    activeButtons.push(btn);
+  });
+
+  // Align active DOM order cleanly without disturbing shrinking .anim-exit nodes
+  let cursor = strip.firstChild;
+  activeButtons.forEach((btn) => {
+    while (cursor && cursor.classList && cursor.classList.contains('anim-exit')) {
+      cursor = cursor.nextSibling;
+    }
+    if (btn !== cursor) {
+      strip.insertBefore(btn, cursor);
+    } else if (cursor) {
+      cursor = cursor.nextSibling;
+    }
+  });
+
+  prevStateByKey.clear();
+  itemsToRender.forEach((it) => {
+    prevStateByKey.set(it.key, {
+      appKey: it.appKey || '',
+      isClosedPinned: !!it.isClosedPinned,
+      isPinned: !!it.isPinned
+    });
+  });
+  hasRenderedOnce = true;
+}
+
+function triggerAnimClass(el, className, durationMs) {
+  el.classList.remove(className);
+  void el.offsetWidth;
+  el.classList.add(className);
+  setTimeout(() => {
+    el.classList.remove(className);
+  }, durationMs);
+}
+
+function createWindowPillButton(initialItem) {
+  const btn = document.createElement('button');
+  btn._getItem = () => initialItem;
+
+  const buildSelectorPayload = () => {
+    const item = btn._getItem();
+    const rect = btn.getBoundingClientRect();
+    return {
+      appId: item.appId || '',
+      processName: item.processName || '',
+      iconDataUrl: item.iconDataUrl || '',
+      x: rect.left,
+      width: rect.width,
+      showThumbnails,
+      windows: item.windows.map((w) => ({
+        hwnd: Number(w.hwnd),
+        title: String(w.title || item.processName || ''),
+        isActive: !!w.isActive,
+        isMinimized: !!w.isMinimized
+      }))
+    };
+  };
+
+  btn.draggable = false;
+  btn.addEventListener('dragstart', (ev) => ev.preventDefault());
+
+  // Drag-to-Rearrange taskbar buttons horizontally (supports pinned and running apps)
+  btn.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+
+    const startX = e.clientX;
+    const pointerId = e.pointerId;
+    let draggedMoved = false;
+
+    const onPointerMove = (moveEv) => {
+      if (!draggedMoved && Math.abs(moveEv.clientX - startX) > 4) {
+        draggedMoved = true;
+        isDraggingItem = true;
+        try {
+          strip.setPointerCapture(pointerId);
+        } catch (_) {}
+        btn.classList.add('dragging');
+        if (hoverTimer) {
+          clearTimeout(hoverTimer);
+          hoverTimer = null;
+        }
+        closeContextMenu();
         if (window.winzen && window.winzen.tasks && typeof window.winzen.tasks.leaveWindowSelector === 'function') {
           window.winzen.tasks.leaveWindowSelector();
         } else if (window.winzen && typeof window.winzen.send === 'function') {
           window.winzen.send('leave_window_selector');
         }
-        return;
       }
 
-      hoverTimer = setTimeout(() => {
-        if (isDraggingItem) return;
-        const payload = buildSelectorPayload();
-        if (window.winzen && window.winzen.tasks && typeof window.winzen.tasks.hoverWindowSelector === 'function') {
-          window.winzen.tasks.hoverWindowSelector(payload);
-        } else if (window.winzen && typeof window.winzen.send === 'function') {
-          window.winzen.send('hover_window_selector', payload);
+      if (!draggedMoved) return;
+
+      const pills = Array.from(strip.querySelectorAll('.win-pill[data-item-key]:not(.anim-exit)'));
+      const idx = pills.indexOf(btn);
+      if (idx === -1) return;
+
+      if (idx > 0) {
+        const prev = pills[idx - 1];
+        const prevRect = prev.getBoundingClientRect();
+        if (moveEv.clientX < prevRect.left + prevRect.width / 2) {
+          strip.insertBefore(btn, prev);
+          syncOrderFromDom();
+          return;
         }
-      }, 110);
-    });
-
-    btn.addEventListener('mouseleave', () => {
-      if (hoverTimer) {
-        clearTimeout(hoverTimer);
-        hoverTimer = null;
       }
+
+      if (idx < pills.length - 1) {
+        const next = pills[idx + 1];
+        const nextRect = next.getBoundingClientRect();
+        if (moveEv.clientX > nextRect.left + nextRect.width / 2) {
+          strip.insertBefore(btn, next.nextSibling);
+          syncOrderFromDom();
+        }
+      }
+    };
+
+    const onPointerEnd = () => {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerEnd);
+      window.removeEventListener('pointercancel', onPointerEnd);
+      window.removeEventListener('blur', onPointerEnd);
+
+      if (draggedMoved) {
+        try {
+          strip.releasePointerCapture(pointerId);
+        } catch (_) {}
+        btn.classList.remove('dragging');
+        syncOrderFromDom();
+
+        const pinnedOrderKeys = [];
+        Array.from(strip.querySelectorAll('.win-pill[data-item-key]:not(.anim-exit)')).forEach((el) => {
+          if (el.dataset.isPinned === 'true' && el.dataset.appKey && !pinnedOrderKeys.includes(el.dataset.appKey)) {
+            pinnedOrderKeys.push(el.dataset.appKey);
+          }
+        });
+        if (pinnedOrderKeys.length > 0) {
+          lastPinnedOrderSig = pinnedOrderKeys.join('|');
+          suppressPinnedResetUntil = Date.now() + 900;
+          if (pinnedOrderKeys.length > 1 && window.winzen && typeof window.winzen.send === 'function') {
+            window.winzen.send('reorder_pinned_apps', { appKeys: pinnedOrderKeys });
+          }
+        }
+
+        isDraggingItem = false;
+        suppressClickUntil = Date.now() + 140;
+        lastSig = '';
+        if (lastCachedMetrics) {
+          renderWindows(lastCachedMetrics);
+        }
+      }
+    };
+
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerEnd);
+    window.addEventListener('pointercancel', onPointerEnd);
+    window.addEventListener('blur', onPointerEnd);
+  });
+
+  // Hover:
+  // - If showThumbnails is ON: show thumbnail preview for ANY running app (1 or more windows)
+  // - If showThumbnails is OFF: show compact window list ONLY when multi-window (if 1 window, show nothing on hover)
+  btn.addEventListener('mouseenter', () => {
+    if (isDraggingItem) return;
+    if (hoverTimer) {
+      clearTimeout(hoverTimer);
+      hoverTimer = null;
+    }
+
+    const item = btn._getItem();
+    const isMulti = item.windows.length > 1;
+    if (item.isClosedPinned || (!showThumbnails && !isMulti)) {
       if (window.winzen && window.winzen.tasks && typeof window.winzen.tasks.leaveWindowSelector === 'function') {
         window.winzen.tasks.leaveWindowSelector();
       } else if (window.winzen && typeof window.winzen.send === 'function') {
         window.winzen.send('leave_window_selector');
       }
-    });
+      return;
+    }
 
-    // Left-click:
-    // - Closed pinned app -> Launch
-    // - Single running window -> Activate if inactive/minimized, Minimize if active
-    // - Multiple running windows -> Open Windows 11 Popup Window Selector (thumbnails or list)
-    btn.addEventListener('click', (ev) => {
-      ev.stopPropagation();
-      if (isDraggingItem || Date.now() < suppressClickUntil) {
-        return;
-      }
-      if (hoverTimer) {
-        clearTimeout(hoverTimer);
-        hoverTimer = null;
-      }
-      closeContextMenu();
-
-      if (item.isClosedPinned) {
-        if (window.winzen && window.winzen.tasks && typeof window.winzen.tasks.launchApp === 'function') {
-          window.winzen.tasks.launchApp(item.exePath, item.processName);
-        } else if (window.winzen && typeof window.winzen.send === 'function') {
-          window.winzen.send('launch_app', { exePath: item.exePath, processName: item.processName });
-        }
-        return;
-      }
-
-      if (!isMulti) {
-        const win0 = item.windows[0];
-        const isCurrentlyActive = !!(win0.isActive && !win0.isMinimized);
-        if (window.winzen && window.winzen.tasks && typeof window.winzen.tasks.activateWindow === 'function') {
-          window.winzen.tasks.activateWindow(win0.hwnd, isCurrentlyActive);
-        } else {
-          window.winzen.send('activate_window', { hwnd: Number(win0.hwnd), wasActive: isCurrentlyActive });
-        }
-        return;
-      }
-
+    hoverTimer = setTimeout(() => {
+      if (isDraggingItem) return;
       const payload = buildSelectorPayload();
-      if (window.winzen && window.winzen.tasks && typeof window.winzen.tasks.toggleWindowSelector === 'function') {
-        window.winzen.tasks.toggleWindowSelector(payload);
-      } else {
-        window.winzen.send('toggle_window_selector', payload);
+      if (window.winzen && window.winzen.tasks && typeof window.winzen.tasks.hoverWindowSelector === 'function') {
+        window.winzen.tasks.hoverWindowSelector(payload);
+      } else if (window.winzen && typeof window.winzen.send === 'function') {
+        window.winzen.send('hover_window_selector', payload);
       }
-    });
-
-    // Right-click: Authentic Windows 11 Dark Context Menu
-    btn.addEventListener('contextmenu', (ev) => {
-      ev.preventDefault();
-      ev.stopPropagation();
-      openContextMenu(ev, item, btn);
-    });
-
-    strip.appendChild(btn);
+    }, 110);
   });
+
+  btn.addEventListener('mouseleave', () => {
+    if (hoverTimer) {
+      clearTimeout(hoverTimer);
+      hoverTimer = null;
+    }
+    if (window.winzen && window.winzen.tasks && typeof window.winzen.tasks.leaveWindowSelector === 'function') {
+      window.winzen.tasks.leaveWindowSelector();
+    } else if (window.winzen && typeof window.winzen.send === 'function') {
+      window.winzen.send('leave_window_selector');
+    }
+  });
+
+  // Left-click:
+  // - Closed pinned app -> Launch (with launch bounce animation)
+  // - Single running window -> Activate if inactive/minimized, Minimize if active
+  // - Multiple running windows -> Open Windows 11 Popup Window Selector (thumbnails or list)
+  btn.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    if (isDraggingItem || Date.now() < suppressClickUntil) {
+      return;
+    }
+    if (hoverTimer) {
+      clearTimeout(hoverTimer);
+      hoverTimer = null;
+    }
+    closeContextMenu();
+
+    const item = btn._getItem();
+    const isMulti = item.windows.length > 1;
+
+    if (item.isClosedPinned) {
+      if (item.appKey) launchingPinnedKeys.add(item.appKey);
+      if (animationsEnabled) {
+        triggerAnimClass(btn, 'anim-pin-launch', 260);
+      }
+      if (window.winzen && window.winzen.tasks && typeof window.winzen.tasks.launchApp === 'function') {
+        window.winzen.tasks.launchApp(item.exePath, item.processName);
+      } else if (window.winzen && typeof window.winzen.send === 'function') {
+        window.winzen.send('launch_app', { exePath: item.exePath, processName: item.processName });
+      }
+      return;
+    }
+
+    if (!isMulti) {
+      const win0 = item.windows[0];
+      const isCurrentlyActive = !!(win0.isActive && !win0.isMinimized);
+      if (window.winzen && window.winzen.tasks && typeof window.winzen.tasks.activateWindow === 'function') {
+        window.winzen.tasks.activateWindow(win0.hwnd, isCurrentlyActive);
+      } else {
+        window.winzen.send('activate_window', { hwnd: Number(win0.hwnd), wasActive: isCurrentlyActive });
+      }
+      return;
+    }
+
+    const payload = buildSelectorPayload();
+    if (window.winzen && window.winzen.tasks && typeof window.winzen.tasks.toggleWindowSelector === 'function') {
+      window.winzen.tasks.toggleWindowSelector(payload);
+    } else {
+      window.winzen.send('toggle_window_selector', payload);
+    }
+  });
+
+  // Right-click: Authentic Windows 11 Dark Context Menu
+  btn.addEventListener('contextmenu', (ev) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    openContextMenu(ev, btn._getItem(), btn);
+  });
+
+  return btn;
 }
 
 function openContextMenu(ev, item, anchorBtn) {

@@ -189,6 +189,11 @@ public partial class SettingsWebWindow : Window
                     _shellState.ToggleWinZenTaskbar(enable);
                     break;
 
+                case "toggle_animations":
+                    bool animEnable = !root.TryGetProperty("enable", out var animProp) || animProp.GetBoolean();
+                    _shellState.ToggleAnimations(animEnable);
+                    break;
+
                 case "update_workarea_config":
                     bool respect = !root.TryGetProperty("respectWorkArea", out var rProp) || rProp.GetBoolean();
                     string dockEdge = root.TryGetProperty("dockEdge", out var dProp) ? dProp.GetString() ?? "Bottom" : "Bottom";
@@ -228,12 +233,21 @@ public partial class SettingsWebWindow : Window
                         ? wstbProp.GetBoolean()
                         : null;
                     string? wStartIcon = root.TryGetProperty("startIcon", out var wsiProp) ? wsiProp.GetString() : null;
+                    string? wStartIconColorMode = root.TryGetProperty("startIconColorMode", out var wsicmProp) ? wsicmProp.GetString() : null;
                     string? wStartText = root.TryGetProperty("startText", out var wstProp) ? wstProp.GetString() : null;
                     bool wShowStartText = root.TryGetProperty("showStartText", out var wsstProp) && wsstProp.GetBoolean();
                     string? wDisplayMode = root.TryGetProperty("displayMode", out var wdmProp) ? wdmProp.GetString() : null;
                     string? wAspectRatio = root.TryGetProperty("aspectRatio", out var warProp) ? warProp.GetString() : null;
                     string? wBatteryIconStyle = root.TryGetProperty("batteryIconStyle", out var wbisProp) ? wbisProp.GetString() : null;
                     string? wBatteryPercentMode = root.TryGetProperty("batteryPercentMode", out var wbpmProp) ? wbpmProp.GetString() : null;
+                    bool? wShowSeconds = root.TryGetProperty("showSeconds", out var wssProp) &&
+                                         (wssProp.ValueKind == JsonValueKind.True || wssProp.ValueKind == JsonValueKind.False)
+                        ? wssProp.GetBoolean()
+                        : null;
+                    bool? wShowDate = root.TryGetProperty("showDate", out var wsdProp) &&
+                                      (wsdProp.ValueKind == JsonValueKind.True || wsdProp.ValueKind == JsonValueKind.False)
+                        ? wsdProp.GetBoolean()
+                        : null;
                     int? wOrder = root.TryGetProperty("order", out var woProp) && woProp.ValueKind == JsonValueKind.Number
                         ? woProp.GetInt32()
                         : null;
@@ -255,7 +269,10 @@ public partial class SettingsWebWindow : Window
                             wAspectRatio,
                             wShowThumbnails,
                             wBatteryIconStyle,
-                            wBatteryPercentMode);
+                            wBatteryPercentMode,
+                            wStartIconColorMode,
+                            wShowSeconds,
+                            wShowDate);
                     }
                     break;
 

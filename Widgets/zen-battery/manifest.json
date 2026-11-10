@@ -1,8 +1,8 @@
 {
   "id": "community.zen-battery",
-  "name": "Zen Battery",
+  "name": "Battery",
   "version": "1.0.0",
-  "author": "WinZen Community",
+  "author": "Official",
   "description": "Displays live battery percentage and charging status with customizable icon styles and layout.",
   "slot": "right",
   "order": 5,

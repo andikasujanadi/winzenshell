@@ -1,8 +1,8 @@
 {
   "id": "community.zen-start-button",
-  "name": "Zen App Launcher",
+  "name": "App Launcher",
   "version": "1.1.0",
-  "author": "WinZen Community",
+  "author": "Official",
   "description": "ChromeOS-style App Launcher that lets you search, browse, and quickly launch installed applications.",
   "slot": "left",
   "order": 1,

@@ -1,8 +1,8 @@
 {
   "id": "community.zen-active-windows",
-  "name": "Zen Active Window Switcher",
+  "name": "Active Window Switcher",
   "version": "1.2.0",
-  "author": "WinZen Community",
+  "author": "Official",
   "description": "Displays open desktop applications in fixed creation order with native app icons, active state underline, and optional app name labels.",
   "slot": "center",
   "order": 2,

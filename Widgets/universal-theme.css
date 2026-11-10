@@ -72,6 +72,14 @@
 :root[data-theme="light"],
 :host([data-theme="light"]),
 body.theme-light,
+:root[data-theme="light"] {
+  --winzen-border-accent: #0067c0;
+  --winzen-accent: #0067c0;
+  --winzen-accent-hover: #1879cd;
+  --winzen-accent-pressed: #005aa3;
+  --winzen-accent-subtle: rgba(0, 103, 192, 0.12);
+}
+
 [data-theme="light"] {
   /* Surfaces & Backgrounds */
   --winzen-bg: #f3f3f3;
@@ -85,19 +93,12 @@ body.theme-light,
   /* Borders & Dividers */
   --winzen-border: rgba(0, 0, 0, 0.082);
   --winzen-border-subtle: rgba(0, 0, 0, 0.05);
-  --winzen-border-accent: #0067c0;
 
   /* Typography / Text Colors */
   --winzen-text: #1b1b1b;
   --winzen-text-secondary: #5c5c5c;
   --winzen-text-muted: #8a8a8a;
   --winzen-text-disabled: #a0a0a0;
-
-  /* Accent Colors (Windows 11 Light Accent Blue) */
-  --winzen-accent: #0067c0;
-  --winzen-accent-hover: #1879cd;
-  --winzen-accent-pressed: #005aa3;
-  --winzen-accent-subtle: rgba(0, 103, 192, 0.12);
 
   /* Status & Palette Highlights */
   --winzen-purple: #7c3aed;

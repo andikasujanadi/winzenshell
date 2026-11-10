@@ -99,8 +99,24 @@ body.theme-light .start-pill:active {
   display: block;
   width: 7px;
   height: 7px;
-  background: var(--winzen-accent, #60cdff);
+  background: currentColor;
   border-radius: 1px;
+}
+
+.start-pill.color-accent .start-icon {
+  color: var(--winzen-accent, #60cdff);
+}
+
+.start-pill.color-text .start-icon {
+  color: var(--winzen-text, #ffffff);
+}
+
+:host([data-theme="light"]) .start-pill.color-text .start-icon,
+:host(.theme-light) .start-pill.color-text .start-icon,
+.theme-light .start-pill.color-text .start-icon,
+[data-theme="light"] .start-pill.color-text .start-icon,
+body.theme-light .start-pill.color-text .start-icon {
+  color: #1b1b1b;
 }
 
 .start-text {

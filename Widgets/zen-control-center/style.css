@@ -32,7 +32,7 @@ body.theme-light .cc-btn {
 .cc-btn:hover {
   background: var(--winzen-surface-hover, rgba(255, 255, 255, 0.08));
   border-color: var(--winzen-border-subtle, rgba(255, 255, 255, 0.08));
-  color: var(--winzen-accent, #3684e3);
+  color: var(--winzen-text, #ffffff);
 }
 :host-context([data-theme="light"]) .cc-btn:hover,
 :host(.theme-light) .cc-btn:hover,
@@ -40,7 +40,7 @@ body.theme-light .cc-btn {
 body.theme-light .cc-btn:hover {
   background: rgba(0, 0, 0, 0.06);
   border-color: rgba(0, 0, 0, 0.08);
-  color: var(--winzen-accent, #0067c0);
+  color: #1b1b1b;
 }
 .cc-btn:active {
   background: rgba(255, 255, 255, 0.04);

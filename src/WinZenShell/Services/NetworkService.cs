@@ -5,8 +5,10 @@ using System.IO;
 using System.Linq;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace WinZenShell.Services;
@@ -35,6 +37,7 @@ public class WifiNetworkItem
     public bool IsConnected { get; set; } = false;
     public bool IsSecured { get; set; } = true;
     public bool IsKnownProfile { get; set; } = false;
+    public bool IsInRange { get; set; } = true;
 }
 
 public class NetworkService
@@ -43,6 +46,43 @@ public class NetworkService
     private NetworkStatusInfo _cachedStatus = new();
     private DateTime _lastStatusFetch = DateTime.MinValue;
     private static readonly TimeSpan CacheDuration = TimeSpan.FromSeconds(1.5);
+
+    private delegate void WlanNotificationCallback(ref WLAN_NOTIFICATION_DATA data, IntPtr context);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct WLAN_NOTIFICATION_DATA
+    {
+        public uint NotificationSource;
+        public uint NotificationCode;
+        public Guid InterfaceGuid;
+        public uint dwDataSize;
+        public IntPtr pData;
+    }
+
+    [DllImport("wlanapi.dll")]
+    private static extern uint WlanOpenHandle(uint dwClientVersion, IntPtr pReserved, out uint pdwNegotiatedVersion, out IntPtr phClientHandle);
+
+    [DllImport("wlanapi.dll")]
+    private static extern uint WlanCloseHandle(IntPtr hClientHandle, IntPtr pReserved);
+
+    [DllImport("wlanapi.dll")]
+    private static extern uint WlanEnumInterfaces(IntPtr hClientHandle, IntPtr pReserved, out IntPtr ppInterfaceList);
+
+    [DllImport("wlanapi.dll")]
+    private static extern void WlanFreeMemory(IntPtr pMemory);
+
+    [DllImport("wlanapi.dll")]
+    private static extern uint WlanScan(IntPtr hClientHandle, ref Guid pInterfaceGuid, IntPtr pDot11Ssid, IntPtr pIeData, IntPtr pReserved);
+
+    [DllImport("wlanapi.dll")]
+    private static extern uint WlanRegisterNotification(
+        IntPtr hClientHandle,
+        uint dwNotifSource,
+        [MarshalAs(UnmanagedType.Bool)] bool bIgnoreDuplicate,
+        WlanNotificationCallback? funcCallback,
+        IntPtr pCallbackContext,
+        IntPtr pReserved,
+        out uint pdwPrevNotifSource);
 
     public event EventHandler? NetworkChanged;
 
@@ -209,10 +249,84 @@ public class NetworkService
         return status;
     }
 
+    private static void TriggerHardwareWifiScan(int timeoutMs = 1500)
+    {
+        IntPtr clientHandle = IntPtr.Zero;
+        IntPtr ifaceListPtr = IntPtr.Zero;
+        using var scanDoneEvent = new ManualResetEventSlim(false);
+        WlanNotificationCallback? callback = null;
+
+        try
+        {
+            if (WlanOpenHandle(2, IntPtr.Zero, out _, out clientHandle) != 0 || clientHandle == IntPtr.Zero)
+                return;
+
+            if (WlanEnumInterfaces(clientHandle, IntPtr.Zero, out ifaceListPtr) != 0 || ifaceListPtr == IntPtr.Zero)
+                return;
+
+            int count = Marshal.ReadInt32(ifaceListPtr);
+            if (count <= 0) return;
+
+            int remainingInterfaces = count;
+            callback = (ref WLAN_NOTIFICATION_DATA data, IntPtr ctx) =>
+            {
+                // WLAN_NOTIFICATION_SOURCE_ACM = 0x00000008, scan_complete = 7, scan_fail = 8
+                if (data.NotificationSource == 0x00000008 && (data.NotificationCode == 7 || data.NotificationCode == 8))
+                {
+                    if (Interlocked.Decrement(ref remainingInterfaces) <= 0)
+                    {
+                        try { scanDoneEvent.Set(); } catch { }
+                    }
+                }
+            };
+
+            WlanRegisterNotification(clientHandle, 0x00000008, true, callback, IntPtr.Zero, IntPtr.Zero, out _);
+
+            bool anyTriggered = false;
+            for (int i = 0; i < count; i++)
+            {
+                // WLAN_INTERFACE_INFO_LIST header is 8 bytes; each WLAN_INTERFACE_INFO starts with 16-byte GUID (stride 532 bytes)
+                IntPtr itemPtr = IntPtr.Add(ifaceListPtr, 8 + i * 532);
+                byte[] guidBytes = new byte[16];
+                Marshal.Copy(itemPtr, guidBytes, 0, 16);
+                var ifaceGuid = new Guid(guidBytes);
+                if (WlanScan(clientHandle, ref ifaceGuid, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero) == 0)
+                {
+                    anyTriggered = true;
+                }
+            }
+
+            if (anyTriggered)
+            {
+                scanDoneEvent.Wait(timeoutMs);
+            }
+        }
+        catch { }
+        finally
+        {
+            if (clientHandle != IntPtr.Zero)
+            {
+                try { WlanRegisterNotification(clientHandle, 0, true, null, IntPtr.Zero, IntPtr.Zero, out _); } catch { }
+            }
+            if (ifaceListPtr != IntPtr.Zero)
+            {
+                try { WlanFreeMemory(ifaceListPtr); } catch { }
+            }
+            if (clientHandle != IntPtr.Zero)
+            {
+                try { WlanCloseHandle(clientHandle, IntPtr.Zero); } catch { }
+            }
+            GC.KeepAlive(callback);
+        }
+    }
+
     public async Task<List<WifiNetworkItem>> ScanWifiNetworksAsync()
     {
         return await Task.Run(() =>
         {
+            // Explicitly wake the WLAN driver scan even when already associated to an AP
+            TriggerHardwareWifiScan(1500);
+
             var knownProfiles = GetKnownProfiles();
             var currentStatus = GetNetworkStatus();
             string connectedSsid = currentStatus.NetworkType == "wifi" ? currentStatus.Ssid : "";
@@ -279,11 +393,12 @@ public class NetworkService
                 AddOrUpdateNetwork(map, currentSsid, currentAuth, currentEnc, currentBand, maxSignal, connectedSsid, knownProfiles);
             }
 
-            // Return sorted: connected first, then highest signal to lowest
+            // Return sorted: connected first, then saved networks in range, then strongest signal
             return map.Values
                 .OrderByDescending(n => n.IsConnected)
+                .ThenByDescending(n => n.IsKnownProfile)
                 .ThenByDescending(n => n.SignalPercent)
-                .ThenBy(n => n.Ssid)
+                .ThenBy(n => n.Ssid, StringComparer.OrdinalIgnoreCase)
                 .ToList();
         });
     }
@@ -390,6 +505,17 @@ public class NetworkService
         {
             string res = RunNetsh("wlan disconnect");
             return res.IndexOf("completed successfully", StringComparison.OrdinalIgnoreCase) >= 0;
+        });
+    }
+
+    public async Task<bool> ForgetWifiProfileAsync(string ssid)
+    {
+        return await Task.Run(() =>
+        {
+            if (string.IsNullOrWhiteSpace(ssid)) return false;
+            string res = RunNetsh($"wlan delete profile name=\"{EscapeQuotes(ssid)}\"");
+            return res.IndexOf("deleted", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   res.IndexOf("completed successfully", StringComparison.OrdinalIgnoreCase) >= 0;
         });
     }
 

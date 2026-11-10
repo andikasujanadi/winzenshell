@@ -29,8 +29,7 @@ public partial class AppLauncherFlyoutWindow : Window
 
         Deactivated += (_, _) =>
         {
-            LastDeactivatedTime = DateTime.UtcNow;
-            Hide();
+            FlyoutAnimationHelper.HandleDeactivated(this, () => LastDeactivatedTime = DateTime.UtcNow);
         };
         Loaded += OnLoaded;
 
@@ -272,13 +271,10 @@ public partial class AppLauncherFlyoutWindow : Window
             top = monitorBottom - flyoutHeight - 12;
 
         Left = left;
-        Top = top;
 
         ApplyCornerClipping();
         ApplyTheme(_shellState?.Settings.Theme, _shellState?.Settings.AccentColor);
-        Show();
-        Activate();
-        Focus();
+        FlyoutAnimationHelper.AnimateShow(this, top, dockEdge, activate: true, useOpacityFade: false);
 
         if (_webViewReady && LauncherWebView.CoreWebView2 != null)
         {
