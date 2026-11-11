@@ -126,6 +126,32 @@ function initControlCenter() {
 
   let currentTheme = 'dark';
   let currentAccent = '#3684E3';
+  let lastCcRenderSig = '';
+
+  function buildCcSignature(widgets, settings) {
+    return JSON.stringify({
+      theme: (settings && settings.theme) || 'dark',
+      accent: (settings && settings.accentColor) || '#3684E3',
+      widgets: (widgets || []).map((w) => ({
+        id: w.id,
+        order: w.order ?? 10,
+        aspectRatio: w.aspectRatio || (w.id.includes('brightness') ? '1:2' : '1:1'),
+        enabled: w.enabled !== false,
+        batteryIconStyle: w.batteryIconStyle || 'win11',
+        batteryPercentMode: w.batteryPercentMode || 'outside-right',
+        startIcon: w.startIcon || 'chromeos',
+        startIconColorMode: w.startIconColorMode || 'text',
+        showSeconds: w.showSeconds !== false,
+        showDate: w.showDate !== false,
+        showCpu: w.showCpu !== false,
+        showRam: w.showRam !== false,
+        showGpu: w.showGpu !== false,
+        html: w.htmlContent || '',
+        css: w.cssContent || '',
+        js: w.jsContent || ''
+      }))
+    });
+  }
 
   function applyStateUpdate(state) {
     if (!state) return;
@@ -141,7 +167,13 @@ function initControlCenter() {
     const ccList = state.controlCenterWidgets || [];
     currentCcWidgets = ccList.slice().sort((a, b) => (a.order ?? 10) - (b.order ?? 10));
 
-    renderControlCenter(currentCcWidgets);
+    const sig = buildCcSignature(currentCcWidgets, state.settings);
+    if (sig !== lastCcRenderSig) {
+      lastCcRenderSig = sig;
+      renderControlCenter(currentCcWidgets);
+    } else if (window.winzen && window.winzen.metrics) {
+      window.dispatchEvent(new CustomEvent('winzen:metrics', { detail: window.winzen.metrics }));
+    }
     if (isEditing) populateAddSelect();
   }
 
@@ -370,7 +402,12 @@ function initControlCenter() {
             batteryIconStyle: w.batteryIconStyle,
             batteryPercentMode: w.batteryPercentMode,
             startIcon: w.startIcon,
-            startIconColorMode: w.startIconColorMode
+            startIconColorMode: w.startIconColorMode,
+            showSeconds: w.showSeconds !== false,
+            showDate: w.showDate !== false,
+            showCpu: w.showCpu !== false,
+            showRam: w.showRam !== false,
+            showGpu: w.showGpu !== false
           };
           const fn = new Function('root', 'document', 'winzen', 'widgetConfig', w.jsContent);
           fn(shadow, shadow, window.winzen, configCopy);

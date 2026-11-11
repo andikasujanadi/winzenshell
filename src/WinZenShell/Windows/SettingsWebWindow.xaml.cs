@@ -248,6 +248,18 @@ public partial class SettingsWebWindow : Window
                                       (wsdProp.ValueKind == JsonValueKind.True || wsdProp.ValueKind == JsonValueKind.False)
                         ? wsdProp.GetBoolean()
                         : null;
+                    bool? wShowCpu = root.TryGetProperty("showCpu", out var wscProp) &&
+                                     (wscProp.ValueKind == JsonValueKind.True || wscProp.ValueKind == JsonValueKind.False)
+                        ? wscProp.GetBoolean()
+                        : null;
+                    bool? wShowRam = root.TryGetProperty("showRam", out var wsrProp) &&
+                                     (wsrProp.ValueKind == JsonValueKind.True || wsrProp.ValueKind == JsonValueKind.False)
+                        ? wsrProp.GetBoolean()
+                        : null;
+                    bool? wShowGpu = root.TryGetProperty("showGpu", out var wsgProp) &&
+                                     (wsgProp.ValueKind == JsonValueKind.True || wsgProp.ValueKind == JsonValueKind.False)
+                        ? wsgProp.GetBoolean()
+                        : null;
                     int? wOrder = root.TryGetProperty("order", out var woProp) && woProp.ValueKind == JsonValueKind.Number
                         ? woProp.GetInt32()
                         : null;
@@ -272,7 +284,10 @@ public partial class SettingsWebWindow : Window
                             wBatteryPercentMode,
                             wStartIconColorMode,
                             wShowSeconds,
-                            wShowDate);
+                            wShowDate,
+                            wShowCpu,
+                            wShowRam,
+                            wShowGpu);
                     }
                     break;
 

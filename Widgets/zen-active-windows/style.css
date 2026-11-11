@@ -63,12 +63,18 @@
 }
 
 .win-pill.dragging {
-  opacity: 0.88;
-  transform: scale(1.04);
-  z-index: 20;
+  opacity: 0.92;
+  z-index: 25;
   cursor: grabbing;
-  background: var(--winzen-surface-active, rgba(255, 255, 255, 0.12));
+  background: var(--winzen-surface-active, rgba(255, 255, 255, 0.14));
   border-color: var(--winzen-accent, #60cdff);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  transition: none !important;
+}
+
+.win-pill.swap-anim {
+  transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1) !important;
+  will-change: transform;
 }
 
 /* Windows 11 Taskbar Running / Active Bottom Indicator Pill */
@@ -369,7 +375,11 @@ body.theme-light .menu-divider {
 @keyframes winAppEnter {
   0% {
     opacity: 0;
-    transform: scale(0.82) translateY(3px);
+    transform: scale(0.8) translateY(4px);
+  }
+  62% {
+    opacity: 1;
+    transform: scale(1.06) translateY(-1.5px);
   }
   100% {
     opacity: 1;
@@ -378,37 +388,53 @@ body.theme-light .menu-divider {
 }
 
 @keyframes winPinLaunch {
-  0% { transform: scale(1); }
-  40% { transform: scale(0.88); }
-  75% { transform: scale(1.08); }
-  100% { transform: scale(1); }
+  0% { transform: scale(1) translateY(0); }
+  35% { transform: scale(0.9) translateY(1px); }
+  70% { transform: scale(1.08) translateY(-2.5px); }
+  100% { transform: scale(1) translateY(0); }
+}
+
+@keyframes winPinLoadingBounce {
+  0%   { transform: translateY(0) scale(1); }
+  28%  { transform: translateY(-2.5px) scale(1.06); }
+  52%  { transform: translateY(0.5px) scale(0.97); }
+  76%  { transform: translateY(-1.2px) scale(1.02); }
+  100% { transform: translateY(0) scale(1); }
 }
 
 @keyframes winPinOpen {
   0% {
-    opacity: 0.72;
-    transform: scale(0.88);
+    opacity: 0.78;
+    transform: scale(0.84) translateY(3px);
   }
   55% {
     opacity: 1;
-    transform: scale(1.06);
+    transform: scale(1.08) translateY(-2.5px);
+  }
+  82% {
+    opacity: 1;
+    transform: scale(0.98) translateY(0.5px);
   }
   100% {
     opacity: 1;
-    transform: scale(1);
+    transform: scale(1) translateY(0);
   }
 }
 
 .win-pill.anim-enter {
-  animation: winAppEnter 180ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: winAppEnter 240ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
 .win-pill.anim-pin-launch {
-  animation: winPinLaunch 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  animation: winPinLaunch 280ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.win-pill.is-launching {
+  animation: winPinLoadingBounce 720ms cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
 }
 
 .win-pill.anim-pin-open {
-  animation: winPinOpen 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  animation: winPinOpen 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .win-pill.anim-exit {

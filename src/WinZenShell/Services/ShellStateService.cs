@@ -66,6 +66,15 @@ public class ControlCenterItemPayload
 
     [JsonPropertyName("showDate")]
     public bool ShowDate { get; set; } = true;
+
+    [JsonPropertyName("showCpu")]
+    public bool ShowCpu { get; set; } = true;
+
+    [JsonPropertyName("showRam")]
+    public bool ShowRam { get; set; } = true;
+
+    [JsonPropertyName("showGpu")]
+    public bool ShowGpu { get; set; } = true;
 }
 
 public class PinnedAppEntry
@@ -322,7 +331,10 @@ public class ShellStateService
         string? batteryPercentMode = null,
         string? startIconColorMode = null,
         bool? showSeconds = null,
-        bool? showDate = null)
+        bool? showDate = null,
+        bool? showCpu = null,
+        bool? showRam = null,
+        bool? showGpu = null)
     {
         int? existingOrder = _settings.WidgetOverrides.TryGetValue(widgetId, out var prev) ? prev.Order : null;
         var existing = _settings.WidgetOverrides.TryGetValue(widgetId, out var existingOv) ? existingOv : null;
@@ -346,11 +358,52 @@ public class ShellStateService
             BatteryIconStyle = !string.IsNullOrWhiteSpace(batteryIconStyle) ? batteryIconStyle : (existing?.BatteryIconStyle ?? "win11"),
             BatteryPercentMode = !string.IsNullOrWhiteSpace(batteryPercentMode) ? batteryPercentMode : (existing?.BatteryPercentMode ?? "outside-right"),
             ShowSeconds = showSeconds ?? (existing?.ShowSeconds ?? true),
-            ShowDate = showDate ?? (existing?.ShowDate ?? true)
+            ShowDate = showDate ?? (existing?.ShowDate ?? true),
+            ShowCpu = showCpu ?? (existing?.ShowCpu ?? true),
+            ShowRam = showRam ?? (existing?.ShowRam ?? true),
+            ShowGpu = showGpu ?? (existing?.ShowGpu ?? true)
         };
         SaveSettings();
         _statusBanner = "Widget updated";
         BroadcastState();
+    }
+
+    public (bool ShowCpu, bool ShowRam, bool ShowGpu) GetSystemMonitorStats()
+    {
+        var discovered = _widgetManager.DiscoverWidgets(_settings.WidgetOverrides);
+        var match = discovered.Find(w => w.Id == "community.zen-system-monitor");
+        if (match == null) return (true, true, true);
+        return (match.ShowCpu, match.ShowRam, match.ShowGpu);
+    }
+
+    public void UpdateSystemMonitorStats(bool showCpu, bool showRam, bool showGpu)
+    {
+        const string widgetId = "community.zen-system-monitor";
+        var discovered = _widgetManager.DiscoverWidgets(_settings.WidgetOverrides);
+        var current = discovered.Find(w => w.Id == widgetId);
+        UpdateWidgetState(
+            widgetId,
+            current?.Enabled ?? true,
+            current?.Slot ?? "right",
+            current?.Width ?? 160,
+            current?.AutoWidth ?? true,
+            current?.ShowAppName ?? true,
+            current?.Order,
+            current?.CombineApps ?? false,
+            current?.StartIcon,
+            current?.StartText,
+            current?.ShowStartText ?? false,
+            current?.DisplayMode,
+            current?.AspectRatio,
+            current?.ShowThumbnails,
+            current?.BatteryIconStyle,
+            current?.BatteryPercentMode,
+            current?.StartIconColorMode,
+            current?.ShowSeconds,
+            current?.ShowDate,
+            showCpu,
+            showRam,
+            showGpu);
     }
 
     public void ReorderWidgets(List<WidgetOrderUpdate> updates)
@@ -379,7 +432,10 @@ public class ShellStateService
                     DisplayMode = current?.DisplayMode ?? "widget",
                     AspectRatio = current?.AspectRatio ?? "1:1",
                     ShowSeconds = current?.ShowSeconds ?? true,
-                    ShowDate = current?.ShowDate ?? true
+                    ShowDate = current?.ShowDate ?? true,
+                    ShowCpu = current?.ShowCpu ?? true,
+                    ShowRam = current?.ShowRam ?? true,
+                    ShowGpu = current?.ShowGpu ?? true
                 };
                 _settings.WidgetOverrides[item.Id] = ov;
             }
@@ -595,7 +651,10 @@ public class ShellStateService
                     StartIcon = match.StartIcon,
                     StartIconColorMode = match.StartIconColorMode,
                     ShowSeconds = match.ShowSeconds,
-                    ShowDate = match.ShowDate
+                    ShowDate = match.ShowDate,
+                    ShowCpu = match.ShowCpu,
+                    ShowRam = match.ShowRam,
+                    ShowGpu = match.ShowGpu
                 });
             }
         }

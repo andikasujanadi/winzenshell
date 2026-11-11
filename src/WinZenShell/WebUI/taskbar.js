@@ -75,6 +75,9 @@ function initTaskbar() {
         batteryPercentMode: w.batteryPercentMode || 'outside-right',
         showSeconds: w.showSeconds !== false,
         showDate: w.showDate !== false,
+        showCpu: w.showCpu !== false,
+        showRam: w.showRam !== false,
+        showGpu: w.showGpu !== false,
         html: w.htmlContent,
         css: w.cssContent,
         js: w.jsContent

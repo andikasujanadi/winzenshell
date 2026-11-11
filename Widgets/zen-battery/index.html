@@ -11,6 +11,18 @@
       <!-- Icon DOM injected by script.js based on batteryIconStyle -->
     </div>
     <span class="battery-pct pct-right" id="pctRight">--%</span>
+
+    <!-- Rich Control Center Card View -->
+    <div class="cc-battery-body" id="ccBatteryBody" style="display: none;">
+      <div class="cc-batt-top">
+        <div class="cc-batt-icon-slot" id="ccIconWrap"></div>
+        <span class="cc-batt-pct" id="ccBattPct">--%</span>
+      </div>
+      <div class="cc-batt-status" id="ccBattStatus">Detecting power...</div>
+      <div class="cc-batt-track">
+        <div class="cc-batt-fill" id="ccBattBar" style="width: 0%;"></div>
+      </div>
+    </div>
   </button>
   <script src="script.js"></script>
 </body>

@@ -2,6 +2,13 @@ const batteryRoot = root.getElementById('batteryRoot');
 const iconWrap = root.getElementById('iconWrap');
 const pctLeft = root.getElementById('pctLeft');
 const pctRight = root.getElementById('pctRight');
+const ccBatteryBody = root.getElementById('ccBatteryBody');
+const ccIconWrap = root.getElementById('ccIconWrap');
+const ccBattPct = root.getElementById('ccBattPct');
+const ccBattStatus = root.getElementById('ccBattStatus');
+const ccBattBar = root.getElementById('ccBattBar');
+
+const inControlCenter = typeof widgetConfig !== 'undefined' && widgetConfig && !!widgetConfig.inControlCenter;
 
 let currentStyle = (typeof widgetConfig !== 'undefined' && widgetConfig && widgetConfig.batteryIconStyle) || 'win11';
 let currentMode = (typeof widgetConfig !== 'undefined' && widgetConfig && widgetConfig.batteryPercentMode) || 'outside-right';
@@ -85,6 +92,10 @@ function applyStyleAndMode(style, mode) {
   batteryRoot.classList.add(`mode-${mode}`);
 
   iconWrap.innerHTML = buildIconHtml(style);
+  if (ccIconWrap) {
+    ccIconWrap.innerHTML = buildIconHtml(style);
+    ccIconWrap.className = 'cc-batt-icon-slot battery-icon-wrap';
+  }
 
   if (lastMetrics) {
     updateBatteryDisplay(lastMetrics);
@@ -102,12 +113,22 @@ function updateBatteryDisplay(m) {
   const isEnergySaver = pct > 5 && pct <= 20 && !isCharging;
   const statusText = m.batteryStatusText || (isCharging ? 'Charging' : (isEnergySaver ? 'Energy Saver' : 'On Battery'));
 
-  const fillBar = root.getElementById('fillBar');
-  const pctInside = root.getElementById('pctInside');
+  const fillBars = [root.getElementById('fillBar'), ...(ccIconWrap ? Array.from(ccIconWrap.querySelectorAll('.batt-fill-bar')) : [])].filter(Boolean);
+  const pctInsideEls = Array.from(root.querySelectorAll('#pctInside'));
 
   if (pctLeft) pctLeft.textContent = `${pct}%`;
   if (pctRight) pctRight.textContent = `${pct}%`;
-  if (pctInside) {
+  if (ccBattPct) ccBattPct.textContent = `${pct}%`;
+  if (ccBattStatus) {
+    if (!hasBattery) ccBattStatus.textContent = 'AC Power';
+    else if (isCharging) ccBattStatus.textContent = pct >= 100 ? 'Fully Charged' : 'Plugged in • Charging';
+    else if (isLow) ccBattStatus.textContent = 'Critical Battery';
+    else if (isEnergySaver) ccBattStatus.textContent = 'Battery Saver';
+    else ccBattStatus.textContent = 'On Battery Power';
+  }
+  if (ccBattBar) ccBattBar.style.width = `${pct}%`;
+
+  pctInsideEls.forEach((pctInside) => {
     if (isCharging) {
       pctInside.innerHTML = `<span style="font-size:7px;margin-right:1px;line-height:1;">⚡</span>${pct}`;
       pctInside.style.flexDirection = 'row';
@@ -115,13 +136,11 @@ function updateBatteryDisplay(m) {
       pctInside.textContent = `${pct}`;
       pctInside.style.flexDirection = 'row';
     }
-  }
+  });
 
-  if (fillBar) {
-    const maxW = currentStyle === 'macos' ? 23 : (currentStyle === 'win10' ? 19 : 18);
-    const fillW = Math.max(0, Math.min(maxW, (maxW * pct) / 100));
-    fillBar.setAttribute('width', fillW.toFixed(2));
-  }
+  const maxW = currentStyle === 'macos' ? 23 : (currentStyle === 'win10' ? 19 : 18);
+  const fillW = Math.max(0, Math.min(maxW, (maxW * pct) / 100));
+  fillBars.forEach((fb) => fb.setAttribute('width', fillW.toFixed(2)));
 
   if (batteryRoot) {
     batteryRoot.classList.toggle('is-charging', isCharging);

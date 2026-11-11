@@ -36,6 +36,7 @@ public class SystemMetricsSnapshot
 {
     public int CpuPercent { get; set; }
     public int MemoryPercent { get; set; }
+    public int GpuPercent { get; set; }
     public double MemoryUsedGb { get; set; }
     public double MemoryTotalGb { get; set; }
     public int BrightnessPercent { get; set; } = 100;
@@ -74,6 +75,14 @@ public class SystemMetricsService
     private DateTime _lastCpuCheck = DateTime.UtcNow;
     private TimeSpan _lastTotalProcTime = TimeSpan.Zero;
     private int _cachedCpuPercent = 8;
+
+    private DateTime _lastGpuCheck = DateTime.MinValue;
+    private DateTime _gpuQueryCreatedUtc = DateTime.MinValue;
+    private IntPtr _gpuPdhQuery = IntPtr.Zero;
+    private IntPtr _gpuPdhCounter = IntPtr.Zero;
+    private readonly object _gpuLock = new();
+    private int _gpuSampling = 0;
+    private int _cachedGpuPercent = 0;
 
     // Preserve fixed window order so active windows never jump to the first slot
     private readonly Dictionary<long, long> _windowOrderMap = new();
@@ -125,6 +134,7 @@ public class SystemMetricsService
         double usedGb = Math.Round(totalGb - availGb, 1);
 
         int cpu = SampleApproximateCpu();
+        int gpu = SampleApproximateGpu();
         var now = DateTime.Now;
 
         var windows = GetTopLevelAppWindows(ignoreTaskbarHwnd, ignoreSettingsHwnd);
@@ -183,6 +193,7 @@ public class SystemMetricsService
         {
             CpuPercent = cpu,
             MemoryPercent = (int)mem.dwMemoryLoad,
+            GpuPercent = gpu,
             MemoryUsedGb = usedGb,
             MemoryTotalGb = totalGb,
             BrightnessPercent = Brightness?.CurrentBrightness ?? 100,
@@ -490,6 +501,151 @@ public class SystemMetricsService
             // Keep cached
         }
         return _cachedCpuPercent;
+    }
+
+    private const uint PDH_FMT_DOUBLE = 0x00000200;
+    private const uint PDH_MORE_DATA = 0x800007D2;
+
+    [StructLayout(LayoutKind.Explicit)]
+    private struct PDH_FMT_COUNTERVALUE
+    {
+        [FieldOffset(0)] public uint CStatus;
+        [FieldOffset(8)] public double doubleValue;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct PDH_FMT_COUNTERVALUE_ITEM
+    {
+        public IntPtr szName;
+        public PDH_FMT_COUNTERVALUE FmtValue;
+    }
+
+    [DllImport("pdh.dll", CharSet = CharSet.Unicode)]
+    private static extern uint PdhOpenQuery(string? szDataSource, IntPtr dwUserData, out IntPtr phQuery);
+
+    [DllImport("pdh.dll", CharSet = CharSet.Unicode)]
+    private static extern uint PdhAddEnglishCounter(IntPtr hQuery, string szFullCounterPath, IntPtr dwUserData, out IntPtr phCounter);
+
+    [DllImport("pdh.dll")]
+    private static extern uint PdhCollectQueryData(IntPtr hQuery);
+
+    [DllImport("pdh.dll", CharSet = CharSet.Unicode)]
+    private static extern uint PdhGetFormattedCounterArray(IntPtr hCounter, uint dwFormat, ref uint lpdwBufferSize, out uint lpdwItemCount, IntPtr ItemBuffer);
+
+    [DllImport("pdh.dll")]
+    private static extern uint PdhCloseQuery(IntPtr hQuery);
+
+    private int SampleApproximateGpu()
+    {
+        var now = DateTime.UtcNow;
+        if ((now - _lastGpuCheck).TotalMilliseconds >= 1100 &&
+            System.Threading.Interlocked.CompareExchange(ref _gpuSampling, 1, 0) == 0)
+        {
+            _lastGpuCheck = now;
+            _ = System.Threading.Tasks.Task.Run(() =>
+            {
+                try
+                {
+                    RefreshGpuCounterSample();
+                }
+                finally
+                {
+                    System.Threading.Interlocked.Exchange(ref _gpuSampling, 0);
+                }
+            });
+        }
+        return _cachedGpuPercent;
+    }
+
+    private void RefreshGpuCounterSample()
+    {
+        lock (_gpuLock)
+        {
+            try
+            {
+                var now = DateTime.UtcNow;
+                bool needOpen = _gpuPdhQuery == IntPtr.Zero || (now - _gpuQueryCreatedUtc).TotalSeconds > 30;
+                if (needOpen)
+                {
+                    if (_gpuPdhQuery != IntPtr.Zero)
+                    {
+                        PdhCloseQuery(_gpuPdhQuery);
+                        _gpuPdhQuery = IntPtr.Zero;
+                        _gpuPdhCounter = IntPtr.Zero;
+                    }
+                    if (PdhOpenQuery(null, IntPtr.Zero, out _gpuPdhQuery) != 0)
+                    {
+                        _gpuPdhQuery = IntPtr.Zero;
+                        return;
+                    }
+                    if (PdhAddEnglishCounter(_gpuPdhQuery, @"\GPU Engine(*)\Utilization Percentage", IntPtr.Zero, out _gpuPdhCounter) != 0)
+                    {
+                        PdhCloseQuery(_gpuPdhQuery);
+                        _gpuPdhQuery = IntPtr.Zero;
+                        _gpuPdhCounter = IntPtr.Zero;
+                        return;
+                    }
+                    _gpuQueryCreatedUtc = now;
+                    PdhCollectQueryData(_gpuPdhQuery);
+                    System.Threading.Thread.Sleep(250);
+                }
+
+                if (PdhCollectQueryData(_gpuPdhQuery) != 0 || _gpuPdhCounter == IntPtr.Zero)
+                    return;
+
+                uint bufSize = 0, count = 0;
+                uint status = PdhGetFormattedCounterArray(_gpuPdhCounter, PDH_FMT_DOUBLE, ref bufSize, out count, IntPtr.Zero);
+                if (status != PDH_MORE_DATA || bufSize == 0 || count == 0)
+                    return;
+
+                IntPtr buf = Marshal.AllocHGlobal((int)bufSize);
+                try
+                {
+                    status = PdhGetFormattedCounterArray(_gpuPdhCounter, PDH_FMT_DOUBLE, ref bufSize, out count, buf);
+                    if (status != 0) return;
+
+                    int itemSize = Marshal.SizeOf<PDH_FMT_COUNTERVALUE_ITEM>();
+                    var engineBuckets = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+
+                    for (int i = 0; i < (int)count; i++)
+                    {
+                        var item = Marshal.PtrToStructure<PDH_FMT_COUNTERVALUE_ITEM>(IntPtr.Add(buf, i * itemSize));
+                        if (item.FmtValue.CStatus != 0) continue;
+
+                        string? name = Marshal.PtrToStringUni(item.szName);
+                        if (string.IsNullOrEmpty(name)) continue;
+
+                        int luidIdx = name.IndexOf("_luid_", StringComparison.OrdinalIgnoreCase);
+                        int engIdx = name.IndexOf("_engtype_", StringComparison.OrdinalIgnoreCase);
+                        if (luidIdx < 0 || engIdx < 0) continue;
+
+                        int physIdx = name.IndexOf("_phys_", luidIdx, StringComparison.OrdinalIgnoreCase);
+                        if (physIdx < 0 || physIdx > engIdx) physIdx = engIdx;
+
+                        string luidPart = name.Substring(luidIdx, physIdx - luidIdx);
+                        string engPart = name.Substring(engIdx);
+                        string bucketKey = luidPart + "|" + engPart;
+
+                        engineBuckets[bucketKey] = (engineBuckets.TryGetValue(bucketKey, out double cur) ? cur : 0.0) + item.FmtValue.doubleValue;
+                    }
+
+                    double maxUsage = 0.0;
+                    foreach (double val in engineBuckets.Values)
+                    {
+                        if (val > maxUsage) maxUsage = val;
+                    }
+                    _cachedGpuPercent = Math.Clamp((int)Math.Round(maxUsage), 0, 100);
+                }
+                finally
+                {
+                    Marshal.FreeHGlobal(buf);
+                }
+            }
+            catch
+            {
+                // Keep cached GPU percent
+            }
+        }
     }
 
     public List<RunningWindowItem> GetTopLevelAppWindows(IntPtr ignoreTaskbarHwnd, IntPtr ignoreSettingsHwnd)

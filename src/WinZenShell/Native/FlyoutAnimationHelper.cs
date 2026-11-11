@@ -55,14 +55,16 @@ public static class FlyoutAnimationHelper
             return;
         }
 
-        double offset = string.Equals(state.LastDockEdge, "Top", StringComparison.OrdinalIgnoreCase) ? -10.0 : 10.0;
+        double mag = useOpacityFade ? 10.0 : 6.0;
+        double offset = string.Equals(state.LastDockEdge, "Top", StringComparison.OrdinalIgnoreCase) ? -mag : mag;
         double startTop = finalTop + offset;
 
         // Apply starting frame values BEFORE Show() so Frame 1 never flashes at finalTop or Opacity=1
         window.Top = startTop;
         window.Opacity = useOpacityFade ? 0.0 : 1.0;
 
-        var slideAnim = new DoubleAnimation(startTop, finalTop, new Duration(TimeSpan.FromMilliseconds(165)))
+        int durationMs = useOpacityFade ? 165 : 135;
+        var slideAnim = new DoubleAnimation(startTop, finalTop, new Duration(TimeSpan.FromMilliseconds(durationMs)))
         {
             EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut },
             FillBehavior = FillBehavior.HoldEnd

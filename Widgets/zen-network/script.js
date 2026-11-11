@@ -2,7 +2,9 @@ const btnNetwork = root.getElementById('btnNetwork');
 const netSvg = root.getElementById('netSvg');
 const netPath = root.getElementById('netPath');
 const netLabel = root.getElementById('netLabel');
+const netSubLabel = root.getElementById('netSubLabel');
 
+const inControlCenter = typeof widgetConfig !== 'undefined' && widgetConfig && !!widgetConfig.inControlCenter;
 let currentDisplayMode = (typeof widgetConfig !== 'undefined' && widgetConfig && widgetConfig.displayMode) || 'icon';
 
 const PATH_WIFI_FULL = 'M2.03 8.23A14.10 14.10 0 0 1 21.97 8.23A0.90 0.90 0 0 1 20.70 9.50A12.30 12.30 0 0 0 3.30 9.50A0.90 0.90 0 0 1 2.03 8.23ZM4.91 10.86A10.20 10.20 0 0 1 19.09 10.86A0.90 0.90 0 0 1 17.84 12.16A8.40 8.40 0 0 0 6.16 12.16A0.90 0.90 0 0 1 4.91 10.86ZM7.70 13.59A6.30 6.30 0 0 1 16.30 13.59A0.90 0.90 0 0 1 15.07 14.91A4.50 4.50 0 0 0 8.93 14.91A0.90 0.90 0 0 1 7.70 13.59ZM12.0 16.40a1.8 1.8 0 1 1 0 3.6 1.8 1.8 0 0 1 0-3.6z';
@@ -21,7 +23,7 @@ function getWifiSignalPath(signal) {
 
 function applyDisplayMode(mode) {
   currentDisplayMode = mode;
-  if (netLabel) {
+  if (netLabel && !inControlCenter) {
     netLabel.style.display = mode === 'widget' ? 'inline-block' : 'none';
   }
 }
@@ -35,7 +37,6 @@ function updateNetworkVisuals(m) {
   const signal = typeof (m && m.wifiSignalPercent) === 'number' ? m.wifiSignalPercent : 0;
   const ssid = (m && m.networkName) || '';
   const ip = (m && m.localIpAddress) || '';
-  const isConnected = !!(m && m.isNetworkConnected);
 
   btnNetwork.classList.remove('state-wifi', 'state-ethernet', 'state-offline');
   btnNetwork.classList.add(`state-${type}`);
@@ -43,21 +44,18 @@ function updateNetworkVisuals(m) {
   if (type === 'wifi') {
     netPath.setAttribute('d', getWifiSignalPath(signal));
     btnNetwork.title = `Wi-Fi: ${ssid || 'Connected'} (${signal}%) • ${ip || 'Active'} (Click to view networks)`;
-    if (netLabel) {
-      netLabel.textContent = ssid || 'Wi-Fi';
-    }
+    if (netLabel) netLabel.textContent = ssid || 'Wi-Fi';
+    if (netSubLabel) netSubLabel.textContent = ip ? `${signal}% • ${ip}` : `Connected • ${signal}%`;
   } else if (type === 'ethernet') {
     netPath.setAttribute('d', PATH_ETHERNET);
     btnNetwork.title = `Ethernet: Connected • ${ip || 'Active'} (Click to view networks)`;
-    if (netLabel) {
-      netLabel.textContent = 'LAN';
-    }
+    if (netLabel) netLabel.textContent = inControlCenter ? (ssid || 'Ethernet') : 'LAN';
+    if (netSubLabel) netSubLabel.textContent = ip ? `Connected • ${ip}` : 'Connected (LAN)';
   } else {
     netPath.setAttribute('d', PATH_OFFLINE);
     btnNetwork.title = 'Network: Disconnected (Click to view available networks)';
-    if (netLabel) {
-      netLabel.textContent = 'Offline';
-    }
+    if (netLabel) netLabel.textContent = 'Offline';
+    if (netSubLabel) netSubLabel.textContent = 'No internet access';
   }
 }
 

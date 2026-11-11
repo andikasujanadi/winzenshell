@@ -15,6 +15,9 @@ public partial class AppLauncherFlyoutWindow : Window
     private readonly ShellStateService? _shellState;
     private bool _webViewReady;
     private IntPtr _hwnd = IntPtr.Zero;
+    private int _lastClipWidth = -1;
+    private int _lastClipHeight = -1;
+    private double _lastClipDpi = -1;
     public DateTime LastDeactivatedTime { get; private set; } = DateTime.MinValue;
 
     public AppLauncherFlyoutWindow(
@@ -61,11 +64,21 @@ public partial class AppLauncherFlyoutWindow : Window
         {
             double dpiScale = System.Windows.Media.VisualTreeHelper.GetDpi(this).DpiScaleX;
             if (dpiScale <= 0) dpiScale = 1.0;
+            if (clientRect.Width == _lastClipWidth &&
+                clientRect.Height == _lastClipHeight &&
+                Math.Abs(dpiScale - _lastClipDpi) < 0.01)
+            {
+                return;
+            }
+            _lastClipWidth = clientRect.Width;
+            _lastClipHeight = clientRect.Height;
+            _lastClipDpi = dpiScale;
+
             int radiusPhysical = (int)Math.Round(15 * dpiScale);
             int diameter = radiusPhysical * 2;
 
             IntPtr childRgn = Win32Api.CreateRoundRectRgn(0, 0, clientRect.Width + 1, clientRect.Height + 1, diameter, diameter);
-            if (Win32Api.SetWindowRgn(LauncherWebView.Handle, childRgn, true) == 0)
+            if (Win32Api.SetWindowRgn(LauncherWebView.Handle, childRgn, false) == 0)
             {
                 Win32Api.DeleteObject(childRgn);
             }
@@ -86,7 +99,16 @@ public partial class AppLauncherFlyoutWindow : Window
             OuterBorder.BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x3E, 0x3E, 0x3E));
         }
 
-        if (_webViewReady && LauncherWebView.CoreWebView2 != null)
+        if (LauncherWebView != null)
+        {
+            var bgCol = isLight
+                ? System.Drawing.Color.FromArgb(0xF3, 0xF3, 0xF3)
+                : System.Drawing.Color.FromArgb(0x1E, 0x1E, 0x1E);
+            if (LauncherWebView.DefaultBackgroundColor != bgCol)
+                LauncherWebView.DefaultBackgroundColor = bgCol;
+        }
+
+        if (_webViewReady && LauncherWebView?.CoreWebView2 != null)
         {
             string th = isLight ? "light" : "dark";
             string acc = accentColor ?? _shellState?.Settings.AccentColor ?? "#3684E3";
@@ -105,7 +127,10 @@ public partial class AppLauncherFlyoutWindow : Window
         {
             var env = await WebViewEnvironmentManager.GetSharedEnvironmentAsync();
             await LauncherWebView.EnsureCoreWebView2Async(env);
-            LauncherWebView.DefaultBackgroundColor = System.Drawing.Color.Transparent;
+            bool initLight = string.Equals(_shellState?.Settings.Theme, "light", StringComparison.OrdinalIgnoreCase);
+            LauncherWebView.DefaultBackgroundColor = initLight
+                ? System.Drawing.Color.FromArgb(0xF3, 0xF3, 0xF3)
+                : System.Drawing.Color.FromArgb(0x1E, 0x1E, 0x1E);
 
             var core = LauncherWebView.CoreWebView2;
             core.Settings.AreDefaultContextMenusEnabled = false;
@@ -190,12 +215,12 @@ public partial class AppLauncherFlyoutWindow : Window
                     if (!string.IsNullOrEmpty(target))
                     {
                         _appLauncherService.Launch(target, name);
-                        Hide();
+                        FlyoutAnimationHelper.AnimateHide(this);
                     }
                     break;
 
                 case "close_launcher":
-                    Hide();
+                    FlyoutAnimationHelper.AnimateHide(this);
                     break;
 
                 case "open_settings":

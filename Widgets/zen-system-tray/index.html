@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Zen System Tray</title>
+  <title>System Tray</title>
   <link rel="stylesheet" href="../universal-theme.css" />
   <link rel="stylesheet" href="style.css" />
 </head>
@@ -14,6 +14,10 @@
       </svg>
     </button>
     <div id="trayInlineIcons" class="tray-inline-list"></div>
+  </div>
+  <div id="trayCcView" class="tray-cc-view" style="display: none;">
+    <div id="trayCcGrid" class="tray-cc-grid"></div>
+    <div id="trayCcEmpty" class="tray-cc-empty" style="display: none;">No active tray icons</div>
   </div>
   <script src="script.js"></script>
 </body>

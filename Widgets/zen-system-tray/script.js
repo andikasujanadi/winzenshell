@@ -1,11 +1,88 @@
-const trayRoot = document.getElementById('trayRoot');
-const trayChevronBtn = document.getElementById('trayChevronBtn');
-const trayInlineIcons = document.getElementById('trayInlineIcons');
+const trayRoot = root.getElementById('trayRoot');
+const trayChevronBtn = root.getElementById('trayChevronBtn');
+const trayInlineIcons = root.getElementById('trayInlineIcons');
+const trayCcView = root.getElementById('trayCcView');
+const trayCcGrid = root.getElementById('trayCcGrid');
+const trayCcEmpty = root.getElementById('trayCcEmpty');
+
+const inControlCenter = typeof widgetConfig !== 'undefined' && widgetConfig && !!widgetConfig.inControlCenter;
+
+if (inControlCenter) {
+  if (trayRoot) trayRoot.style.display = 'none';
+  if (trayCcView) trayCcView.style.display = 'flex';
+} else {
+  if (trayCcView) trayCcView.style.display = 'none';
+  if (trayRoot) trayRoot.style.display = 'inline-flex';
+}
 
 let lastSignature = '';
 
+function buildTrayButton(item, className) {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = className;
+  const appTitle = item.tooltip || item.name || 'Tray App';
+  btn.title = inControlCenter
+    ? `${appTitle}\nClick: Open • Right-click: ${item.isPromoted ? 'Unpin from taskbar' : 'Pin to taskbar'}`
+    : appTitle;
+
+  if (item.iconDataUrl) {
+    const img = document.createElement('img');
+    img.className = 'tray-icon-img';
+    img.src = item.iconDataUrl;
+    img.alt = item.name || '';
+    btn.appendChild(img);
+  } else {
+    const fb = document.createElement('span');
+    fb.className = 'tray-icon-fallback';
+    fb.textContent = (item.name || '?').slice(0, 1).toUpperCase();
+    btn.appendChild(fb);
+  }
+
+  btn.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    if (window.winzen && typeof window.winzen.send === 'function') {
+      window.winzen.send('activate_tray_icon', { id: item.id, rightClick: false });
+    }
+  });
+
+  btn.addEventListener('contextmenu', (ev) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    if (window.winzen && typeof window.winzen.send === 'function') {
+      window.winzen.send('activate_tray_icon', { id: item.id, rightClick: true });
+    }
+  });
+
+  return btn;
+}
+
 function renderTrayIcons(trayIcons) {
-  if (!trayInlineIcons || !Array.isArray(trayIcons)) return;
+  if (!Array.isArray(trayIcons)) return;
+
+  if (inControlCenter) {
+    if (!trayCcGrid) return;
+    const sig = 'cc:' + trayIcons.map((p) => `${p.id}|${p.isPromoted ? 1 : 0}|${p.tooltip}|${p.iconDataUrl ? p.iconDataUrl.length : 0}`).join(';;');
+    if (sig === lastSignature) return;
+    lastSignature = sig;
+
+    trayCcGrid.innerHTML = '';
+    if (trayIcons.length === 0) {
+      if (trayCcEmpty) trayCcEmpty.style.display = 'flex';
+      trayCcGrid.style.display = 'none';
+      return;
+    }
+
+    if (trayCcEmpty) trayCcEmpty.style.display = 'none';
+    trayCcGrid.style.display = 'grid';
+    for (const item of trayIcons) {
+      const cls = `tray-cc-tile${item.isPromoted ? ' is-promoted' : ''}`;
+      trayCcGrid.appendChild(buildTrayButton(item, cls));
+    }
+    return;
+  }
+
+  if (!trayInlineIcons) return;
 
   const promoted = trayIcons.filter((item) => item && item.isPromoted);
   const hiddenCount = trayIcons.length - promoted.length;
@@ -21,42 +98,8 @@ function renderTrayIcons(trayIcons) {
   lastSignature = sig;
 
   trayInlineIcons.innerHTML = '';
-
   for (const item of promoted) {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'tray-btn tray-item-btn';
-    btn.title = item.tooltip || item.name || 'Tray App';
-
-    if (item.iconDataUrl) {
-      const img = document.createElement('img');
-      img.className = 'tray-icon-img';
-      img.src = item.iconDataUrl;
-      img.alt = item.name || '';
-      btn.appendChild(img);
-    } else {
-      const fb = document.createElement('span');
-      fb.className = 'tray-icon-fallback';
-      fb.textContent = (item.name || '?').slice(0, 1).toUpperCase();
-      btn.appendChild(fb);
-    }
-
-    btn.addEventListener('click', (ev) => {
-      ev.stopPropagation();
-      if (window.winzen && typeof window.winzen.send === 'function') {
-        window.winzen.send('activate_tray_icon', { id: item.id, rightClick: false });
-      }
-    });
-
-    btn.addEventListener('contextmenu', (ev) => {
-      ev.preventDefault();
-      ev.stopPropagation();
-      if (window.winzen && typeof window.winzen.send === 'function') {
-        window.winzen.send('activate_tray_icon', { id: item.id, rightClick: true });
-      }
-    });
-
-    trayInlineIcons.appendChild(btn);
+    trayInlineIcons.appendChild(buildTrayButton(item, 'tray-btn tray-item-btn'));
   }
 }
 

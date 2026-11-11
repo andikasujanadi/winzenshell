@@ -74,6 +74,15 @@ public class WidgetManifest
     [JsonPropertyName("showDate")]
     public bool ShowDate { get; set; } = true;
 
+    [JsonPropertyName("showCpu")]
+    public bool ShowCpu { get; set; } = true;
+
+    [JsonPropertyName("showRam")]
+    public bool ShowRam { get; set; } = true;
+
+    [JsonPropertyName("showGpu")]
+    public bool ShowGpu { get; set; } = true;
+
     [JsonPropertyName("displayMode")]
     public string DisplayMode { get; set; } = "widget"; // "icon" or "widget"
 
@@ -214,6 +223,9 @@ public class WidgetManagerService
                         manifest.BatteryPercentMode = ov.BatteryPercentMode;
                     manifest.ShowSeconds = ov.ShowSeconds;
                     manifest.ShowDate = ov.ShowDate;
+                    manifest.ShowCpu = ov.ShowCpu;
+                    manifest.ShowRam = ov.ShowRam;
+                    manifest.ShowGpu = ov.ShowGpu;
                 }
 
                 result.Add(manifest);
@@ -400,6 +412,9 @@ public class WidgetStateOverride
     public string BatteryPercentMode { get; set; } = "outside-right";
     public bool ShowSeconds { get; set; } = true;
     public bool ShowDate { get; set; } = true;
+    public bool ShowCpu { get; set; } = true;
+    public bool ShowRam { get; set; } = true;
+    public bool ShowGpu { get; set; } = true;
 }
 
 public class WidgetOrderUpdate

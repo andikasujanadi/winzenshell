@@ -3,6 +3,7 @@
   align-items: center;
   justify-content: center;
   height: 100%;
+  width: 100%;
   font-family: var(--winzen-font, 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, sans-serif);
   color: var(--winzen-text, #ffffff);
   user-select: none;
@@ -67,16 +68,86 @@
   opacity: 0.7;
 }
 
+.net-text-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
 .net-label {
   font-size: 11.5px;
   font-weight: 500;
-  line-height: 1;
+  line-height: 1.1;
   color: var(--winzen-text, #ffffff);
   white-space: nowrap;
   text-overflow: ellipsis;
   overflow: hidden;
   max-width: 90px;
-  display: none; /* Can be enabled in full widget mode */
+  display: none;
+}
+
+.net-sublabel {
+  display: none;
+}
+
+/* Control Center Card Layout */
+.in-control-center .network-pill {
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 4px 4px;
+  gap: 8px;
+  border-radius: 6px;
+}
+
+.in-control-center .network-icon-wrap {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.in-control-center .state-wifi .network-icon-wrap,
+.in-control-center .state-ethernet .network-icon-wrap {
+  background: color-mix(in srgb, var(--winzen-accent, #60cdff) 18%, transparent);
+}
+
+.in-control-center .state-wifi .net-icon,
+.in-control-center .state-ethernet .net-icon {
+  fill: var(--winzen-accent, #60cdff);
+}
+
+.in-control-center .net-text-col {
+  width: 100%;
+  gap: 2px;
+}
+
+.in-control-center .net-label {
+  display: block !important;
+  max-width: 100%;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.in-control-center .net-sublabel {
+  display: block !important;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--winzen-text-secondary, #9ca3af);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.in-control-center.cc-aspect-1-2 .network-pill,
+.in-control-center[data-aspect-ratio="1:2"] .network-pill {
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
 }
 
 /* Light theme overrides */
@@ -97,17 +168,28 @@ body.theme-light .network-pill:hover {
   border-color: rgba(0, 0, 0, 0.08);
 }
 
-:host([data-theme="light"]) .state-wifi .net-icon,
-:host(.theme-light) .state-wifi .net-icon,
-[data-theme="light"] .state-wifi .net-icon,
-.theme-light .state-wifi .net-icon,
-body.theme-light .state-wifi .net-icon,
-:host([data-theme="light"]) .state-ethernet .net-icon,
-:host(.theme-light) .state-ethernet .net-icon,
-[data-theme="light"] .state-ethernet .net-icon,
-.theme-light .state-ethernet .net-icon,
-body.theme-light .state-ethernet .net-icon {
+:host([data-theme="light"]) .network-pill .net-icon,
+:host(.theme-light) .network-pill .net-icon {
   fill: #1b1b1b;
+}
+
+:host([data-theme="light"]) .in-control-center .state-wifi .net-icon,
+:host(.theme-light) .in-control-center .state-wifi .net-icon,
+:host([data-theme="light"]) .in-control-center .state-ethernet .net-icon,
+:host(.theme-light) .in-control-center .state-ethernet .net-icon {
+  fill: var(--winzen-accent, #3684e3);
+}
+
+:host([data-theme="light"]) .in-control-center .network-icon-wrap,
+.theme-light .in-control-center .network-icon-wrap {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+:host([data-theme="light"]) .in-control-center .state-wifi .network-icon-wrap,
+:host(.theme-light) .in-control-center .state-wifi .network-icon-wrap,
+:host([data-theme="light"]) .in-control-center .state-ethernet .network-icon-wrap,
+:host(.theme-light) .in-control-center .state-ethernet .network-icon-wrap {
+  background: color-mix(in srgb, var(--winzen-accent, #3684e3) 14%, transparent);
 }
 
 :host([data-theme="light"]) .net-label,
@@ -116,6 +198,11 @@ body.theme-light .state-ethernet .net-icon {
 .theme-light .net-label,
 body.theme-light .net-label {
   color: #1b1b1b;
+}
+
+:host([data-theme="light"]) .in-control-center .net-sublabel,
+.theme-light .in-control-center .net-sublabel {
+  color: #5c5c5c;
 }
 
 :host([data-theme="light"]) .state-offline .net-icon,

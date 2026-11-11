@@ -255,8 +255,8 @@ public partial class TaskbarWebWindow : Window
                     try
                     {
                         var mon = WorkAreaAppBarService.GetPrimaryMonitorInfo().rcMonitor;
-                        _controlCenterFlyout ??= new ControlCenterFlyoutWindow(_shellState, _metricsService, _brightnessService, _openSettingsCallback, _audioService);
-                        _controlCenterFlyout.ShowAt(mon.Right - 380, 34, Top, Height, _shellState.Settings.DockEdge);
+                        var ccFlyout = EnsureControlCenterFlyout();
+                        ccFlyout.ShowAt(mon.Right - 380, 34, Top, Height, _shellState.Settings.DockEdge);
                         await System.Threading.Tasks.Task.Delay(600);
                         if (_controlCenterFlyout.CcWebView?.CoreWebView2 != null)
                         {
@@ -325,8 +325,8 @@ public partial class TaskbarWebWindow : Window
 
                     if (cmd.StartsWith("open_cc", StringComparison.OrdinalIgnoreCase))
                     {
-                        _controlCenterFlyout ??= new ControlCenterFlyoutWindow(_shellState, _metricsService, _brightnessService, _openSettingsCallback, _audioService);
-                        _controlCenterFlyout.ShowAt(mon.Right - 380, 34, Top, Height, _shellState.Settings.DockEdge);
+                        var ccFlyout = EnsureControlCenterFlyout();
+                        ccFlyout.ShowAt(mon.Right - 380, 34, Top, Height, _shellState.Settings.DockEdge);
                         if (cmd.Contains("edit", StringComparison.OrdinalIgnoreCase))
                         {
                             _ = System.Threading.Tasks.Task.Delay(500).ContinueWith(_ => Dispatcher.Invoke(async () =>
@@ -359,7 +359,7 @@ public partial class TaskbarWebWindow : Window
                     }
                     else if (cmd.StartsWith("open_sys_monitor", StringComparison.OrdinalIgnoreCase))
                     {
-                        _systemMonitorFlyout ??= new SystemMonitorFlyoutWindow(_metricsService);
+                        _systemMonitorFlyout ??= new SystemMonitorFlyoutWindow(_metricsService, _shellState);
                         _systemMonitorFlyout.ShowAt(mon.Right - 460, 34, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
                     }
                     else if (cmd.StartsWith("open_battery", StringComparison.OrdinalIgnoreCase))
@@ -1117,15 +1117,15 @@ public partial class TaskbarWebWindow : Window
 
                     Dispatcher.Invoke(() =>
                     {
-                        _controlCenterFlyout ??= new ControlCenterFlyoutWindow(_shellState, _metricsService, _brightnessService, _openSettingsCallback, _audioService);
-                        bool wasJustOpen = _controlCenterFlyout.IsVisible ||
-                            (DateTime.UtcNow - _controlCenterFlyout.LastDeactivatedTime).TotalMilliseconds < 350;
+                        var ccFlyout = EnsureControlCenterFlyout();
+                        bool wasJustOpen = ccFlyout.IsVisible ||
+                            (DateTime.UtcNow - ccFlyout.LastDeactivatedTime).TotalMilliseconds < 350;
 
                         CloseAllFlyouts();
 
                         if (!wasJustOpen)
                         {
-                            _controlCenterFlyout.ShowAt(Left + ccX, ccW, Top, Height, _shellState.Settings.DockEdge);
+                            ccFlyout.ShowAt(Left + ccX, ccW, Top, Height, _shellState.Settings.DockEdge);
                         }
                     });
                     break;
@@ -1155,7 +1155,7 @@ public partial class TaskbarWebWindow : Window
 
                     Dispatcher.Invoke(() =>
                     {
-                        _systemMonitorFlyout ??= new SystemMonitorFlyoutWindow(_metricsService);
+                        _systemMonitorFlyout ??= new SystemMonitorFlyoutWindow(_metricsService, _shellState);
                         bool wasJustOpen = _systemMonitorFlyout.IsVisible ||
                             (DateTime.UtcNow - _systemMonitorFlyout.LastDeactivatedTime).TotalMilliseconds < 350;
 
@@ -1889,6 +1889,64 @@ public partial class TaskbarWebWindow : Window
         public override Color ImageMarginGradientBegin => Color.FromArgb(44, 44, 44);
         public override Color ImageMarginGradientMiddle => Color.FromArgb(44, 44, 44);
         public override Color ImageMarginGradientEnd => Color.FromArgb(44, 44, 44);
+    }
+
+    private ControlCenterFlyoutWindow EnsureControlCenterFlyout()
+    {
+        return _controlCenterFlyout ??= new ControlCenterFlyoutWindow(
+            _shellState,
+            _metricsService,
+            _brightnessService,
+            _openSettingsCallback,
+            _audioService,
+            ForwardControlCenterAction);
+    }
+
+    private void ForwardControlCenterAction(string action, string rawJson)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(rawJson);
+            var root = doc.RootElement;
+            if (action == "activate_tray_icon")
+            {
+                string trayId = root.TryGetProperty("id", out var p) ? p.GetString() ?? "" : "";
+                bool rightClick = root.TryGetProperty("rightClick", out var r) && r.GetBoolean();
+                Dispatcher.Invoke(() =>
+                {
+                    if (rightClick && trayId.StartsWith("reg:", StringComparison.Ordinal))
+                    {
+                        _trayIconService.TogglePromoted(trayId[4..]);
+                        BroadcastMetrics();
+                    }
+                    else
+                    {
+                        _trayIconService.ActivateTrayIcon(trayId, rightClick, _openSettingsCallback);
+                    }
+                });
+            }
+            else if (action == "toggle_network_flyout")
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    var mon = WorkAreaAppBarService.GetPrimaryMonitorInfo().rcMonitor;
+                    _networkFlyout ??= new NetworkFlyoutWindow(_networkService);
+                    CloseAllFlyouts();
+                    _networkFlyout.ShowAt(mon.Right - 420, 34, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
+                });
+            }
+            else if (action == "toggle_battery_flyout")
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    var mon = WorkAreaAppBarService.GetPrimaryMonitorInfo().rcMonitor;
+                    _batteryFlyout ??= new BatteryFlyoutWindow();
+                    CloseAllFlyouts();
+                    _batteryFlyout.ShowAt(mon.Right - 220, 48, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
+                });
+            }
+        }
+        catch { }
     }
 
     private void CloseAllFlyouts(Window? except = null)

@@ -887,6 +887,7 @@ function initSettingsPage() {
       const isStartLauncher = w.id === 'community.zen-start-button';
       const isBattery = w.id === 'community.zen-battery';
       const isClock = w.id === 'community.zen-clock-pill';
+      const isSystemMonitor = w.id === 'community.zen-system-monitor';
 
       const expander = document.createElement('div');
       expander.className = 'win11-expander widget-expander';
@@ -972,6 +973,21 @@ function initSettingsPage() {
           <label class="inline-check">
             <input type="checkbox" class="w-showdate" ${w.showDate !== false ? 'checked' : ''} />
             <span>Show date</span>
+          </label>
+        `;
+      } else if (isSystemMonitor) {
+        specializedOptionsHtml = `
+          <label class="inline-check">
+            <input type="checkbox" class="w-showcpu" ${w.showCpu !== false ? 'checked' : ''} />
+            <span>Show CPU</span>
+          </label>
+          <label class="inline-check">
+            <input type="checkbox" class="w-showram" ${w.showRam !== false ? 'checked' : ''} />
+            <span>Show RAM</span>
+          </label>
+          <label class="inline-check">
+            <input type="checkbox" class="w-showgpu" ${w.showGpu !== false ? 'checked' : ''} />
+            <span>Show GPU</span>
           </label>
         `;
       }
@@ -1072,6 +1088,9 @@ function initSettingsPage() {
       const batteryPercentSelect = expander.querySelector('.w-batterypercent');
       const showSecondsInput = expander.querySelector('.w-showseconds');
       const showDateInput = expander.querySelector('.w-showdate');
+      const showCpuInput = expander.querySelector('.w-showcpu');
+      const showRamInput = expander.querySelector('.w-showram');
+      const showGpuInput = expander.querySelector('.w-showgpu');
 
       btnMoveUp.addEventListener('click', () => {
         swapWidgetOrderInRegion(regionWidgets, index, index - 1, regionKey);
@@ -1124,6 +1143,9 @@ function initSettingsPage() {
           batteryPercentMode: batteryPercentSelect ? batteryPercentSelect.value : (w.batteryPercentMode || 'outside-right'),
           showSeconds: showSecondsInput ? showSecondsInput.checked : (w.showSeconds !== false),
           showDate: showDateInput ? showDateInput.checked : (w.showDate !== false),
+          showCpu: showCpuInput ? showCpuInput.checked : (w.showCpu !== false),
+          showRam: showRamInput ? showRamInput.checked : (w.showRam !== false),
+          showGpu: showGpuInput ? showGpuInput.checked : (w.showGpu !== false),
           displayMode: displayModeSelect ? displayModeSelect.value : (w.displayMode || (w.supportedModes && w.supportedModes[0] ? w.supportedModes[0] : 'widget')),
           aspectRatio: w.aspectRatio || '1:1'
         });
@@ -1146,6 +1168,9 @@ function initSettingsPage() {
       if (batteryPercentSelect) batteryPercentSelect.addEventListener('change', pushUpdate);
       if (showSecondsInput) showSecondsInput.addEventListener('change', pushUpdate);
       if (showDateInput) showDateInput.addEventListener('change', pushUpdate);
+      if (showCpuInput) showCpuInput.addEventListener('change', pushUpdate);
+      if (showRamInput) showRamInput.addEventListener('change', pushUpdate);
+      if (showGpuInput) showGpuInput.addEventListener('change', pushUpdate);
 
       container.appendChild(expander);
     });

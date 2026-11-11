@@ -1,16 +1,19 @@
 {
   "id": "community.zen-system-monitor",
-  "name": "CPU & RAM Telemetry",
-  "version": "1.1.0",
+  "name": "Performance Telemetry",
+  "version": "1.2.0",
   "author": "Official",
-  "description": "Displays live CPU load and Memory utilization with taskbar icon mode and 1:1 dashboard mode.",
+  "description": "Displays live CPU, RAM, and GPU usage with per-metric visibility toggles.",
   "slot": "right",
   "order": 3,
   "entry": "index.html",
-  "width": 160,
+  "width": 175,
   "autoWidth": true,
   "displayMode": "widget",
   "aspectRatio": "1:1",
   "supportedModes": ["icon", "widget"],
+  "showCpu": true,
+  "showRam": true,
+  "showGpu": true,
   "enabled": true
 }

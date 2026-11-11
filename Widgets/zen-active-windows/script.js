@@ -31,6 +31,34 @@ let hasRenderedOnce = false;
 const prevStateByKey = new Map();
 const lastKeyByPinnedApp = new Map();
 const launchingPinnedKeys = new Set();
+const launchingTimers = new Map();
+
+function markPinnedLaunching(appKey) {
+  if (!appKey) return;
+  launchingPinnedKeys.add(appKey);
+  if (launchingTimers.has(appKey)) {
+    clearTimeout(launchingTimers.get(appKey));
+  }
+  const t = setTimeout(() => {
+    launchingPinnedKeys.delete(appKey);
+    launchingTimers.delete(appKey);
+    if (strip) {
+      strip.querySelectorAll('.win-pill.is-launching').forEach((el) => {
+        if (el.dataset.appKey === appKey) el.classList.remove('is-launching');
+      });
+    }
+  }, 4500);
+  launchingTimers.set(appKey, t);
+}
+
+function clearPinnedLaunching(appKey) {
+  if (!appKey) return;
+  launchingPinnedKeys.delete(appKey);
+  if (launchingTimers.has(appKey)) {
+    clearTimeout(launchingTimers.get(appKey));
+    launchingTimers.delete(appKey);
+  }
+}
 
 const FALLBACK_SVG = `<svg class="win-fallback-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M2.5 2A1.5 1.5 0 0 0 1 3.5v9A1.5 1.5 0 0 0 2.5 14h11a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 13.5 2h-11zM2 3.5a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 .5.5V5H2V3.5zm0 2.5h12v6.5a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5V6z"/></svg>`;
 const STICKY_NOTES_SVG = `<svg class="win-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" fill="#FFC83B"/><path d="M15 15l6 6h-6v-6z" fill="#E5A823"/><line x1="7" y1="8" x2="17" y2="8" stroke="#7A5200" stroke-width="1.8" stroke-linecap="round"/><line x1="7" y1="12" x2="14" y2="12" stroke="#7A5200" stroke-width="1.8" stroke-linecap="round"/></svg>`;
@@ -441,6 +469,9 @@ function renderWindows(m) {
 
     const classes = ['win-pill'];
     if (item.isClosedPinned) classes.push('pinned');
+    if (item.isClosedPinned && animationsEnabled && item.appKey && launchingPinnedKeys.has(item.appKey)) {
+      classes.push('is-launching');
+    }
     if (hasActive) classes.push('active');
     if (allMinimized) classes.push('minimized');
     if (isMulti) classes.push('combined');
@@ -493,16 +524,16 @@ function renderWindows(m) {
       const wasClosedPinJustOpened = !item.isClosedPinned && item.appKey &&
         (prevClosedPinnedAppKeys.has(item.appKey) || launchingPinnedKeys.has(item.appKey));
       if (wasClosedPinJustOpened) {
-        launchingPinnedKeys.delete(item.appKey);
-        triggerAnimClass(btn, 'anim-pin-open', 300);
+        clearPinnedLaunching(item.appKey);
+        triggerAnimClass(btn, 'anim-pin-open', 340);
       } else if (isNewlyAdded) {
         const isClosingPinMorph = item.isClosedPinned && item.appKey && prevRunningPinnedAppKeys.has(item.appKey);
         if (!isClosingPinMorph) {
-          triggerAnimClass(btn, 'anim-enter', 220);
+          triggerAnimClass(btn, 'anim-enter', 260);
         }
       }
     } else if (!item.isClosedPinned && item.appKey) {
-      launchingPinnedKeys.delete(item.appKey);
+      clearPinnedLaunching(item.appKey);
     }
 
     activeButtons.push(btn);
@@ -567,13 +598,53 @@ function createWindowPillButton(initialItem) {
   btn.draggable = false;
   btn.addEventListener('dragstart', (ev) => ev.preventDefault());
 
-  // Drag-to-Rearrange taskbar buttons horizontally (supports pinned and running apps)
+  // Drag-to-Rearrange taskbar buttons horizontally with live FLIP swap animation
   btn.addEventListener('pointerdown', (e) => {
     if (e.button !== 0) return;
 
     const startX = e.clientX;
+    let dragAnchorX = e.clientX;
     const pointerId = e.pointerId;
     let draggedMoved = false;
+
+    const swapWithFlip = (insertBeforeTarget) => {
+      const allPills = Array.from(strip.querySelectorAll('.win-pill[data-item-key]:not(.anim-exit)'));
+      const beforeLefts = new Map();
+      if (animationsEnabled) {
+        allPills.forEach((p) => {
+          if (p !== btn) beforeLefts.set(p, p.getBoundingClientRect().left);
+        });
+      }
+      const btnBeforeOffset = btn.offsetLeft;
+
+      strip.insertBefore(btn, insertBeforeTarget);
+      syncOrderFromDom();
+
+      const slotShift = btn.offsetLeft - btnBeforeOffset;
+      dragAnchorX += slotShift;
+
+      if (animationsEnabled) {
+        allPills.forEach((p) => {
+          if (p === btn) return;
+          const bLeft = beforeLefts.get(p);
+          if (typeof bLeft !== 'number') return;
+          const aLeft = p.getBoundingClientRect().left;
+          const dx = bLeft - aLeft;
+          if (Math.abs(dx) > 0.5) {
+            p.classList.remove('swap-anim');
+            p.style.transform = `translateX(${dx}px)`;
+            void p.offsetWidth;
+            p.classList.add('swap-anim');
+            p.style.transform = '';
+            if (p._swapTimer) clearTimeout(p._swapTimer);
+            p._swapTimer = setTimeout(() => {
+              p.classList.remove('swap-anim');
+              p._swapTimer = null;
+            }, 220);
+          }
+        });
+      }
+    };
 
     const onPointerMove = (moveEv) => {
       if (!draggedMoved && Math.abs(moveEv.clientX - startX) > 4) {
@@ -582,6 +653,7 @@ function createWindowPillButton(initialItem) {
         try {
           strip.setPointerCapture(pointerId);
         } catch (_) {}
+        btn.classList.remove('swap-anim');
         btn.classList.add('dragging');
         if (hoverTimer) {
           clearTimeout(hoverTimer);
@@ -601,24 +673,27 @@ function createWindowPillButton(initialItem) {
       const idx = pills.indexOf(btn);
       if (idx === -1) return;
 
+      const stripLeft = strip.getBoundingClientRect().left;
       if (idx > 0) {
         const prev = pills[idx - 1];
-        const prevRect = prev.getBoundingClientRect();
-        if (moveEv.clientX < prevRect.left + prevRect.width / 2) {
-          strip.insertBefore(btn, prev);
-          syncOrderFromDom();
-          return;
+        const prevMid = stripLeft + prev.offsetLeft + prev.offsetWidth / 2;
+        if (moveEv.clientX < prevMid) {
+          swapWithFlip(prev);
         }
       }
 
-      if (idx < pills.length - 1) {
-        const next = pills[idx + 1];
-        const nextRect = next.getBoundingClientRect();
-        if (moveEv.clientX > nextRect.left + nextRect.width / 2) {
-          strip.insertBefore(btn, next.nextSibling);
-          syncOrderFromDom();
+      const pillsAfter = Array.from(strip.querySelectorAll('.win-pill[data-item-key]:not(.anim-exit)'));
+      const idxAfter = pillsAfter.indexOf(btn);
+      if (idxAfter !== -1 && idxAfter < pillsAfter.length - 1) {
+        const next = pillsAfter[idxAfter + 1];
+        const nextMid = stripLeft + next.offsetLeft + next.offsetWidth / 2;
+        if (moveEv.clientX > nextMid) {
+          swapWithFlip(next.nextSibling);
         }
       }
+
+      const visualDx = moveEv.clientX - dragAnchorX;
+      btn.style.transform = `translateX(${visualDx}px) scale(1.04)`;
     };
 
     const onPointerEnd = () => {
@@ -651,8 +726,22 @@ function createWindowPillButton(initialItem) {
         isDraggingItem = false;
         suppressClickUntil = Date.now() + 140;
         lastSig = '';
-        if (lastCachedMetrics) {
-          renderWindows(lastCachedMetrics);
+
+        if (animationsEnabled) {
+          btn.classList.add('swap-anim');
+          void btn.offsetWidth;
+          btn.style.transform = '';
+          setTimeout(() => {
+            btn.classList.remove('swap-anim');
+            if (lastCachedMetrics && !isDraggingItem) {
+              renderWindows(lastCachedMetrics);
+            }
+          }, 210);
+        } else {
+          btn.style.transform = '';
+          if (lastCachedMetrics) {
+            renderWindows(lastCachedMetrics);
+          }
         }
       }
     };
@@ -726,9 +815,10 @@ function createWindowPillButton(initialItem) {
     const isMulti = item.windows.length > 1;
 
     if (item.isClosedPinned) {
-      if (item.appKey) launchingPinnedKeys.add(item.appKey);
+      if (item.appKey) markPinnedLaunching(item.appKey);
       if (animationsEnabled) {
-        triggerAnimClass(btn, 'anim-pin-launch', 260);
+        btn.classList.add('is-launching');
+        triggerAnimClass(btn, 'anim-pin-launch', 280);
       }
       if (window.winzen && window.winzen.tasks && typeof window.winzen.tasks.launchApp === 'function') {
         window.winzen.tasks.launchApp(item.exePath, item.processName);

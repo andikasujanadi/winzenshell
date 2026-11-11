@@ -3,6 +3,7 @@
   let recentApps = [];
   let visibleApps = [];
   let selectedIndex = -1;
+  let lastAppsSig = '';
 
   const searchInput = document.getElementById('searchInput');
   const btnClearSearch = document.getElementById('btnClearSearch');
@@ -30,6 +31,7 @@
     if (app.iconDataUrl) {
       const img = document.createElement('img');
       img.className = 'app-icon-img';
+      img.decoding = 'async';
       img.src = app.iconDataUrl;
       img.alt = app.name;
       img.onerror = () => {
@@ -232,16 +234,32 @@
       if (accent) {
         document.documentElement.style.setProperty('--winzen-accent', accent);
       }
-      allApps = Array.isArray(payload.all) ? payload.all : [];
-      recentApps = Array.isArray(payload.recent) ? payload.recent : [];
-      updateView();
+      const nextAll = Array.isArray(payload.all) ? payload.all : [];
+      const nextRecent = Array.isArray(payload.recent) ? payload.recent : [];
+      const sig = JSON.stringify({
+        r: nextRecent.map((a) => `${a.targetPath}|${a.name}|${a.iconDataUrl ? a.iconDataUrl.length : 0}`),
+        a: nextAll.map((a) => `${a.targetPath}|${a.name}|${a.iconDataUrl ? a.iconDataUrl.length : 0}`)
+      });
+      if (sig !== lastAppsSig) {
+        lastAppsSig = sig;
+        allApps = nextAll;
+        recentApps = nextRecent;
+        updateView();
+      }
     } else if (data.type === 'focus_search' || data.action === 'focus_search') {
-      searchInput.value = '';
-      updateView();
+      if (searchInput.value) {
+        searchInput.value = '';
+        updateView();
+      } else {
+        selectedIndex = -1;
+        refreshSelected();
+      }
+      const contentEl = document.querySelector('.launcher-content');
+      if (contentEl) contentEl.scrollTop = 0;
       setTimeout(() => {
         searchInput.focus();
         searchInput.select();
-      }, 50);
+      }, 30);
     }
   }
 

@@ -15,8 +15,12 @@ public partial class ControlCenterFlyoutWindow : Window
     private readonly BrightnessService _brightnessService;
     private readonly AudioService? _audioService;
     private readonly Action _openSettingsCallback;
+    private readonly Action<string, string>? _forwardActionCallback;
     private bool _webViewReady;
     private IntPtr _hwnd = IntPtr.Zero;
+    private int _lastClipWidth = -1;
+    private int _lastClipHeight = -1;
+    private double _lastClipDpi = -1;
     private double _desiredHeight = 420;
     private double _lastTaskbarTop;
     private double _lastTaskbarHeight = 50;
@@ -28,7 +32,8 @@ public partial class ControlCenterFlyoutWindow : Window
         SystemMetricsService metricsService,
         BrightnessService brightnessService,
         Action openSettingsCallback,
-        AudioService? audioService = null)
+        AudioService? audioService = null,
+        Action<string, string>? forwardActionCallback = null)
     {
         InitializeComponent();
         _shellState = shellState;
@@ -36,6 +41,7 @@ public partial class ControlCenterFlyoutWindow : Window
         _brightnessService = brightnessService;
         _openSettingsCallback = openSettingsCallback;
         _audioService = audioService;
+        _forwardActionCallback = forwardActionCallback;
 
         Deactivated += (_, _) =>
         {
@@ -67,11 +73,21 @@ public partial class ControlCenterFlyoutWindow : Window
         {
             double dpiScale = System.Windows.Media.VisualTreeHelper.GetDpi(this).DpiScaleX;
             if (dpiScale <= 0) dpiScale = 1.0;
+            if (clientRect.Width == _lastClipWidth &&
+                clientRect.Height == _lastClipHeight &&
+                Math.Abs(dpiScale - _lastClipDpi) < 0.01)
+            {
+                return;
+            }
+            _lastClipWidth = clientRect.Width;
+            _lastClipHeight = clientRect.Height;
+            _lastClipDpi = dpiScale;
+
             int radiusPhysical = (int)Math.Round(11 * dpiScale);
             int diameter = radiusPhysical * 2;
 
             IntPtr childRgn = Win32Api.CreateRoundRectRgn(0, 0, clientRect.Width + 1, clientRect.Height + 1, diameter, diameter);
-            if (Win32Api.SetWindowRgn(CcWebView.Handle, childRgn, true) == 0)
+            if (Win32Api.SetWindowRgn(CcWebView.Handle, childRgn, false) == 0)
             {
                 Win32Api.DeleteObject(childRgn);
             }
@@ -84,7 +100,10 @@ public partial class ControlCenterFlyoutWindow : Window
         {
             var env = await WebViewEnvironmentManager.GetSharedEnvironmentAsync();
             await CcWebView.EnsureCoreWebView2Async(env);
-            CcWebView.DefaultBackgroundColor = System.Drawing.Color.Transparent;
+            bool initLight = string.Equals(_shellState.Settings.Theme, "light", StringComparison.OrdinalIgnoreCase);
+            CcWebView.DefaultBackgroundColor = initLight
+                ? System.Drawing.Color.FromArgb(0xF9, 0xF9, 0xF9)
+                : System.Drawing.Color.FromArgb(0x1C, 0x1C, 0x1C);
 
             var core = CcWebView.CoreWebView2;
             core.Settings.AreDefaultContextMenusEnabled = false;
@@ -139,6 +158,14 @@ public partial class ControlCenterFlyoutWindow : Window
         {
             OuterBorder.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x1C, 0x1C, 0x1C));
             OuterBorder.BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF));
+        }
+        if (CcWebView != null)
+        {
+            var bgCol = isLight
+                ? System.Drawing.Color.FromArgb(0xF9, 0xF9, 0xF9)
+                : System.Drawing.Color.FromArgb(0x1C, 0x1C, 0x1C);
+            if (CcWebView.DefaultBackgroundColor != bgCol)
+                CcWebView.DefaultBackgroundColor = bgCol;
         }
     }
 
@@ -240,6 +267,12 @@ public partial class ControlCenterFlyoutWindow : Window
                         Dispatcher.Invoke(ApplyDynamicBounds);
                     }
                     break;
+
+                case "activate_tray_icon":
+                case "toggle_network_flyout":
+                case "toggle_battery_flyout":
+                    _forwardActionCallback?.Invoke(action, e.WebMessageAsJson);
+                    break;
             }
         }
         catch
@@ -261,6 +294,7 @@ public partial class ControlCenterFlyoutWindow : Window
     private void ApplyDynamicBounds()
     {
         double targetHeight = ClampTargetHeight(_desiredHeight);
+        if (Math.Abs(Height - targetHeight) < 2.0) return;
         const double floatingGap = 10.0;
 
         Height = targetHeight;
