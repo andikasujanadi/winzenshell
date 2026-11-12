@@ -1252,13 +1252,120 @@ function initSettingsPage() {
     if (latestCcWidgets.length === 0) {
       ccSettingsPreviewGrid.innerHTML = '<div style="color:var(--win11-text-tertiary);font-size:12px;grid-column:span 4;padding:24px 12px;text-align:center;">No widgets in Control Center. Add one below.</div>';
     } else {
+      // 2D grid matrix simulation for 4 columns
+      const gridMap = {};
+      const getCell = (r, c) => !!(gridMap[r] && gridMap[r][c]);
+      const setCell = (r, c, val) => {
+        if (!gridMap[r]) gridMap[r] = {};
+        gridMap[r][c] = val;
+      };
+
+      const placedList = [];
       latestCcWidgets.forEach((m) => {
+        const span = normalizeSpan(m.id, m.aspectRatio);
+        const parts = span.split('x');
+        const colSpan = Math.max(1, Math.min(4, parseInt(parts[0], 10) || 2));
+        const rowSpan = Math.max(1, Math.min(2, parseInt(parts[1], 10) || 1));
+
+        let r = 1;
+        let placed = false;
+        while (!placed) {
+          for (let c = 1; c <= 5 - colSpan; c++) {
+            let canFit = true;
+            for (let dr = 0; dr < rowSpan; dr++) {
+              for (let dc = 0; dc < colSpan; dc++) {
+                if (getCell(r + dr, c + dc)) {
+                  canFit = false;
+                  break;
+                }
+              }
+              if (!canFit) break;
+            }
+            if (canFit) {
+              for (let dr = 0; dr < rowSpan; dr++) {
+                for (let dc = 0; dc < colSpan; dc++) {
+                  setCell(r + dr, c + dc, true);
+                }
+              }
+              placedList.push({
+                widget: m,
+                span,
+                colSpan,
+                rowSpan,
+                row: r,
+                col: c
+              });
+              placed = true;
+              break;
+            }
+          }
+          if (!placed) r++;
+        }
+      });
+
+      let maxRow = 0;
+      placedList.forEach((p) => {
+        const endRow = p.row + p.rowSpan - 1;
+        if (endRow > maxRow) maxRow = endRow;
+      });
+
+      const totalRows = Math.max(4, maxRow + 1);
+
+      // Render placeholders for all unoccupied cells (gaps + trailing empty rows)
+      for (let r = 1; r <= totalRows; r++) {
+        for (let c = 1; c <= 4; c++) {
+          if (!getCell(r, c)) {
+            const slot = document.createElement('div');
+            slot.className = 'cc-preview-placeholder';
+            slot.style.gridRow = `${r}`;
+            slot.style.gridColumn = `${c}`;
+            
+            // Allow dropping dragged widgets onto empty placeholders
+            slot.addEventListener('dragover', (ev) => {
+              if (!draggedTileId) return;
+              ev.preventDefault();
+              ev.dataTransfer.dropEffect = 'move';
+              slot.classList.add('drag-over');
+            });
+            slot.addEventListener('dragleave', () => {
+              slot.classList.remove('drag-over');
+            });
+            slot.addEventListener('drop', (ev) => {
+              if (!draggedTileId) return;
+              ev.preventDefault();
+              slot.classList.remove('drag-over');
+              // Move dragged widget to the end
+              const fromIdx = latestCcWidgets.findIndex((item) => item.id === draggedTileId);
+              if (fromIdx !== -1) {
+                const reordered = latestCcWidgets.slice();
+                const [moved] = reordered.splice(fromIdx, 1);
+                reordered.push(moved);
+                const payload = reordered.map((item, idx) => ({
+                  id: item.id,
+                  order: (idx + 1) * 10,
+                  aspectRatio: normalizeSpan(item.id, item.aspectRatio),
+                  enabled: item.enabled !== false
+                }));
+                window.winzen.send('update_control_center_widgets', { items: payload });
+              }
+              draggedTileId = null;
+            });
+
+            ccSettingsPreviewGrid.appendChild(slot);
+          }
+        }
+      }
+
+      placedList.forEach((pw) => {
+        const m = pw.widget;
+        const span = pw.span;
         const tile = document.createElement('div');
         tile.className = 'cc-preview-tile';
-        const span = normalizeSpan(m.id, m.aspectRatio);
         tile.dataset.span = span;
         tile.dataset.aspect = span;
         tile.dataset.id = m.id;
+        tile.style.gridColumn = `${pw.col} / span ${pw.colSpan}`;
+        tile.style.gridRow = `${pw.row} / span ${pw.rowSpan}`;
         tile.setAttribute('draggable', 'true');
 
         tile.innerHTML = `

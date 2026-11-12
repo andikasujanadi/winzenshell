@@ -2,6 +2,7 @@ function initControlCenter() {
   const ccContainer = document.getElementById('ccContainer');
   const ccGrid = document.getElementById('ccGrid');
   const btnEditControls = document.getElementById('btnEditControls');
+  const btnAddWidget = document.getElementById('btnAddWidget');
   const btnDoneControls = document.getElementById('btnDoneControls');
   const ccAddDrawer = document.getElementById('ccAddDrawer');
   const ccDrawerList = document.getElementById('ccDrawerList');
@@ -25,7 +26,7 @@ function initControlCenter() {
     const measureAndSend = () => {
       if (!ccGrid || !window.winzen || typeof window.winzen.send !== 'function') return;
       const bottomBar = document.getElementById('ccBottomBar');
-      const bottomBarH = bottomBar ? bottomBar.offsetHeight : 44;
+      const bottomBarH = bottomBar ? bottomBar.offsetHeight : 52;
 
       let maxBottom = 0;
       const children = ccGrid.children;
@@ -34,15 +35,14 @@ function initControlCenter() {
       } else {
         for (let i = 0; i < children.length; i++) {
           const ch = children[i];
-          // Ignore placeholder slots when computing tight content height in normal mode
-          if (!isEditing && ch.classList.contains('cc-slot-placeholder')) continue;
+          if (!isEditing && ch.classList.contains('cc-slot-placeholder') && ch.dataset.extraRow === 'true') continue;
           const bottom = ch.offsetTop + ch.offsetHeight;
           if (bottom > maxBottom) maxBottom = bottom;
         }
       }
 
-      const gridContentH = maxBottom + 12; // bottom padding
-      const total = Math.ceil(gridContentH + bottomBarH + 4);
+      const gridContentH = maxBottom + 6; // padding below last card
+      const total = Math.ceil(gridContentH + bottomBarH + 16); // extra bottom clearance for rounded corners
 
       if (total > 80 && Math.abs(total - lastSentHeight) >= 2) {
         lastSentHeight = total;
@@ -60,6 +60,9 @@ function initControlCenter() {
   if (btnEditControls) {
     btnEditControls.addEventListener('click', () => toggleEditMode(true));
   }
+  if (btnAddWidget) {
+    btnAddWidget.addEventListener('click', () => openAddDrawer());
+  }
   if (btnDoneControls) {
     btnDoneControls.addEventListener('click', () => toggleEditMode(false));
   }
@@ -75,16 +78,25 @@ function initControlCenter() {
     if (isEditing) {
       ccContainer.classList.add('is-editing');
       if (btnEditControls) btnEditControls.style.display = 'none';
+      if (btnAddWidget) btnAddWidget.style.display = 'inline-flex';
       if (btnDoneControls) btnDoneControls.style.display = 'inline-flex';
     } else {
       ccContainer.classList.remove('is-editing');
       if (btnEditControls) btnEditControls.style.display = 'inline-flex';
+      if (btnAddWidget) btnAddWidget.style.display = 'none';
       if (btnDoneControls) btnDoneControls.style.display = 'none';
       if (ccAddDrawer) ccAddDrawer.style.display = 'none';
     }
     renderControlCenter(currentCcWidgets);
     scheduleResize();
   }
+
+  window.exitEditMode = () => {
+    if (isEditing) toggleEditMode(false);
+  };
+  window.addEventListener('blur', () => {
+    if (isEditing) toggleEditMode(false);
+  });
 
   function openAddDrawer() {
     if (!ccAddDrawer || !ccDrawerList) return;
@@ -232,22 +244,99 @@ function initControlCenter() {
       return;
     }
 
-    // Render placed widgets
-    let totalColsOccupied = 0;
+    // 2D grid matrix simulation for 4 columns
+    const gridMap = {};
+    const getCell = (r, c) => !!(gridMap[r] && gridMap[r][c]);
+    const setCell = (r, c, val) => {
+      if (!gridMap[r]) gridMap[r] = {};
+      gridMap[r][c] = val;
+    };
+
+    const placedList = [];
     widgets.forEach((w) => {
       const span = normalizeSpan(w.id, w.aspectRatio);
-
-      // Track columns occupied roughly to balance grid
       const parts = span.split('x');
-      const cols = parseInt(parts[0], 10) || 2;
-      const rows = parseInt(parts[1], 10) || 1;
-      totalColsOccupied += cols * rows;
+      const colSpan = Math.max(1, Math.min(4, parseInt(parts[0], 10) || 2));
+      const rowSpan = Math.max(1, Math.min(2, parseInt(parts[1], 10) || 1));
+
+      // Standard CSS grid auto-placement search (no dense packing, respects order)
+      let r = 1;
+      let placed = false;
+      while (!placed) {
+        for (let c = 1; c <= 5 - colSpan; c++) {
+          let canFit = true;
+          for (let dr = 0; dr < rowSpan; dr++) {
+            for (let dc = 0; dc < colSpan; dc++) {
+              if (getCell(r + dr, c + dc)) {
+                canFit = false;
+                break;
+              }
+            }
+            if (!canFit) break;
+          }
+          if (canFit) {
+            for (let dr = 0; dr < rowSpan; dr++) {
+              for (let dc = 0; dc < colSpan; dc++) {
+                setCell(r + dr, c + dc, true);
+              }
+            }
+            placedList.push({
+              widget: w,
+              span,
+              colSpan,
+              rowSpan,
+              row: r,
+              col: c
+            });
+            placed = true;
+            break;
+          }
+        }
+        if (!placed) r++;
+      }
+    });
+
+    let maxRow = 0;
+    placedList.forEach((p) => {
+      const endRow = p.row + p.rowSpan - 1;
+      if (endRow > maxRow) maxRow = endRow;
+    });
+
+    // In edit mode, add at least 1 extra empty row of placeholders at the bottom (as in Picture 2 & 4)
+    const extraRows = isEditing ? 1 : 0;
+    const totalRows = Math.max(isEditing ? 4 : 1, maxRow + extraRows);
+
+    // 1. Render empty placeholder slots in EVERY unoccupied cell
+    // This fills internal row gaps (e.g. next to Brightness 2x1) AND trailing rows in edit mode!
+    for (let r = 1; r <= totalRows; r++) {
+      for (let c = 1; c <= 4; c++) {
+        if (!getCell(r, c)) {
+          // If not in edit mode, only fill gaps within active rows up to maxRow
+          if (!isEditing && r > maxRow) continue;
+          const slot = document.createElement('div');
+          slot.className = 'cc-slot-placeholder';
+          slot.style.gridRow = `${r}`;
+          slot.style.gridColumn = `${c}`;
+          if (r > maxRow) slot.dataset.extraRow = 'true';
+          ccGrid.appendChild(slot);
+        }
+      }
+    }
+
+    // 2. Render cards for placed widgets
+    placedList.forEach((pw) => {
+      const w = pw.widget;
+      const span = pw.span;
+      const cols = pw.colSpan;
+      const rows = pw.rowSpan;
 
       const card = document.createElement('div');
       card.className = 'cc-card';
       card.dataset.span = span;
       card.dataset.aspectRatio = span;
       card.dataset.widgetId = w.id;
+      card.style.gridColumn = `${pw.col} / span ${cols}`;
+      card.style.gridRow = `${pw.row} / span ${rows}`;
       card.draggable = isEditing;
 
       // Badges for edit mode (Picture 4)
@@ -269,27 +358,97 @@ function initControlCenter() {
       });
       card.appendChild(btnRemove);
 
-      const btnResize = document.createElement('button');
+      // Resize handle badge with interactive drag-to-resize AND click-to-cycle
+      const btnResize = document.createElement('div');
       btnResize.className = 'cc-card-badge-resize';
-      btnResize.title = 'Resize widget';
+      btnResize.title = 'Drag or click to resize';
       btnResize.setAttribute('aria-label', 'Resize widget');
       btnResize.innerHTML = SVG_RESIZE;
-      btnResize.addEventListener('click', (ev) => {
+
+      let isDraggingResize = false;
+      let startX = 0, startY = 0;
+      let origCols = cols, origRows = rows;
+      let curCols = cols, curRows = rows;
+      let hasMoved = false;
+
+      btnResize.addEventListener('pointerdown', (ev) => {
         ev.stopPropagation();
-        const nextSpan = getNextSpan(w.id, span);
-        const payload = currentCcWidgets.map((item) => ({
-          id: item.id,
-          order: item.order,
-          aspectRatio: item.id === w.id ? nextSpan : normalizeSpan(item.id, item.aspectRatio),
-          enabled: item.enabled !== false
-        }));
-        window.winzen.send('update_control_center_widgets', { items: payload });
+        ev.preventDefault();
+        try { btnResize.setPointerCapture(ev.pointerId); } catch {}
+        isDraggingResize = true;
+        hasMoved = false;
+        startX = ev.clientX;
+        startY = ev.clientY;
+        origCols = curCols = cols;
+        origRows = curRows = rows;
+        card.classList.add('is-resizing');
       });
+
+      btnResize.addEventListener('pointermove', (ev) => {
+        if (!isDraggingResize) return;
+        const dx = ev.clientX - startX;
+        const dy = ev.clientY - startY;
+        if (Math.hypot(dx, dy) > 6) {
+          hasMoved = true;
+        }
+
+        const colDelta = Math.round(dx / 60);
+        const rowDelta = Math.round(dy / 55);
+
+        const newCols = Math.max(1, Math.min(4, origCols + colDelta));
+        const newRows = Math.max(1, Math.min(2, origRows + rowDelta));
+
+        if (newCols !== curCols || newRows !== curRows) {
+          curCols = newCols;
+          curRows = newRows;
+          const previewSpan = `${newCols}x${newRows}`;
+          card.dataset.span = previewSpan;
+          card.dataset.aspectRatio = previewSpan;
+          card.style.gridColumn = `${pw.col} / span ${newCols}`;
+          card.style.gridRow = `${pw.row} / span ${newRows}`;
+          if (content) {
+            content.dataset.span = previewSpan;
+            content.dataset.aspectRatio = previewSpan;
+          }
+        }
+      });
+
+      const onPointerEnd = (ev) => {
+        if (!isDraggingResize) return;
+        try { btnResize.releasePointerCapture(ev.pointerId); } catch {}
+        isDraggingResize = false;
+        card.classList.remove('is-resizing');
+
+        if (!hasMoved) {
+          // Clicked without dragging: cycle span
+          const nextSpan = getNextSpan(w.id, span);
+          const payload = currentCcWidgets.map((item) => ({
+            id: item.id,
+            order: item.order,
+            aspectRatio: item.id === w.id ? nextSpan : normalizeSpan(item.id, item.aspectRatio),
+            enabled: item.enabled !== false
+          }));
+          window.winzen.send('update_control_center_widgets', { items: payload });
+        } else {
+          // Dragged: commit new size
+          const finalSpan = `${curCols}x${curRows}`;
+          const payload = currentCcWidgets.map((item) => ({
+            id: item.id,
+            order: item.order,
+            aspectRatio: item.id === w.id ? finalSpan : normalizeSpan(item.id, item.aspectRatio),
+            enabled: item.enabled !== false
+          }));
+          window.winzen.send('update_control_center_widgets', { items: payload });
+        }
+      };
+
+      btnResize.addEventListener('pointerup', onPointerEnd);
+      btnResize.addEventListener('pointercancel', onPointerEnd);
       card.appendChild(btnResize);
 
       // Drag and drop reordering
       card.addEventListener('dragstart', (ev) => {
-        if (!isEditing) {
+        if (!isEditing || isDraggingResize) {
           ev.preventDefault();
           return;
         }
@@ -342,7 +501,7 @@ function initControlCenter() {
 
       // Card Content with Shadow DOM
       const content = document.createElement('div');
-      content.className = 'cc-card-content';
+      content.className = `cc-card-content in-control-center cc-span-${span} cc-aspect-${span.replace('x', '-')}`;
       content.dataset.inControlCenter = 'true';
       content.dataset.aspectRatio = span;
       content.dataset.span = span;
@@ -459,15 +618,27 @@ function initControlCenter() {
           background: transparent;
           border: none;
         }
-        .clock-pill .time {
-          font-size: 22px;
-          font-weight: 600;
-          letter-spacing: -0.3px;
+        :host([data-span="1x1"]) .clock-pill .time,
+        [data-span="1x1"] .clock-pill .time {
+          font-size: 18px !important;
         }
-        .clock-pill .date {
-          font-size: 11px;
-          color: var(--winzen-text-secondary);
-          margin-top: 2px;
+        :host([data-span="1x1"]) .clock-pill .date,
+        [data-span="1x1"] .clock-pill .date {
+          display: none !important;
+        }
+        :host([data-span="2x1"]) .clock-pill,
+        [data-span="2x1"] .clock-pill {
+          flex-direction: row !important;
+          gap: 8px !important;
+        }
+        :host([data-span="2x1"]) .clock-pill .time,
+        [data-span="2x1"] .clock-pill .time {
+          font-size: 18px !important;
+        }
+        :host([data-span="2x2"]) .clock-pill .time,
+        [data-span="2x2"] .clock-pill .time {
+          font-size: 26px !important;
+          font-weight: 600 !important;
         }
 
         /* Telemetry styling */
@@ -477,6 +648,107 @@ function initControlCenter() {
           gap: 6px;
           width: 100%;
           justify-content: center;
+        }
+        :host([data-span="1x1"]) .sys-pill,
+        [data-span="1x1"] .sys-pill {
+          flex-direction: column !important;
+          gap: 4px !important;
+          padding: 2px !important;
+          align-items: center !important;
+          justify-content: center !important;
+        }
+        :host([data-span="1x1"]) .stat-head,
+        [data-span="1x1"] .stat-head {
+          font-size: 9.5px !important;
+        }
+
+        /* Network Widget responsive rules */
+        :host([data-span="1x1"]) .net-text-col,
+        [data-span="1x1"] .net-text-col {
+          display: none !important;
+        }
+        :host([data-span="1x1"]) .network-pill,
+        [data-span="1x1"] .network-pill {
+          flex-direction: column !important;
+          align-items: center !important;
+          justify-content: center !important;
+          padding: 0 !important;
+          width: 100% !important;
+          height: 100% !important;
+        }
+        :host([data-span="1x1"]) .network-icon-wrap,
+        [data-span="1x1"] .network-icon-wrap {
+          width: 38px !important;
+          height: 38px !important;
+          border-radius: 50% !important;
+        }
+        :host([data-span="2x1"]) .network-pill,
+        [data-span="2x1"] .network-pill {
+          flex-direction: row !important;
+          align-items: center !important;
+          padding: 0 10px !important;
+          gap: 10px !important;
+        }
+
+        /* Brightness & Volume responsive rules */
+        :host([data-span="1x1"]) .slider-row,
+        [data-span="1x1"] .slider-row {
+          flex-direction: column !important;
+          align-items: center !important;
+          justify-content: center !important;
+          gap: 4px !important;
+          padding: 4px !important;
+        }
+        :host([data-span="1x1"]) input[type="range"],
+        [data-span="1x1"] input[type="range"] {
+          display: none !important;
+        }
+        :host([data-span="1x1"]) .slider-icon,
+        [data-span="1x1"] .slider-icon {
+          width: 22px !important;
+          height: 22px !important;
+          order: 1 !important;
+        }
+        :host([data-span="1x1"]) .slider-val,
+        [data-span="1x1"] .slider-val {
+          font-size: 13px !important;
+          font-weight: 600 !important;
+          order: 2 !important;
+          min-width: 0 !important;
+          text-align: center !important;
+        }
+
+        :host([data-span="2x1"]) .slider-row,
+        [data-span="2x1"] .slider-row {
+          display: flex !important;
+          flex-direction: row !important;
+          align-items: center !important;
+          gap: 6px !important;
+          padding: 0 8px !important;
+          width: 100% !important;
+        }
+        :host([data-span="2x1"]) input[type="range"],
+        [data-span="2x1"] input[type="range"] {
+          flex: 1 1 auto !important;
+          min-width: 0 !important;
+        }
+
+        /* System Tray in 1x1, 2x1, 2x2 */
+        :host([data-span="1x1"]) .tray-cc-grid,
+        [data-span="1x1"] .tray-cc-grid {
+          grid-template-columns: repeat(2, 1fr) !important;
+          gap: 4px !important;
+          padding: 4px !important;
+        }
+        :host([data-span="1x1"]) .tray-cc-tile,
+        [data-span="1x1"] .tray-cc-tile {
+          height: 26px !important;
+        }
+        :host([data-span="2x1"]) .tray-cc-grid,
+        [data-span="2x1"] .tray-cc-grid {
+          grid-template-columns: repeat(4, 1fr) !important;
+          gap: 4px !important;
+          padding: 4px 6px !important;
         }
 
         /* Battery styling */
@@ -498,6 +770,10 @@ function initControlCenter() {
       htmlWrapper.style.display = 'flex';
       htmlWrapper.style.alignItems = 'center';
       htmlWrapper.style.justifyContent = 'center';
+      htmlWrapper.className = `cc-widget-wrapper in-control-center cc-span-${span} cc-aspect-${span.replace('x', '-')}`;
+      htmlWrapper.dataset.inControlCenter = 'true';
+      htmlWrapper.dataset.span = span;
+      htmlWrapper.dataset.aspectRatio = span;
       htmlWrapper.innerHTML = w.htmlContent || '';
       shadow.appendChild(htmlWrapper);
 
@@ -533,23 +809,6 @@ function initControlCenter() {
         }
       }
     });
-
-    // In Edit Mode, render empty slot placeholders (as in Picture 2)
-    if (isEditing) {
-      // Complete current row and add at least 4 more empty slots
-      const remainder = totalColsOccupied % 4;
-      const neededToFillRow = remainder === 0 ? 0 : (4 - remainder);
-      const totalPlaceholders = Math.max(4, neededToFillRow + 4);
-
-      for (let i = 0; i < totalPlaceholders; i++) {
-        const slot = document.createElement('div');
-        slot.className = 'cc-slot-placeholder';
-        slot.title = 'Add Widget';
-        slot.innerHTML = '<span class="cc-slot-plus">+</span>';
-        slot.addEventListener('click', () => openAddDrawer());
-        ccGrid.appendChild(slot);
-      }
-    }
 
     if (window.winzen && window.winzen.metrics) {
       window.dispatchEvent(new CustomEvent('winzen:metrics', { detail: window.winzen.metrics }));

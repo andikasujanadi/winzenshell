@@ -65,8 +65,23 @@ function renderTrayIcons(trayIcons) {
 
     trayCcGrid.innerHTML = '';
     if (trayIcons.length === 0) {
-      if (trayCcEmpty) trayCcEmpty.style.display = 'flex';
       trayCcGrid.style.display = 'none';
+      if (trayCcEmpty) {
+        trayCcEmpty.style.display = 'flex';
+        trayCcEmpty.innerHTML = `
+          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;width:100%;height:100%;">
+            <svg viewBox="0 0 16 16" width="20" height="20" fill="none"><path d="M3.5 10L8 5.5L12.5 10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span style="font-size:10px;font-weight:500;opacity:0.75;">Tray</span>
+          </div>
+        `;
+        trayCcEmpty.onclick = (ev) => {
+          ev.stopPropagation();
+          if (window.winzen && typeof window.winzen.send === 'function') {
+            const rect = trayCcEmpty.getBoundingClientRect();
+            window.winzen.send('toggle_tray_overflow', { x: rect.left, y: rect.top, width: rect.width, height: rect.height });
+          }
+        };
+      }
       return;
     }
 
@@ -129,3 +144,10 @@ window.addEventListener('winzen:metrics', (e) => {
     renderTrayIcons(e.detail.trayIcons);
   }
 });
+
+if (inControlCenter) {
+  const initIcons = (window.winzen && window.winzen.metrics && Array.isArray(window.winzen.metrics.trayIcons))
+    ? window.winzen.metrics.trayIcons
+    : [];
+  renderTrayIcons(initIcons);
+}

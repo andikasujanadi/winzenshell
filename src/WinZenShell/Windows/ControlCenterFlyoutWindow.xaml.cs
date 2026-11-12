@@ -45,6 +45,7 @@ public partial class ControlCenterFlyoutWindow : Window
 
         Deactivated += (_, _) =>
         {
+            ExitEditMode();
             FlyoutAnimationHelper.HandleDeactivated(this, () => LastDeactivatedTime = DateTime.UtcNow);
         };
         Loaded += OnLoaded;
@@ -257,6 +258,7 @@ public partial class ControlCenterFlyoutWindow : Window
                     break;
 
                 case "close_control_center":
+                    ExitEditMode();
                     FlyoutAnimationHelper.AnimateHide(this);
                     break;
 
@@ -386,9 +388,18 @@ public partial class ControlCenterFlyoutWindow : Window
 
         ApplyCornerClipping();
         ApplyTheme(_shellState.Settings.Theme);
+        ExitEditMode();
         FlyoutAnimationHelper.AnimateShow(this, top, dockEdge, activate: true, useOpacityFade: false);
 
         PushStateToWeb(_shellState.BuildPayload());
         BroadcastMetrics();
+    }
+
+    public void ExitEditMode()
+    {
+        if (_webViewReady && CcWebView?.CoreWebView2 != null)
+        {
+            _ = CcWebView.CoreWebView2.ExecuteScriptAsync("window.exitEditMode && window.exitEditMode();");
+        }
     }
 }

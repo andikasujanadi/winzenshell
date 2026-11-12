@@ -1887,6 +1887,32 @@ body.theme-light .rp-chip-ghost {
   min-height: 100px;
 }
 
+.cc-preview-placeholder {
+  grid-column: span 1;
+  grid-row: span 1;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  min-height: 68px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  user-select: none;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.cc-preview-placeholder.drag-over {
+  border-color: var(--win11-accent);
+  background: color-mix(in srgb, var(--win11-accent) 12%, rgba(255, 255, 255, 0.05));
+}
+
+html[data-theme="light"] .cc-preview-placeholder,
+body.theme-light .cc-preview-placeholder {
+  background: #e8e8e8;
+  border-color: rgba(0, 0, 0, 0.04);
+}
+
 .cc-preview-tile {
   background: #252525;
   border: 1px solid rgba(255, 255, 255, 0.08);
