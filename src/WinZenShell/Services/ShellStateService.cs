@@ -104,6 +104,8 @@ public class ShellSettings
     public int TaskbarHeightPx { get; set; } = 48;
     public int FloatingMarginPx { get; set; } = 0;
     public int TaskbarCornerRadiusPx { get; set; } = 12;
+    public int BackgroundOpacity { get; set; } = 100;
+    public int BackgroundBlurStrength { get; set; } = 60;
     public string AccentColor { get; set; } = "#3684E3";
     public string Theme { get; set; } = "dark"; // "dark" or "light"
     public bool EnableAnimations { get; set; } = true;
@@ -116,6 +118,7 @@ public class ShellFullStatePayload
 {
     public ShellSettings Settings { get; set; } = new();
     public NativeTaskbarStatus NativeTaskbar { get; set; } = new();
+    public string BackdropImageUrl { get; set; } = "";
     public WorkAreaTelemetry WorkArea { get; set; } = new();
     public List<WidgetManifest> Widgets { get; set; } = new();
     public List<ControlCenterItemPayload> ControlCenterWidgets { get; set; } = new();
@@ -266,7 +269,9 @@ public class ShellStateService
         int marginPx,
         string? theme = null,
         int? cornerRadiusPx = null,
-        string? accentColor = null)
+        string? accentColor = null,
+        int? backgroundOpacity = null,
+        int? backgroundBlurStrength = null)
     {
         _settings.RespectDesktopWorkArea = respectWorkArea;
         if (!string.IsNullOrWhiteSpace(dockEdge))
@@ -275,6 +280,10 @@ public class ShellStateService
         _settings.FloatingMarginPx = Math.Clamp(marginPx, 0, 24);
         if (cornerRadiusPx.HasValue)
             _settings.TaskbarCornerRadiusPx = Math.Clamp(cornerRadiusPx.Value, 0, 120);
+        if (backgroundOpacity.HasValue)
+            _settings.BackgroundOpacity = Math.Clamp(backgroundOpacity.Value, 20, 100);
+        if (backgroundBlurStrength.HasValue)
+            _settings.BackgroundBlurStrength = Math.Clamp(backgroundBlurStrength.Value, 0, 100);
         if (!string.IsNullOrWhiteSpace(accentColor))
             _settings.AccentColor = accentColor;
         if (!string.IsNullOrWhiteSpace(theme))
@@ -334,7 +343,8 @@ public class ShellStateService
         bool? showDate = null,
         bool? showCpu = null,
         bool? showRam = null,
-        bool? showGpu = null)
+        bool? showGpu = null,
+        int? iconSizePx = null)
     {
         int? existingOrder = _settings.WidgetOverrides.TryGetValue(widgetId, out var prev) ? prev.Order : null;
         var existing = _settings.WidgetOverrides.TryGetValue(widgetId, out var existingOv) ? existingOv : null;
@@ -349,6 +359,7 @@ public class ShellStateService
             ShowAppName = showAppName,
             CombineApps = combineApps,
             ShowThumbnails = showThumbnails ?? (existing?.ShowThumbnails ?? true),
+            IconSizePx = Math.Clamp(iconSizePx ?? (existing?.IconSizePx ?? 18), 12, 32),
             StartIcon = !string.IsNullOrWhiteSpace(startIcon) ? startIcon : (existing?.StartIcon ?? "windows"),
             StartIconColorMode = !string.IsNullOrWhiteSpace(startIconColorMode) ? startIconColorMode : (existing?.StartIconColorMode ?? "text"),
             StartText = startText != null ? startText : (existing?.StartText ?? "Start"),

@@ -1,9 +1,9 @@
 {
   "id": "community.zen-virtual-desktops",
-  "name": "Virtual Desktops",
+  "name": "Workspaces",
   "version": "1.0.0",
   "author": "Official",
-  "description": "Interactive Windows 11 Virtual Desktop Switcher with direct desktop selection, mouse wheel cycling, and Task View integration.",
+  "description": "Interactive Windows 11 Workspaces Switcher with direct workspace selection, mouse wheel cycling, and Task View integration.",
   "slot": "left",
   "order": 20,
   "entry": "index.html",

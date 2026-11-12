@@ -46,6 +46,7 @@ public static class Win32Api
     // SystemParametersInfo
     public const uint SPI_GETWORKAREA = 0x0030;
     public const uint SPI_SETWORKAREA = 0x002F;
+    public const uint SPI_GETDESKWALLPAPER = 0x0073;
     public const uint SPIF_UPDATEINIFILE = 0x0001;
     public const uint SPIF_SENDWININICHANGE = 0x0002;
     public const uint SPIF_SENDCHANGE = SPIF_SENDWININICHANGE;
@@ -166,6 +167,10 @@ public static class Win32Api
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool SystemParametersInfo(uint uiAction, uint uiParam, ref RECT pvParam, uint fWinIni);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool SystemParametersInfo(uint uiAction, uint uiParam, System.Text.StringBuilder pvParam, uint fWinIni);
 
     [DllImport("user32.dll")]
     public static extern IntPtr MonitorFromPoint(POINT pt, uint dwFlags);
@@ -312,6 +317,50 @@ public static class Win32Api
 
     [DllImport("dwmapi.dll")]
     public static extern int DwmEnableBlurBehindWindow(IntPtr hwnd, ref DWM_BLURBEHIND blurBehind);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct MARGINS
+    {
+        public int cxLeftWidth;
+        public int cxRightWidth;
+        public int cyTopHeight;
+        public int cyBottomHeight;
+    }
+
+    [DllImport("dwmapi.dll")]
+    public static extern int DwmExtendFrameIntoClientArea(IntPtr hwnd, ref MARGINS pMarInset);
+
+    public enum AccentState
+    {
+        ACCENT_DISABLED = 0,
+        ACCENT_ENABLE_GRADIENT = 1,
+        ACCENT_ENABLE_TRANSPARENTGRADIENT = 2,
+        ACCENT_ENABLE_BLURBEHIND = 3,
+        ACCENT_ENABLE_ACRYLICBLURBEHIND = 4,
+        ACCENT_INVALID_STATE = 5
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct AccentPolicy
+    {
+        public AccentState AccentState;
+        public uint AccentFlags;
+        public uint GradientColor;
+        public uint AnimationId;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct WindowCompositionAttributeData
+    {
+        public int Attribute;
+        public IntPtr Data;
+        public int SizeOfData;
+    }
+
+    public const int WCA_ACCENT_POLICY = 19;
+
+    [DllImport("user32.dll")]
+    public static extern int SetWindowCompositionAttribute(IntPtr hwnd, ref WindowCompositionAttributeData data);
 
     [DllImport("user32.dll")]
     public static extern IntPtr GetDC(IntPtr hWnd);

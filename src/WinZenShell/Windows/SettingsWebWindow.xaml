@@ -2,12 +2,13 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
-        Title="WinZenShell — Settings"
+        Title="WinZenShell"
         Width="1060"
         Height="750"
         MinWidth="820"
         MinHeight="580"
         WindowStartupLocation="CenterScreen"
+        Icon="pack://application:,,,/Assets/winzen.ico"
         Background="#202020">
     <Grid Background="#202020">
         <wv2:WebView2 x:Name="SettingsWebView"

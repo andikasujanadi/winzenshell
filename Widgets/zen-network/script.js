@@ -43,17 +43,14 @@ function updateNetworkVisuals(m) {
 
   if (type === 'wifi') {
     netPath.setAttribute('d', getWifiSignalPath(signal));
-    btnNetwork.title = `Wi-Fi: ${ssid || 'Connected'} (${signal}%) • ${ip || 'Active'} (Click to view networks)`;
     if (netLabel) netLabel.textContent = ssid || 'Wi-Fi';
     if (netSubLabel) netSubLabel.textContent = ip ? `${signal}% • ${ip}` : `Connected • ${signal}%`;
   } else if (type === 'ethernet') {
     netPath.setAttribute('d', PATH_ETHERNET);
-    btnNetwork.title = `Ethernet: Connected • ${ip || 'Active'} (Click to view networks)`;
     if (netLabel) netLabel.textContent = inControlCenter ? (ssid || 'Ethernet') : 'LAN';
     if (netSubLabel) netSubLabel.textContent = ip ? `Connected • ${ip}` : 'Connected (LAN)';
   } else {
     netPath.setAttribute('d', PATH_OFFLINE);
-    btnNetwork.title = 'Network: Disconnected (Click to view available networks)';
     if (netLabel) netLabel.textContent = 'Offline';
     if (netSubLabel) netSubLabel.textContent = 'No internet access';
   }

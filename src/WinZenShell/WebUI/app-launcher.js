@@ -220,6 +220,9 @@
       const theme = data.theme || 'dark';
       document.documentElement.setAttribute('data-theme', theme);
       document.body.classList.toggle('theme-light', theme === 'light');
+      if (typeof data.enableAnimations === 'boolean') {
+        document.body.classList.toggle('winzen-no-anim', !data.enableAnimations);
+      }
       if (data.accentColor) {
         document.documentElement.style.setProperty('--winzen-accent', data.accentColor);
       }
@@ -229,6 +232,9 @@
       if (theme) {
         document.documentElement.setAttribute('data-theme', theme);
         document.body.classList.toggle('theme-light', theme === 'light');
+      }
+      if (typeof data.enableAnimations === 'boolean') {
+        document.body.classList.toggle('winzen-no-anim', !data.enableAnimations);
       }
       const accent = data.accentColor || payload.accentColor;
       if (accent) {

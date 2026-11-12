@@ -146,7 +146,6 @@ function updateBatteryDisplay(m) {
     batteryRoot.classList.toggle('is-charging', isCharging);
     batteryRoot.classList.toggle('is-low', isLow);
     batteryRoot.classList.toggle('is-energy-saver', isEnergySaver);
-    batteryRoot.title = `Battery: ${pct}% • ${statusText} (Click for Power & Battery)`;
   }
 }
 

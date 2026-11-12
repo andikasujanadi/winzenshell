@@ -93,6 +93,7 @@ public class SystemMetricsService
     private readonly HashSet<string> _hiddenProcessNames = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _hiddenTitles = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<long> _hiddenHwnds = new();
+    private readonly Dictionary<string, HashSet<long>> _hiddenHwndsByAppId = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, HiddenAppEntry> _hiddenAppCatalog = new(StringComparer.OrdinalIgnoreCase);
 
     // Cache extracted PNG base64 icons by HWND and by executable path
@@ -370,7 +371,16 @@ public class SystemMetricsService
 
         string displayName = GetFriendlyAppName(resolvedProc, resolvedTitle);
 
-        if (hwndVal != 0) _hiddenHwnds.Add(hwndVal);
+        if (hwndVal != 0)
+        {
+            _hiddenHwnds.Add(hwndVal);
+            if (!_hiddenHwndsByAppId.TryGetValue(appId, out var set))
+            {
+                set = new HashSet<long>();
+                _hiddenHwndsByAppId[appId] = set;
+            }
+            set.Add(hwndVal);
+        }
         _hiddenAppIds.Add(appId);
         _hiddenProcessNames.Add(resolvedProc);
 
@@ -398,6 +408,15 @@ public class SystemMetricsService
         if (string.IsNullOrWhiteSpace(appId)) return;
         string normId = appId.Trim().ToLowerInvariant();
 
+        if (_hiddenHwndsByAppId.TryGetValue(normId, out var hiddenSet))
+        {
+            foreach (long h in hiddenSet)
+            {
+                _hiddenHwnds.Remove(h);
+            }
+            _hiddenHwndsByAppId.Remove(normId);
+        }
+
         if (normId == "microsoft.notes")
         {
             _hiddenAppIds.Remove("microsoft.notes");
@@ -424,6 +443,7 @@ public class SystemMetricsService
         _hiddenProcessNames.Clear();
         _hiddenTitles.Clear();
         _hiddenHwnds.Clear();
+        _hiddenHwndsByAppId.Clear();
         _hiddenAppCatalog.Clear();
     }
 
@@ -954,7 +974,21 @@ public class SystemMetricsService
         try
         {
             using var bmp = icon.ToBitmap();
-            using var resized = new Bitmap(bmp, new Size(20, 20));
+            if (bmp.Width <= 48 && bmp.Height <= 48)
+            {
+                using var msNative = new MemoryStream();
+                bmp.Save(msNative, ImageFormat.Png);
+                return "data:image/png;base64," + Convert.ToBase64String(msNative.ToArray());
+            }
+
+            using var resized = new Bitmap(48, 48, PixelFormat.Format32bppArgb);
+            using (var g = Graphics.FromImage(resized))
+            {
+                g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
+                g.DrawImage(bmp, 0, 0, 48, 48);
+            }
             using var ms = new MemoryStream();
             resized.Save(ms, ImageFormat.Png);
             return "data:image/png;base64," + Convert.ToBase64String(ms.ToArray());

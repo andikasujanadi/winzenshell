@@ -116,7 +116,8 @@ public partial class AppLauncherFlyoutWindow : Window
             {
                 type = "theme_update",
                 theme = th,
-                accentColor = acc
+                accentColor = acc,
+                enableAnimations = _shellState?.Settings.EnableAnimations ?? true
             }));
         }
     }
@@ -184,7 +185,8 @@ public partial class AppLauncherFlyoutWindow : Window
                 type = "apps_data",
                 payload,
                 theme,
-                accentColor
+                accentColor,
+                enableAnimations = _shellState?.Settings.EnableAnimations ?? true
             }, new JsonSerializerOptions
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase

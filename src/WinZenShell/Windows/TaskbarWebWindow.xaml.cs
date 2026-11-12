@@ -38,6 +38,7 @@ public partial class TaskbarWebWindow : Window
     private TrayOverflowFlyoutWindow? _trayOverflowFlyout;
     private readonly NetworkService _networkService;
     private readonly TrayIconService _trayIconService;
+    private readonly WallpaperBackdropService _wallpaperBackdrop = new();
     private FileSystemWatcher? _triggerWatcher;
     private Forms.ContextMenuStrip? _activeNativeMenu;
     private IntPtr _hwnd = IntPtr.Zero;
@@ -45,6 +46,7 @@ public partial class TaskbarWebWindow : Window
     private bool _isApplyingWorkArea;
     private bool _isFullscreenActive;
     private string _lastDockEdge = "";
+    private string _lastBackdropSig = "";
 
     public IntPtr Handle => _hwnd;
 
@@ -122,6 +124,7 @@ public partial class TaskbarWebWindow : Window
         source?.AddHook(WndProc);
 
         _shellState.SyncTaskbarAndWorkArea();
+        ApplyTaskbarBackdrop();
 
         try
         {
@@ -171,7 +174,7 @@ public partial class TaskbarWebWindow : Window
                 _trayOverflowFlyout ??= new TrayOverflowFlyoutWindow(_trayIconService, _openSettingsCallback, () => Dispatcher.Invoke(BroadcastMetrics));
             };
 
-            core.Navigate("https://app.winzenshell.local/taskbar.html");
+            core.Navigate($"https://app.winzenshell.local/taskbar.html?v={DateTimeOffset.UtcNow.ToUnixTimeSeconds()}");
         }
         catch (Exception ex)
         {
@@ -664,18 +667,37 @@ public partial class TaskbarWebWindow : Window
                                !string.Equals(_lastDockEdge, currentEdge, StringComparison.OrdinalIgnoreCase);
             _lastDockEdge = currentEdge;
 
-            bool changed = Math.Abs(Left - rect.Left) > 0.5 ||
-                           Math.Abs(Top - rect.Top) > 0.5 ||
-                           Math.Abs(Width - rect.Width) > 0.5 ||
-                           Math.Abs(Height - rect.Height) > 0.5;
+            var dpi = System.Windows.Media.VisualTreeHelper.GetDpi(this);
+            double dpiX = dpi.DpiScaleX > 0 ? dpi.DpiScaleX : 1.0;
+            double dpiY = dpi.DpiScaleY > 0 ? dpi.DpiScaleY : 1.0;
+            double targetLeft = rect.Left / dpiX;
+            double targetTop = rect.Top / dpiY;
+            double targetWidth = rect.Width / dpiX;
+            double targetHeight = rect.Height / dpiY;
+
+            bool changed = Math.Abs(Left - targetLeft) > 0.5 ||
+                           Math.Abs(Top - targetTop) > 0.5 ||
+                           Math.Abs(Width - targetWidth) > 0.5 ||
+                           Math.Abs(Height - targetHeight) > 0.5;
             if (!changed && !flippedEdge) return;
 
-            Left = rect.Left;
-            Top = rect.Top;
-            Width = rect.Width;
-            Height = rect.Height;
-            TaskbarWebView.Width = rect.Width;
-            TaskbarWebView.Height = rect.Height;
+            Left = targetLeft;
+            Top = targetTop;
+            Width = targetWidth;
+            Height = targetHeight;
+            TaskbarWebView.Width = double.NaN;
+            TaskbarWebView.Height = double.NaN;
+            if (_hwnd != IntPtr.Zero)
+            {
+                Win32Api.SetWindowPos(
+                    _hwnd,
+                    Win32Api.HWND_TOPMOST,
+                    rect.Left,
+                    rect.Top,
+                    rect.Width,
+                    rect.Height,
+                    Win32Api.SWP_NOACTIVATE);
+            }
             ApplyTaskbarCornerRegion();
 
             if (flippedEdge && IsVisible && !_isFullscreenActive)
@@ -691,64 +713,35 @@ public partial class TaskbarWebWindow : Window
         int margin = _shellState.Settings.FloatingMarginPx;
         int radius = _shellState.Settings.TaskbarCornerRadiusPx;
         bool isLight = string.Equals(_shellState.Settings.Theme, "light", StringComparison.OrdinalIgnoreCase);
-        bool isTop = string.Equals(_shellState.Settings.DockEdge, "top", StringComparison.OrdinalIgnoreCase);
-
-        OuterBorder.Background = isLight
-            ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xF3, 0xF3, 0xF3))
-            : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x1C, 0x1C, 0x1C));
-        Background = OuterBorder.Background;
-
-        TaskbarWebView.DefaultBackgroundColor = isLight
-            ? System.Drawing.Color.FromArgb(255, 0xF3, 0xF3, 0xF3)
-            : System.Drawing.Color.FromArgb(255, 0x1C, 0x1C, 0x1C);
+        int opacity = Math.Clamp(_shellState.Settings.BackgroundOpacity, 20, 100);
+        bool isOpaque = opacity >= 100;
+        bool isFloatingRounded = margin > 0 && radius > 0;
 
         if (_hwnd == IntPtr.Zero || _isFullscreenActive) return;
 
         int darkAttr = isLight ? 0 : 1;
         Win32Api.DwmSetWindowAttribute(_hwnd, Win32Api.DWMWA_USE_IMMERSIVE_DARK_MODE, ref darkAttr, sizeof(int));
 
-        // Always disable DWM non-client rendering, DWM corner rounding, and DWM border so Windows 11 DWM never adds a drop shadow
+        // Always disable DWM non-client rendering and DWM border so Windows 11 DWM never adds a drop shadow
         int ncrp = 1; // DWMNCRP_DISABLED
         Win32Api.DwmSetWindowAttribute(_hwnd, 2, ref ncrp, sizeof(int)); // DWMWA_NCRENDERING_POLICY = 2
 
+        // Always keep DWMWCP_DONOTROUND so WebView2's anti-aliased CSS border-radius owns the exact corner radius.
         int cornerPref = 1; // DWMWCP_DONOTROUND
         Win32Api.DwmSetWindowAttribute(_hwnd, Win32Api.DWMWA_WINDOW_CORNER_PREFERENCE, ref cornerPref, sizeof(int));
 
         int borderColor = unchecked((int)0xFFFFFFFE); // DWMWA_COLOR_NONE
         Win32Api.DwmSetWindowAttribute(_hwnd, 34, ref borderColor, sizeof(int));
 
-        if (margin > 0 && radius > 0 && Win32Api.GetWindowRect(_hwnd, out var winRect))
+        // Never apply 1-bit GDI SetWindowRgn clipping (which causes stair-stepped non-antialiased corners
+        // and conflicts with DWM glass/acrylic transparency). Anti-aliased rounding is rendered via CSS border-radius.
+        Win32Api.SetWindowRgn(_hwnd, IntPtr.Zero, true);
+        if (TaskbarWebView.Handle != IntPtr.Zero)
         {
-            int w = winRect.Width;
-            int h = winRect.Height;
-            double dpiScale = System.Windows.Media.VisualTreeHelper.GetDpi(this).DpiScaleX;
-            if (dpiScale <= 0) dpiScale = 1.0;
-            int radiusPhysical = (int)Math.Round(radius * dpiScale);
-            int effRadius = Math.Min(Math.Max(0, radiusPhysical), Math.Min(w, h) / 2);
-            int diameter = effRadius * 2;
+            Win32Api.SetWindowRgn(TaskbarWebView.Handle, IntPtr.Zero, true);
+        }
 
-            IntPtr hRgn = Win32Api.CreateRoundRectRgn(0, 0, w + 1, h + 1, diameter, diameter);
-            if (Win32Api.SetWindowRgn(_hwnd, hRgn, true) == 0)
-            {
-                Win32Api.DeleteObject(hRgn);
-            }
-            if (TaskbarWebView.Handle != IntPtr.Zero)
-            {
-                IntPtr childRgn = Win32Api.CreateRoundRectRgn(0, 0, w + 1, h + 1, diameter, diameter);
-                if (Win32Api.SetWindowRgn(TaskbarWebView.Handle, childRgn, true) == 0)
-                {
-                    Win32Api.DeleteObject(childRgn);
-                }
-            }
-        }
-        else
-        {
-            Win32Api.SetWindowRgn(_hwnd, IntPtr.Zero, true);
-            if (TaskbarWebView.Handle != IntPtr.Zero)
-            {
-                Win32Api.SetWindowRgn(TaskbarWebView.Handle, IntPtr.Zero, true);
-            }
-        }
+        ApplyTaskbarBackdrop();
     }
 
     private void OnTaskbarVisibilityRequested(bool visible)
@@ -772,11 +765,101 @@ public partial class TaskbarWebWindow : Window
         });
     }
 
+    private void ApplyTaskbarBackdrop(bool force = false)
+    {
+        if (_hwnd == IntPtr.Zero) return;
+
+        bool isLight = string.Equals(_shellState.Settings.Theme, "light", StringComparison.OrdinalIgnoreCase);
+        int opacity = Math.Clamp(_shellState.Settings.BackgroundOpacity, 20, 100);
+        bool isOpaque = opacity >= 100;
+        bool isFloatingRounded = _shellState.Settings.FloatingMarginPx > 0 && _shellState.Settings.TaskbarCornerRadiusPx > 0;
+        bool glassNeeded = !isOpaque || isFloatingRounded;
+
+        string sig = $"{isLight}|{glassNeeded}";
+        if (!force && sig == _lastBackdropSig) return;
+        _lastBackdropSig = sig;
+
+        try
+        {
+            var source = HwndSource.FromHwnd(_hwnd);
+            if (!glassNeeded)
+            {
+                var wpfBg = isLight
+                    ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xF3, 0xF3, 0xF3))
+                    : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x1C, 0x1C, 0x1C));
+                Background = wpfBg;
+                OuterBorder.Background = wpfBg;
+                if (TaskbarWebView != null)
+                {
+                    TaskbarWebView.DefaultBackgroundColor = isLight
+                        ? Color.FromArgb(255, 0xF3, 0xF3, 0xF3)
+                        : Color.FromArgb(255, 0x1C, 0x1C, 0x1C);
+                }
+                if (source?.CompositionTarget != null)
+                {
+                    source.CompositionTarget.BackgroundColor = isLight
+                        ? System.Windows.Media.Color.FromRgb(0xF3, 0xF3, 0xF3)
+                        : System.Windows.Media.Color.FromRgb(0x1C, 0x1C, 0x1C);
+                }
+
+                var zeroMargins = new Win32Api.MARGINS { cxLeftWidth = 0, cxRightWidth = 0, cyTopHeight = 0, cyBottomHeight = 0 };
+                Win32Api.DwmExtendFrameIntoClientArea(_hwnd, ref zeroMargins);
+            }
+            else
+            {
+                Background = System.Windows.Media.Brushes.Transparent;
+                OuterBorder.Background = System.Windows.Media.Brushes.Transparent;
+                if (TaskbarWebView != null)
+                {
+                    TaskbarWebView.DefaultBackgroundColor = Color.Transparent;
+                }
+                if (source?.CompositionTarget != null)
+                {
+                    source.CompositionTarget.BackgroundColor = System.Windows.Media.Colors.Transparent;
+                }
+
+                var glassMargins = new Win32Api.MARGINS { cxLeftWidth = -1, cxRightWidth = -1, cyTopHeight = -1, cyBottomHeight = -1 };
+                Win32Api.DwmExtendFrameIntoClientArea(_hwnd, ref glassMargins);
+            }
+        }
+        catch { }
+    }
+
+    private void SetAccentPolicy(Win32Api.AccentState state, uint flags, uint gradientColor)
+    {
+        if (_hwnd == IntPtr.Zero) return;
+        var accent = new Win32Api.AccentPolicy
+        {
+            AccentState = state,
+            AccentFlags = flags,
+            GradientColor = gradientColor,
+            AnimationId = 0
+        };
+        int size = Marshal.SizeOf(accent);
+        IntPtr ptr = Marshal.AllocHGlobal(size);
+        try
+        {
+            Marshal.StructureToPtr(accent, ptr, false);
+            var data = new Win32Api.WindowCompositionAttributeData
+            {
+                Attribute = Win32Api.WCA_ACCENT_POLICY,
+                Data = ptr,
+                SizeOfData = size
+            };
+            Win32Api.SetWindowCompositionAttribute(_hwnd, ref data);
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(ptr);
+        }
+    }
+
     private void OnShellStateChanged(ShellFullStatePayload payload)
     {
         Dispatcher.Invoke(() =>
         {
             ApplyTaskbarCornerRegion();
+            ApplyTaskbarBackdrop();
             string theme = payload.Settings.Theme;
             string accent = payload.Settings.AccentColor;
             if (_brightnessFlyout != null)
@@ -810,12 +893,35 @@ public partial class TaskbarWebWindow : Window
                 _trayOverflowFlyout.ApplyTheme(theme);
             }
             PushStateToWeb(payload);
+            BroadcastMetrics();
         });
     }
 
     private void PushStateToWeb(ShellFullStatePayload payload)
     {
         if (!_webViewReady || TaskbarWebView.CoreWebView2 == null) return;
+
+        if (_hwnd != IntPtr.Zero &&
+            payload.Settings.BackgroundOpacity < 100 &&
+            payload.Settings.BackgroundBlurStrength > 0 &&
+            Win32Api.GetWindowRect(_hwnd, out var rect))
+        {
+            var primaryBounds = Forms.Screen.PrimaryScreen?.Bounds ?? new System.Drawing.Rectangle(0, 0, 1920, 1080);
+            int screenW = primaryBounds.Width;
+            int screenH = primaryBounds.Height;
+            payload.BackdropImageUrl = _wallpaperBackdrop.GetBlurredTaskbarStripDataUrl(
+                rect.Left,
+                rect.Top,
+                rect.Width,
+                rect.Height,
+                screenW,
+                screenH,
+                payload.Settings.BackgroundBlurStrength);
+        }
+        else
+        {
+            payload.BackdropImageUrl = "";
+        }
 
         string json = JsonSerializer.Serialize(new
         {
@@ -1792,6 +1898,15 @@ public partial class TaskbarWebWindow : Window
                 }
                 break;
 
+            case "restart":
+                using (var pen = new Pen(Color.FromArgb(220, 220, 220), 1.25f))
+                {
+                    g.DrawArc(pen, 3, 3, 10, 10, 45, 270);
+                    g.DrawLine(pen, 10, 1, 13, 4);
+                    g.DrawLine(pen, 10, 7, 13, 4);
+                }
+                break;
+
             case "quit":
                 using (var pen = new Pen(Color.FromArgb(255, 128, 140), 1.35f))
                 {
@@ -2065,16 +2180,33 @@ public partial class TaskbarWebWindow : Window
                     {
                         Visibility = Visibility.Visible;
                     }
+                    _lastBackdropSig = "";
                     ApplyTaskbarCornerRegion();
-                    if (_hwnd != IntPtr.Zero)
-                    {
-                        Win32Api.SetWindowPos(_hwnd, Win32Api.HWND_TOPMOST, 0, 0, 0, 0,
-                            Win32Api.SWP_NOMOVE | Win32Api.SWP_NOSIZE | Win32Api.SWP_NOACTIVATE);
-                    }
+                    RestoreTopmostAfterFullscreen();
                     TaskbarWebView?.InvalidateVisual();
+                    _ = System.Threading.Tasks.Task.Delay(180).ContinueWith(_ =>
+                    {
+                        Dispatcher.BeginInvoke(() =>
+                        {
+                            if (!_isFullscreenActive && _shellState.Settings.EnableWinZenTaskbar)
+                            {
+                                RestoreTopmostAfterFullscreen();
+                            }
+                        });
+                    });
                 }
             }
         });
+    }
+
+    private void RestoreTopmostAfterFullscreen()
+    {
+        if (_hwnd == IntPtr.Zero) return;
+        const uint flags = Win32Api.SWP_NOMOVE | Win32Api.SWP_NOSIZE | Win32Api.SWP_NOACTIVATE | Win32Api.SWP_SHOWWINDOW;
+        // Bump NOTOPMOST -> TOPMOST so Windows DWM reliably promotes the HWND back above active/closing overlays
+        Win32Api.SetWindowPos(_hwnd, new IntPtr(-2), 0, 0, 0, 0, flags);
+        Win32Api.SetWindowPos(_hwnd, Win32Api.HWND_TOPMOST, 0, 0, 0, 0, flags);
+        Win32Api.InvalidateRect(_hwnd, IntPtr.Zero, true);
     }
 
     private bool DetectFullscreenWindow()

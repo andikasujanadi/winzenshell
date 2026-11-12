@@ -1,11 +1,11 @@
-# WinZenShell (Alpha)
+# WinZenShell
 
 <div align="center">
 
 [![Platform: Windows 11](https://img.shields.io/badge/Platform-Windows%2011%20(64--bit)-0078D4?logo=windows11&logoColor=white)](https://microsoft.com/windows)
 [![Runtime: .NET 10](https://img.shields.io/badge/Runtime-.NET%2010%20(WPF)-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 [![Frontend: WebView2](https://img.shields.io/badge/Frontend-WebView2%20%7C%20Web%20Components-008080?logo=microsoftedge&logoColor=white)](https://developer.microsoft.com/microsoft-edge/webview2/)
-[![Release: Alpha](https://img.shields.io/badge/Release-v0.1.0--alpha-FF9800)](ANTIGRAVITY_SESSION_HANDOFF.md)
+[![Release: v0.2.0](https://img.shields.io/badge/Release-v0.2.0-0078D4)](README.md#changelog)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 **WinZenShell** is a modular, high-performance Windows 11 custom taskbar and community widget studio.  
@@ -16,8 +16,8 @@ It combines a **100% Web Frontend** (HTML5, Modern CSS, Web Components, Shadow D
 ---
 
 > [!IMPORTANT]
-> **Alpha Release Notice (`v0.1.0-alpha`)**:  
-> WinZenShell is currently in active Alpha development. Core taskbar replacement, working area management, drag-and-drop layout configuration, theme engine, and flyout systems are fully operational. Multi-monitor mirroring and native notification tray proxying are planned for subsequent beta milestones.
+> **Release Notice (`v0.2.0`)**:  
+> WinZenShell v0.2.0 delivers an interactive Control Center studio, redesigned Fluent 2 Settings UI, GPU telemetry monitoring, one-click shell restart, and enhanced layout customization.
 
 ---
 
@@ -176,6 +176,41 @@ window.winzen.shell.onMetricsUpdate((metrics) => {
 | **`Ctrl + Shift + Alt + Z`** | **Emergency Failsafe**: Restore and unhide default Windows taskbar |
 | **`Esc`** | Dismiss active flyout or clear App Launcher search |
 | **`↑` / `↓` / `Enter`** | Navigate and open apps in ChromeOS App Launcher |
+
+---
+
+## Changelog
+
+### v0.2.0 (2026-11-13)
+* **Interactive Control Center Studio**:
+  * Unified Control Center configuration directly into the **Layouts** settings tab.
+  * Real-time editable Control Center Grid Preview mirroring the flyout layout.
+  * Aspect ratio switching between square (1:1) and wide (1:2) directly in the preview grid.
+  * Drag-and-drop reordering and quick module removal.
+  * Android-style **"Add Widget to Control Center"** grid with mutual exclusivity (only widgets not currently in Control Center are displayed).
+* **Settings UI Modernization**:
+  * Clean two-section sidebar navigation (**Shell** & **Layouts**).
+  * Seamless Fluent 2 sidebar actions (Widgets Folder, Refresh, Restart, Quit) with native icons and hover treatments.
+  * Functional **Restart** button that cleanly disposes the shell, releases single-instance mutex, and re-executes `WinZenShell.exe`.
+  * Collapsible widget configuration cards with grab cursor affordance, clean author tags, and overflow-free width controls.
+  * Standardized window title to `WinZenShell`.
+* **Telemetry & Hardware Monitoring**:
+  * Added DirectX / DXGI GPU usage metrics to SystemMetricsService.
+  * Per-metric toggle visibility for CPU, RAM, and GPU.
+  * Display modes: icon-only, compact, and detailed.
+* **Shell Integration & Stability**:
+  * Wallpaper backdrop blur caching for low-overhead translucency effects.
+  * Enhanced flyout animation transitions (slide & fade).
+  * Bundled vector-based Fluent system icons and native application icon (`winzen.ico`).
+
+### v0.1.0-alpha
+* Initial alpha release:
+  * Full-web taskbar replacement running on .NET 10 + WebView2.
+  * Autohide-first Windows 11 taskbar hiding and desktop work area synchronization (`SPI_SETWORKAREA`).
+  * 4-region drag-and-drop layout system (Left, Center, Right, Inactive).
+  * ChromeOS-style App Launcher, Active Windows Switcher, Virtual Desktop Switcher.
+  * Fluent 2 Light & Dark theme tokens with Shadow DOM distribution.
+  * Emergency restore failsafe shortcut (`Ctrl + Shift + Alt + Z`).
 
 ---
 

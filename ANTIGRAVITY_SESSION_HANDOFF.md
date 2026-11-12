@@ -1,6 +1,6 @@
 # WinZenShell — Antigravity Session Handoff & Architecture Guide
 
-> **Current State**: `v0.1.0-alpha`  
+> **Current State**: `v0.2.0`  
 > **Platform**: Windows 11 (64-bit)  
 > **Framework**: .NET 10 (WPF) + Microsoft.Web.WebView2 + Native Win32 APIs  
 > **Frontend**: Vanilla Web Components (Custom Elements v1, Shadow DOM, CSS Custom Properties)

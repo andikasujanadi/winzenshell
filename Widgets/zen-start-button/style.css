@@ -24,8 +24,8 @@
 }
 
 .start-pill.icon-only {
-  width: 36px;
-  min-width: 36px;
+  width: max(36px, calc(var(--aw-icon-size, var(--winzen-app-icon-size, 18px)) + 18px));
+  min-width: max(36px, calc(var(--aw-icon-size, var(--winzen-app-icon-size, 18px)) + 18px));
   padding: 0;
 }
 
@@ -75,30 +75,32 @@ body.theme-light .start-pill:active {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
+  width: var(--aw-icon-size, var(--winzen-app-icon-size, 18px));
+  height: var(--aw-icon-size, var(--winzen-app-icon-size, 18px));
   flex-shrink: 0;
 }
 
 .start-icon svg {
-  width: 18px;
-  height: 18px;
+  width: var(--aw-icon-size, var(--winzen-app-icon-size, 18px));
+  height: var(--aw-icon-size, var(--winzen-app-icon-size, 18px));
   display: block;
 }
 
 /* Windows 11 Fluent 4 squares grid */
 .win-grid {
   display: grid;
-  grid-template-columns: 7px 7px;
-  grid-template-rows: 7px 7px;
-  gap: 2px;
+  width: 100%;
+  height: 100%;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: max(1.5px, calc(var(--aw-icon-size, var(--winzen-app-icon-size, 18px)) * 0.11));
   flex-shrink: 0;
 }
 
 .win-grid i {
   display: block;
-  width: 7px;
-  height: 7px;
+  width: 100%;
+  height: 100%;
   background: currentColor;
   border-radius: 1px;
 }

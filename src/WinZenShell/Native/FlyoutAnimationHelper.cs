@@ -18,6 +18,7 @@ public static class FlyoutAnimationHelper
     }
 
     private static readonly ConditionalWeakTable<Window, AnimState> _states = new();
+    private static DateTime _lastAnyHideUtc = DateTime.MinValue;
 
     public static bool AnimationsEnabled { get; set; } = true;
     public static IntPtr TaskbarHwnd { get; set; } = IntPtr.Zero;
@@ -118,13 +119,18 @@ public static class FlyoutAnimationHelper
 
         if (!AnimationsEnabled)
         {
-            state.Token++;
+            int offToken = ++state.Token;
             state.IsHiding = false;
             window.BeginAnimation(Window.TopProperty, null);
             window.BeginAnimation(Window.OpacityProperty, null);
             window.Opacity = 1.0;
-            window.Hide();
-            afterHide?.Invoke();
+            _lastAnyHideUtc = DateTime.UtcNow;
+            window.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input, new Action(() =>
+            {
+                if (state.Token != offToken) return;
+                if (window.IsVisible) window.Hide();
+                afterHide?.Invoke();
+            }));
             return;
         }
 
@@ -144,6 +150,7 @@ public static class FlyoutAnimationHelper
         {
             if (state.Token != token) return;
             state.IsHiding = false;
+            _lastAnyHideUtc = DateTime.UtcNow;
             window.BeginAnimation(Window.TopProperty, null);
             window.BeginAnimation(Window.OpacityProperty, null);
             window.Hide();
@@ -169,11 +176,12 @@ public static class FlyoutAnimationHelper
         var state = GetState(window);
         if (state.IsHiding || !window.IsVisible) return;
 
-        // Ignore transient focus bounce back to TaskbarWebWindow immediately after opening another icon's flyout
+        // Ignore transient focus bounce back to TaskbarWebWindow or underlying desktop window immediately after switching flyouts
         if ((DateTime.UtcNow - state.LastShownUtc).TotalMilliseconds < 320)
         {
             IntPtr fg = Win32Api.GetForegroundWindow();
-            if (fg == IntPtr.Zero || (TaskbarHwnd != IntPtr.Zero && fg == TaskbarHwnd))
+            bool recentHideBounce = (DateTime.UtcNow - _lastAnyHideUtc).TotalMilliseconds < 180;
+            if (fg == IntPtr.Zero || (TaskbarHwnd != IntPtr.Zero && fg == TaskbarHwnd) || recentHideBounce)
             {
                 window.Dispatcher.BeginInvoke(new Action(() =>
                 {

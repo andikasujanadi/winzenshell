@@ -46,7 +46,6 @@ function updateVisuals(val, isMuted) {
   }
 
   if (btn) {
-    btn.title = isMuted ? 'Volume: Muted (Scroll to adjust)' : `Volume: ${val}% (Scroll to adjust)`;
     btn.classList.toggle('is-muted', !!isMuted);
   }
 }

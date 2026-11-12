@@ -390,3 +390,15 @@ body.theme-light .footer-icon-btn:hover {
   color: #18181b;
 }
 
+body.winzen-no-anim *,
+body.winzen-no-anim *::before,
+body.winzen-no-anim *::after {
+  animation: none !important;
+  transition: none !important;
+}
+
+body.winzen-no-anim *:active,
+body.winzen-no-anim .app-item:hover {
+  transform: none !important;
+}
+

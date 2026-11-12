@@ -13,26 +13,55 @@ body {
   height: 100vh;
   max-height: 100vh;
   overflow: hidden;
-  background: #1c1c1c;
+  background: var(--taskbar-html-bg, #1c1c1c);
   font-family: 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, sans-serif;
   color: #ffffff;
   -webkit-font-smoothing: antialiased;
 }
 
 .taskbar-bar {
+  position: relative;
   width: 100vw;
   height: 100vh;
   max-height: 100vh;
-  background: #1c1c1c;
+  background: transparent;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  justify-content: space-between;
   padding: 0 8px;
   gap: 8px;
   overflow: hidden;
   box-sizing: border-box;
   box-shadow: none;
+}
+
+.taskbar-wallpaper-layer {
+  position: absolute;
+  inset: -32px;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-position: center;
+  filter: blur(var(--taskbar-wallpaper-blur, 12px)) saturate(1.15);
+  display: none;
+}
+
+.taskbar-surface-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: var(--taskbar-surface-bg, #1c1c1c);
+}
+
+.taskbar-zone,
+.right-wrapper {
+  position: relative;
+  z-index: 1;
 }
 
 .taskbar-bar.dock-top {
@@ -41,7 +70,7 @@ body {
 }
 
 .taskbar-bar.floating {
-  border-radius: 0;
+  border-radius: var(--taskbar-radius, 12px);
   border: none;
   box-shadow: none;
 }
@@ -56,12 +85,14 @@ body {
 
 .zone-left {
   justify-content: flex-start;
-  flex: 1 1 0;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .zone-center {
   justify-content: center;
-  flex: 0 1 auto;
+  min-width: 0;
 }
 
 .right-wrapper {
@@ -71,11 +102,14 @@ body {
   gap: 4px;
   height: 38px;
   max-height: 38px;
-  flex: 1 1 0;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .zone-right {
   justify-content: flex-end;
+  min-width: 0;
 }
 
 .widget-host {
@@ -85,6 +119,13 @@ body {
   align-items: center;
   flex-shrink: 0;
   width: auto;
+}
+
+.widget-host[data-widget-id="community.zen-active-windows"] {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .studio-btn {
@@ -121,13 +162,13 @@ body {
 html[data-theme="light"],
 body.theme-light {
   color-scheme: light;
-  background: #f3f3f3;
+  background: var(--taskbar-html-bg, #f3f3f3);
   color: #1b1b1b;
 }
 
 html[data-theme="light"] .taskbar-bar,
 body.theme-light .taskbar-bar {
-  background: #f3f3f3;
+  background: transparent;
   border-top: 1px solid rgba(0, 0, 0, 0.08);
   box-shadow: none;
 }
@@ -160,5 +201,16 @@ html[data-theme="light"] .studio-btn:active,
 body.theme-light .studio-btn:active {
   background: rgba(0, 0, 0, 0.08);
   color: #000000;
+}
+
+body.winzen-no-anim *,
+body.winzen-no-anim *::before,
+body.winzen-no-anim *::after {
+  animation: none !important;
+  transition: none !important;
+}
+
+body.winzen-no-anim *:active {
+  transform: none !important;
 }
 

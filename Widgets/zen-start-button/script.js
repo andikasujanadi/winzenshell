@@ -30,12 +30,27 @@ let iconKey = (typeof widgetConfig !== 'undefined' && widgetConfig && widgetConf
 let colorMode = (typeof widgetConfig !== 'undefined' && widgetConfig && widgetConfig.startIconColorMode) || 'text';
 let customText = (typeof widgetConfig !== 'undefined' && widgetConfig && widgetConfig.startText) || 'Launcher';
 let showText = typeof widgetConfig !== 'undefined' && widgetConfig ? !!widgetConfig.showStartText : false;
+let iconSizePx = 18;
+try {
+  const initWidgets = window.winzen && window.winzen.state && window.winzen.state.widgets;
+  if (Array.isArray(initWidgets)) {
+    const aw = initWidgets.find((w) => w.id === 'community.zen-active-windows');
+    if (aw && typeof aw.iconSizePx === 'number') iconSizePx = aw.iconSizePx;
+  }
+} catch { }
+
+function applyLauncherIconSize(sizePx) {
+  const clamped = Math.max(12, Math.min(32, Number(sizePx) || 18));
+  iconSizePx = clamped;
+  if (startBtn) {
+    startBtn.style.setProperty('--aw-icon-size', `${clamped}px`);
+  }
+}
 
 renderStartButton(iconKey, colorMode, customText, showText);
+applyLauncherIconSize(iconSizePx);
 
 if (startBtn) {
-  startBtn.title = 'App Launcher';
-
   startBtn.addEventListener('click', (ev) => {
     ev.stopPropagation();
     const rect = startBtn.getBoundingClientRect();
@@ -57,6 +72,12 @@ if (startBtn) {
 window.addEventListener('winzen:state', (e) => {
   const state = e.detail;
   if (!state || !Array.isArray(state.widgets)) return;
+  const activeWinCfg = state.widgets.find((w) => w.id === 'community.zen-active-windows');
+  if (activeWinCfg && typeof activeWinCfg.iconSizePx === 'number') {
+    if (activeWinCfg.iconSizePx !== iconSizePx) {
+      applyLauncherIconSize(activeWinCfg.iconSizePx);
+    }
+  }
   const cfg = state.widgets.find((w) => w.id === 'community.zen-start-button' || w.id === 'zen-start-button');
   if (!cfg) return;
 

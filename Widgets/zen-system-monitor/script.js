@@ -98,8 +98,4 @@ window.addEventListener('winzen:metrics', (e) => {
 
   if (gpuVal) gpuVal.textContent = `${gpu}%`;
   if (gpuBar) gpuBar.style.width = `${gpu}%`;
-
-  const tooltip = `CPU: ${cpu}% | RAM: ${m.memoryUsedGb ?? 0} / ${m.memoryTotalGb ?? 0} GB (${ram}%) | GPU: ${gpu}% - Click for telemetry details`;
-  if (sysPill) sysPill.title = tooltip;
-  if (btnIcon) btnIcon.title = tooltip;
 });

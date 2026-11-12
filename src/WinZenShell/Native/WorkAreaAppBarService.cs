@@ -96,6 +96,9 @@ public class WorkAreaAppBarService
 
         bool isTop = string.Equals(dockEdge, "Top", StringComparison.OrdinalIgnoreCase);
         int totalBarFootprint = taskbarHeightPx + (floatingMarginPx * 2);
+        // When docked flush (floatingMarginPx == 0), inset WorkArea by 1px less than the topmost bar
+        // so maximized windows' 1px DWM top/bottom frame sits underneath the bar with zero wallpaper gap.
+        int workAreaFootprint = floatingMarginPx == 0 ? Math.Max(1, totalBarFootprint - 1) : totalBarFootprint;
 
         // Compute physical window bounds for the custom taskbar
         var barRect = new Win32Api.RECT
@@ -113,7 +116,7 @@ public class WorkAreaAppBarService
                 var currentWorkArea = new Win32Api.RECT();
                 Win32Api.SystemParametersInfo(Win32Api.SPI_GETWORKAREA, 0, ref currentWorkArea, 0);
 
-                int targetEdgePos = isTop ? (monRect.Top + totalBarFootprint) : (monRect.Bottom - totalBarFootprint);
+                int targetEdgePos = isTop ? (monRect.Top + workAreaFootprint) : (monRect.Bottom - workAreaFootprint);
                 bool dockedEdgeMatches = isTop
                     ? currentWorkArea.Top == targetEdgePos
                     : currentWorkArea.Bottom == targetEdgePos;
@@ -146,9 +149,9 @@ public class WorkAreaAppBarService
                         uEdge = isTop ? Win32Api.ABE_TOP : Win32Api.ABE_BOTTOM,
                         rc = new Win32Api.RECT(
                             monRect.Left,
-                            isTop ? monRect.Top : monRect.Bottom - totalBarFootprint,
+                            isTop ? monRect.Top : monRect.Bottom - workAreaFootprint,
                             monRect.Right,
-                            isTop ? monRect.Top + totalBarFootprint : monRect.Bottom)
+                            isTop ? monRect.Top + workAreaFootprint : monRect.Bottom)
                     };
 
                     Win32Api.SHAppBarMessage(Win32Api.ABM_QUERYPOS, ref abd);
@@ -156,12 +159,12 @@ public class WorkAreaAppBarService
                     if (isTop)
                     {
                         abd.rc.Top = monRect.Top;
-                        abd.rc.Bottom = monRect.Top + totalBarFootprint;
+                        abd.rc.Bottom = monRect.Top + workAreaFootprint;
                     }
                     else
                     {
                         abd.rc.Bottom = monRect.Bottom;
-                        abd.rc.Top = monRect.Bottom - totalBarFootprint;
+                        abd.rc.Top = monRect.Bottom - workAreaFootprint;
                     }
                     Win32Api.SHAppBarMessage(Win32Api.ABM_SETPOS, ref abd);
 

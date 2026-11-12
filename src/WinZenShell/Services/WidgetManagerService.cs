@@ -50,6 +50,9 @@ public class WidgetManifest
     [JsonPropertyName("showThumbnails")]
     public bool ShowThumbnails { get; set; } = true;
 
+    [JsonPropertyName("iconSizePx")]
+    public int IconSizePx { get; set; } = 18;
+
     [JsonPropertyName("startIcon")]
     public string StartIcon { get; set; } = "windows";
 
@@ -206,6 +209,7 @@ public class WidgetManagerService
                     manifest.ShowAppName = ov.ShowAppName;
                     manifest.CombineApps = ov.CombineApps;
                     manifest.ShowThumbnails = ov.ShowThumbnails;
+                    manifest.IconSizePx = Math.Clamp(ov.IconSizePx, 12, 32);
                     if (!string.IsNullOrWhiteSpace(ov.StartIcon))
                         manifest.StartIcon = ov.StartIcon;
                     if (!string.IsNullOrWhiteSpace(ov.StartIconColorMode))
@@ -402,6 +406,7 @@ public class WidgetStateOverride
     public bool ShowAppName { get; set; } = true;
     public bool CombineApps { get; set; } = false;
     public bool ShowThumbnails { get; set; } = true;
+    public int IconSizePx { get; set; } = 18;
     public string StartIcon { get; set; } = "windows";
     public string StartIconColorMode { get; set; } = "text";
     public string StartText { get; set; } = "Start";

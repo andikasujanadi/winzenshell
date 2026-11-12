@@ -108,7 +108,7 @@ public partial class App : System.Windows.Application
 
             _shellStateService.GetTaskbarHwnd = () => _taskbarWindow.Handle;
 
-            _settingsWindow = new SettingsWebWindow(_shellStateService, QuitApplication);
+            _settingsWindow = new SettingsWebWindow(_shellStateService, QuitApplication, RestartApplication);
             MainWindow = _settingsWindow;
 
             InitializeSystemTray();
@@ -152,6 +152,52 @@ public partial class App : System.Windows.Application
         });
     }
 
+    public void RestartApplication()
+    {
+        Dispatcher.Invoke(() =>
+        {
+            SafeCleanupAndRestore();
+            if (_settingsWindow != null)
+            {
+                _settingsWindow.AllowClose = true;
+                _settingsWindow.Close();
+            }
+            if (_taskbarWindow != null)
+            {
+                _taskbarWindow.Close();
+            }
+
+            try
+            {
+                _singleInstanceMutex?.ReleaseMutex();
+                _singleInstanceMutex?.Dispose();
+                _singleInstanceMutex = null;
+            }
+            catch { }
+
+            try
+            {
+                string? exePath = Environment.ProcessPath;
+                if (!string.IsNullOrEmpty(exePath) && System.IO.File.Exists(exePath))
+                {
+                    var psi = new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = "cmd.exe",
+                        Arguments = $"/c timeout /t 1 /nobreak >nul & start \"\" \"{exePath}\"",
+                        CreateNoWindow = true,
+                        UseShellExecute = false,
+                        WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory
+                    };
+                    System.Diagnostics.Process.Start(psi);
+                }
+            }
+            catch { }
+
+            Shutdown();
+            Environment.Exit(0);
+        });
+    }
+
     private void ShowAndFocusSettingsWindow()
     {
         Dispatcher.Invoke(() =>
@@ -170,9 +216,20 @@ public partial class App : System.Windows.Application
 
     private void InitializeSystemTray()
     {
+        Icon trayIcon = SystemIcons.Application;
+        try
+        {
+            var res = GetResourceStream(new Uri("pack://application:,,,/Assets/winzen.ico"));
+            if (res?.Stream != null)
+            {
+                trayIcon = new Icon(res.Stream);
+            }
+        }
+        catch { }
+
         _trayIcon = new Forms.NotifyIcon
         {
-            Icon = SystemIcons.Application,
+            Icon = trayIcon,
             Text = "WinZenShell — Click to Open Settings or Quit",
             Visible = true
         };
@@ -213,6 +270,14 @@ public partial class App : System.Windows.Application
         };
         restoreItem.Click += (_, _) => _shellStateService?.EmergencyRestoreAll();
 
+        var restartItem = new Forms.ToolStripMenuItem("Restart WinZen")
+        {
+            ForeColor = Color.FromArgb(220, 220, 220),
+            Padding = new Forms.Padding(6, 5, 10, 5),
+            Image = TaskbarWebWindow.CreateFluentIcon("restart")
+        };
+        restartItem.Click += (_, _) => RestartApplication();
+
         var quitItem = new Forms.ToolStripMenuItem("Quit WinZen")
         {
             ForeColor = Color.FromArgb(255, 153, 164),
@@ -225,6 +290,7 @@ public partial class App : System.Windows.Application
         menu.Items.Add(openItem);
         menu.Items.Add(restoreItem);
         menu.Items.Add(new Forms.ToolStripSeparator());
+        menu.Items.Add(restartItem);
         menu.Items.Add(quitItem);
 
         _trayIcon.ContextMenuStrip = menu;

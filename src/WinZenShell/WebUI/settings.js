@@ -4,17 +4,19 @@ function initSettingsPage() {
   const breadcrumbCurrent = document.getElementById('breadcrumbCurrent');
 
   const tabTitles = {
-    'tab-shell': 'Taskbar',
-    'tab-widgets': 'Widgets & Layout',
-    'tab-control-center': 'Zen Control Center',
-    'tab-sdk': 'Developer SDK'
+    'tab-shell': 'Shell',
+    'tab-widgets': 'Layouts'
   };
 
   function switchTab(targetId) {
+    if (targetId === 'tab-control-center') targetId = 'tab-widgets';
     if (!tabTitles[targetId]) return;
     navItems.forEach((b) => b.classList.toggle('active', b.dataset.tab === targetId));
     tabViews.forEach((p) => p.classList.toggle('active', p.id === targetId));
-    if (breadcrumbCurrent) breadcrumbCurrent.textContent = tabTitles[targetId] || 'Taskbar';
+    if (breadcrumbCurrent) breadcrumbCurrent.textContent = tabTitles[targetId] || 'Shell';
+    const sp = document.querySelector('.settings-page');
+    if (sp) sp.scrollTop = 0;
+    window.scrollTo(0, 0);
     try {
       localStorage.setItem('winzen_active_tab', targetId);
     } catch { }
@@ -37,7 +39,6 @@ function initSettingsPage() {
   }
 
   // UI Controls
-  const statusBannerText = document.getElementById('statusBannerText');
   const toggleHideNative = document.getElementById('toggleHideNative');
   const stateHideNative = document.getElementById('stateHideNative');
 
@@ -52,6 +53,10 @@ function initSettingsPage() {
 
   const toggleShowThumbnails = document.getElementById('toggleShowThumbnails');
   const stateShowThumbnails = document.getElementById('stateShowThumbnails');
+
+  const inputAppIconSize = document.getElementById('inputAppIconSize');
+  const labelAppIconSizeVal = document.getElementById('labelAppIconSizeVal');
+  const btnResetAppIconSize = document.getElementById('btnResetAppIconSize');
 
   const toggleEnableAnimations = document.getElementById('toggleEnableAnimations');
   const stateEnableAnimations = document.getElementById('stateEnableAnimations');
@@ -71,6 +76,11 @@ function initSettingsPage() {
   const labelMarginVal = document.getElementById('labelMarginVal');
   const inputCornerRadius = document.getElementById('inputCornerRadius');
   const labelRadiusVal = document.getElementById('labelRadiusVal');
+  const inputBgOpacity = document.getElementById('inputBgOpacity');
+  const labelBgOpacityVal = document.getElementById('labelBgOpacityVal');
+  const inputBgBlur = document.getElementById('inputBgBlur');
+  const labelBgBlurVal = document.getElementById('labelBgBlurVal');
+  const bgBlurField = document.getElementById('bgBlurField');
   const accentSwatchesContainer = document.getElementById('accentSwatchesContainer');
   let currentAccentColor = '#3684E3';
 
@@ -113,10 +123,7 @@ function initSettingsPage() {
 
   // Control Center Settings Elements
   const ccSettingsPreviewGrid = document.getElementById('ccSettingsPreviewGrid');
-  const ccSettingsModulesList = document.getElementById('ccSettingsModulesList');
-  const selectAddCcWidget = document.getElementById('selectAddCcWidget');
-  const selectAddCcAspect = document.getElementById('selectAddCcAspect');
-  const btnAddModuleToCc = document.getElementById('btnAddModuleToCc');
+  const ccAvailableWidgetsGrid = document.getElementById('ccAvailableWidgetsGrid');
   let latestCcWidgets = [];
 
   let isUpdatingFromHost = false;
@@ -128,15 +135,28 @@ function initSettingsPage() {
     const parsedHeight = parseInt(inputTaskbarHeight.value, 10);
     const parsedMargin = parseInt(inputFloatingMargin.value, 10);
     const parsedRadius = inputCornerRadius ? parseInt(inputCornerRadius.value, 10) : 12;
+    const parsedOpacity = inputBgOpacity ? parseInt(inputBgOpacity.value, 10) : 100;
+    const parsedBlur = inputBgBlur ? parseInt(inputBgBlur.value, 10) : 60;
+    updateBlurFieldEnabledState(Number.isNaN(parsedOpacity) ? 100 : parsedOpacity);
     window.winzen.send('update_workarea_config', {
       respectWorkArea: toggleRespectWorkArea.checked,
       dockEdge: selectDockEdge.value,
       taskbarHeightPx: Number.isNaN(parsedHeight) ? 48 : parsedHeight,
       floatingMarginPx: Number.isNaN(parsedMargin) ? 0 : parsedMargin,
       taskbarCornerRadiusPx: Number.isNaN(parsedRadius) ? 12 : parsedRadius,
+      backgroundOpacity: Number.isNaN(parsedOpacity) ? 100 : parsedOpacity,
+      backgroundBlurStrength: Number.isNaN(parsedBlur) ? 60 : parsedBlur,
       accentColor: currentAccentColor,
       theme: selectTheme ? selectTheme.value : 'dark'
     });
+  }
+
+  function updateBlurFieldEnabledState(opacityVal) {
+    if (!inputBgBlur || !bgBlurField) return;
+    const isOpaque = opacityVal >= 100;
+    inputBgBlur.disabled = isOpaque;
+    bgBlurField.style.opacity = isOpaque ? '0.42' : '1';
+    bgBlurField.title = isOpaque ? 'Blur is disabled at 100% opacity for efficiency' : '';
   }
 
   if (selectTheme) {
@@ -175,7 +195,8 @@ function initSettingsPage() {
       autoWidth: true,
       showAppName: true,
       combineApps: false,
-      showThumbnails: true
+      showThumbnails: true,
+      iconSizePx: 18
     };
 
     window.winzen.send('update_widget_state', {
@@ -187,7 +208,8 @@ function initSettingsPage() {
       autoWidth: activeWinWidget.autoWidth !== false,
       showAppName: patch.showAppName !== undefined ? patch.showAppName : (activeWinWidget.showAppName !== false),
       combineApps: patch.combineApps !== undefined ? patch.combineApps : !!activeWinWidget.combineApps,
-      showThumbnails: patch.showThumbnails !== undefined ? patch.showThumbnails : (activeWinWidget.showThumbnails !== false)
+      showThumbnails: patch.showThumbnails !== undefined ? patch.showThumbnails : (activeWinWidget.showThumbnails !== false),
+      iconSizePx: patch.iconSizePx !== undefined ? patch.iconSizePx : (activeWinWidget.iconSizePx ?? 18)
     });
   }
 
@@ -214,11 +236,42 @@ function initSettingsPage() {
     });
   }
 
+  let appIconSizeTimer = null;
+  if (inputAppIconSize) {
+    inputAppIconSize.addEventListener('input', () => {
+      const sz = parseInt(inputAppIconSize.value, 10) || 18;
+      if (labelAppIconSizeVal) labelAppIconSizeVal.textContent = `${sz}px`;
+      updateSliderTrackFill(inputAppIconSize);
+      if (isUpdatingFromHost) return;
+      if (appIconSizeTimer) clearTimeout(appIconSizeTimer);
+      appIconSizeTimer = setTimeout(() => updateActiveWindowsWidgetConfig({ iconSizePx: sz }), 40);
+    });
+    inputAppIconSize.addEventListener('change', () => {
+      if (isUpdatingFromHost) return;
+      const sz = parseInt(inputAppIconSize.value, 10) || 18;
+      updateActiveWindowsWidgetConfig({ iconSizePx: sz });
+    });
+  }
+
+  if (btnResetAppIconSize) {
+    btnResetAppIconSize.addEventListener('click', () => {
+      if (inputAppIconSize) {
+        inputAppIconSize.value = 18;
+        updateSliderTrackFill(inputAppIconSize);
+      }
+      if (labelAppIconSizeVal) labelAppIconSizeVal.textContent = '18px';
+      if (!isUpdatingFromHost) {
+        updateActiveWindowsWidgetConfig({ iconSizePx: 18 });
+      }
+    });
+  }
+
   if (toggleEnableAnimations) {
     toggleEnableAnimations.addEventListener('change', () => {
       if (isUpdatingFromHost) return;
       const anim = toggleEnableAnimations.checked;
       if (stateEnableAnimations) stateEnableAnimations.textContent = anim ? 'On' : 'Off';
+      document.body.classList.toggle('winzen-no-anim', !anim);
       window.winzen.send('toggle_animations', { enable: anim });
     });
   }
@@ -239,19 +292,29 @@ function initSettingsPage() {
     sliderEl.style.background = `linear-gradient(to right, var(--win11-accent, #60cdff) 0%, var(--win11-accent, #60cdff) ${pct}%, var(--win11-slider-track, rgba(255, 255, 255, 0.42)) ${pct}%, var(--win11-slider-track, rgba(255, 255, 255, 0.42)) 100%)`;
   }
 
-  function bindRangeSlider(sliderEl, labelEl) {
+  let liveConfigTimer = null;
+  function bindRangeSlider(sliderEl, labelEl, suffix = 'px') {
     if (!sliderEl) return;
     updateSliderTrackFill(sliderEl);
     sliderEl.addEventListener('input', () => {
-      if (labelEl) labelEl.textContent = `${sliderEl.value}px`;
+      if (labelEl) labelEl.textContent = `${sliderEl.value}${suffix}`;
       updateSliderTrackFill(sliderEl);
+      if (sliderEl === inputBgOpacity) {
+        updateBlurFieldEnabledState(parseInt(sliderEl.value, 10));
+      }
+      if (sliderEl === inputBgOpacity || sliderEl === inputBgBlur) {
+        if (liveConfigTimer) clearTimeout(liveConfigTimer);
+        liveConfigTimer = setTimeout(sendWorkAreaConfig, 50);
+      }
     });
     sliderEl.addEventListener('change', sendWorkAreaConfig);
   }
 
-  bindRangeSlider(inputTaskbarHeight, labelHeightVal);
-  bindRangeSlider(inputFloatingMargin, labelMarginVal);
-  bindRangeSlider(inputCornerRadius, labelRadiusVal);
+  bindRangeSlider(inputTaskbarHeight, labelHeightVal, 'px');
+  bindRangeSlider(inputFloatingMargin, labelMarginVal, 'px');
+  bindRangeSlider(inputCornerRadius, labelRadiusVal, 'px');
+  bindRangeSlider(inputBgOpacity, labelBgOpacityVal, '%');
+  bindRangeSlider(inputBgBlur, labelBgBlurVal, '%');
 
   function updateAccentColorUI(color) {
     currentAccentColor = color || '#3684E3';
@@ -261,6 +324,9 @@ function initSettingsPage() {
     updateSliderTrackFill(inputTaskbarHeight);
     updateSliderTrackFill(inputFloatingMargin);
     updateSliderTrackFill(inputCornerRadius);
+    updateSliderTrackFill(inputBgOpacity);
+    updateSliderTrackFill(inputBgBlur);
+    updateSliderTrackFill(inputAppIconSize);
     if (accentSwatchesContainer) {
       accentSwatchesContainer.querySelectorAll('.accent-swatch').forEach(btn => {
         const btnColor = btn.dataset.color;
@@ -284,20 +350,13 @@ function initSettingsPage() {
     });
   }
 
-  document.getElementById('btnEmergencySidebar').addEventListener('click', () => {
-    window.winzen.shell.emergencyRestore();
-  });
-
-  document.getElementById('btnQuitSidebar').addEventListener('click', () => {
+  document.getElementById('btnQuitTop')?.addEventListener('click', () => {
     window.winzen.shell.quit();
   });
 
-  document.getElementById('btnQuitTop').addEventListener('click', () => {
-    window.winzen.shell.quit();
-  });
-
-  document.getElementById('btnRefreshState').addEventListener('click', () => {
-    window.winzen.send('request_state');
+  const btnRestart = document.getElementById('btnRestartShell') || document.getElementById('btnRefreshState');
+  btnRestart?.addEventListener('click', () => {
+    window.winzen.shell.restart();
   });
 
   document.getElementById('btnOpenWidgetsFolder').addEventListener('click', () => {
@@ -308,21 +367,7 @@ function initSettingsPage() {
     window.winzen.send('reload_widgets');
   });
 
-  document.getElementById('btnCreateWidget').addEventListener('click', () => {
-    const nameInput = document.getElementById('newWidgetName');
-    const authorInput = document.getElementById('newWidgetAuthor');
-    const slotInput = document.getElementById('newWidgetSlot');
-    const widthInput = document.getElementById('newWidgetWidth');
 
-    const name = nameInput.value.trim() || 'My Zen Widget';
-    window.winzen.send('create_community_widget', {
-      name,
-      author: authorInput.value.trim() || 'Community',
-      slot: slotInput.value,
-      width: parseInt(widthInput.value, 10) || 160
-    });
-    nameInput.value = '';
-  });
 
 
   function applyStateUpdate(data) {
@@ -330,18 +375,6 @@ function initSettingsPage() {
 
     isUpdatingFromHost = true;
     try {
-      let bannerText = data.statusBanner || 'Ready';
-      if (bannerText.length > 22) {
-        bannerText = 'Saved';
-      }
-      statusBannerText.innerHTML = `<span class="status-dot"></span> <span>${escapeHtml(bannerText)}</span>`;
-      if (window._statusResetTimer) clearTimeout(window._statusResetTimer);
-      if (bannerText !== 'Ready') {
-        window._statusResetTimer = setTimeout(() => {
-          statusBannerText.innerHTML = `<span class="status-dot"></span> <span>Ready</span>`;
-        }, 3000);
-      }
-
       const s = data.settings || {};
       toggleHideNative.checked = !!s.hideNativeTaskbar;
       stateHideNative.textContent = s.hideNativeTaskbar ? 'On' : 'Off';
@@ -352,8 +385,9 @@ function initSettingsPage() {
       toggleRespectWorkArea.checked = !!s.respectDesktopWorkArea;
       stateRespectWorkArea.textContent = s.respectDesktopWorkArea ? 'On' : 'Off';
 
+      const animOn = s.enableAnimations !== false;
+      document.body.classList.toggle('winzen-no-anim', !animOn);
       if (toggleEnableAnimations) {
-        const animOn = s.enableAnimations !== false;
         toggleEnableAnimations.checked = animOn;
         if (stateEnableAnimations) stateEnableAnimations.textContent = animOn ? 'On' : 'Off';
       }
@@ -375,6 +409,19 @@ function initSettingsPage() {
         if (labelRadiusVal) labelRadiusVal.textContent = `${s.taskbarCornerRadiusPx ?? 12}px`;
         updateSliderTrackFill(inputCornerRadius);
       }
+      if (inputBgOpacity) {
+        const op = s.backgroundOpacity ?? 100;
+        inputBgOpacity.value = op;
+        if (labelBgOpacityVal) labelBgOpacityVal.textContent = `${op}%`;
+        updateSliderTrackFill(inputBgOpacity);
+        updateBlurFieldEnabledState(op);
+      }
+      if (inputBgBlur) {
+        const bl = s.backgroundBlurStrength ?? 60;
+        inputBgBlur.value = bl;
+        if (labelBgBlurVal) labelBgBlurVal.textContent = `${bl}%`;
+        updateSliderTrackFill(inputBgBlur);
+      }
       if (s.accentColor) {
         updateAccentColorUI(s.accentColor);
       }
@@ -395,6 +442,12 @@ function initSettingsPage() {
         toggleShowThumbnails.checked = showThumbs;
         if (stateShowThumbnails) stateShowThumbnails.textContent = showThumbs ? 'On' : 'Off';
       }
+      if (inputAppIconSize) {
+        const iconSz = activeWinWidget ? (activeWinWidget.iconSizePx ?? 18) : 18;
+        inputAppIconSize.value = iconSz;
+        if (labelAppIconSizeVal) labelAppIconSizeVal.textContent = `${iconSz}px`;
+        updateSliderTrackFill(inputAppIconSize);
+      }
 
       renderHiddenApps(data.hiddenApps || []);
 
@@ -414,8 +467,8 @@ function initSettingsPage() {
       valWorkAreaBounds.textContent = `${workW} × ${workH}`;
       valReservedSpace.textContent = `Top: ${wa.reservedTopPx || 0}px · Bottom: ${wa.reservedBottomPx || 0}px`;
       valAppBarStatus.textContent = wa.isAppBarRegistered
-        ? 'Registered (ABM_SETPOS)'
-        : 'Overlay (Unregistered)';
+        ? 'Reserved (Docked)'
+        : 'Floating overlay';
 
       previewWorkAreaDims.textContent = `${workW} × ${workH}`;
       previewWorkAreaCoords.textContent = `(${wa.workAreaLeft}, ${wa.workAreaTop}) → (${wa.workAreaRight}, ${wa.workAreaBottom})`;
@@ -494,6 +547,7 @@ function initSettingsPage() {
   }
 
   let isPreviewDragging = false;
+  const expandedWidgetIds = new Set();
 
   function renderWidgetsByRegion(widgets) {
     if (isPreviewDragging) return;
@@ -545,9 +599,26 @@ function initSettingsPage() {
     if (widgetsRegionUnused) renderRegionStack(widgetsRegionUnused, groups.unused, 'unused');
   }
 
+  function swapWidgetOrderInRegion(regionList, fromIdx, toIdx, regionKey) {
+    if (toIdx < 0 || toIdx >= regionList.length) return;
+    const copy = regionList.slice();
+    const [moved] = copy.splice(fromIdx, 1);
+    copy.splice(toIdx, 0, moved);
+
+    const updates = copy.map((item, idx) => ({
+      id: item.id,
+      slot: regionKey,
+      order: (idx + 1) * 10,
+      enabled: regionKey !== 'unused'
+    }));
+
+    window.winzen.send('reorder_widgets', { items: updates });
+  }
+
   function renderPreviewChips(container, list) {
     container.innerHTML = '';
     const regionKey = container.dataset.region || 'center';
+    const regionName = regionKey === 'unused' ? 'Inactive' : `${regionKey.charAt(0).toUpperCase() + regionKey.slice(1)} region`;
 
     if (list.length === 0) {
       container.innerHTML = `<span class="rp-chip empty-placeholder">Empty</span>`;
@@ -556,33 +627,320 @@ function initSettingsPage() {
 
     list.forEach((w, idx) => {
       const isUnused = regionKey === 'unused' || !w.enabled;
+      const isAutoWidth = w.autoWidth !== false;
+      const isWindowSwitcher = w.id === 'community.zen-active-windows';
+      const isStartLauncher = w.id === 'community.zen-start-button';
+      const isBattery = w.id === 'community.zen-battery';
+      const isClock = w.id === 'community.zen-clock-pill';
+      const isSystemMonitor = w.id === 'community.zen-system-monitor';
+
+      const isExpanded = expandedWidgetIds.has(w.id);
+
       const chip = document.createElement('div');
-      chip.className = `rp-chip ${isUnused ? 'disabled' : ''}`;
+      chip.className = `rp-chip ${isUnused ? 'disabled' : ''} ${isExpanded ? 'is-expanded' : ''}`;
       chip.dataset.widgetId = w.id;
       chip.dataset.widgetName = w.name;
       chip.dataset.region = regionKey;
 
-      const orderText = isUnused ? '—' : `#${idx + 1}`;
-      const badgeText = isUnused ? 'Inactive' : (w.displayMode === 'icon' ? 'Icon' : (w.displayMode === 'compact' ? 'Compact' : 'Active'));
+      const authorName = (w.author || 'Community').trim();
+      const isOfficial = authorName.toLowerCase() === 'official';
+      const authorTagHtml = `<span class="widget-author-tag ${isOfficial ? 'is-official' : ''}">${escapeHtml(isOfficial ? 'Official' : authorName)}</span>`;
+
+      let specializedOptionsHtml = '';
+
+      if (isStartLauncher) {
+        const curIcon = w.startIcon || 'chromeos';
+        const curColorMode = w.startIconColorMode || 'text';
+        const curText = w.startText || 'Launcher';
+        const showStartText = !!w.showStartText;
+
+        specializedOptionsHtml = `
+          <div class="tc-opt-row tc-opt-row-wrap">
+            <div class="tc-field">
+              <label>Launcher icon</label>
+              <select class="win11-select w-starticon">
+                <option value="chromeos" ${curIcon === 'chromeos' ? 'selected' : ''}>ChromeOS</option>
+                <option value="windows" ${curIcon === 'windows' ? 'selected' : ''}>Windows 11</option>
+                <option value="win10" ${curIcon === 'win10' ? 'selected' : ''}>Windows 10</option>
+                <option value="apple" ${curIcon === 'apple' ? 'selected' : ''}>Apple</option>
+              </select>
+            </div>
+            <div class="tc-field">
+              <label>Icon color</label>
+              <select class="win11-select w-starticoncolor">
+                <option value="text" ${curColorMode === 'text' ? 'selected' : ''}>Text color</option>
+                <option value="accent" ${curColorMode === 'accent' ? 'selected' : ''}>Accent color</option>
+              </select>
+            </div>
+          </div>
+          <div class="tc-width-section">
+            <label class="inline-check">
+              <input type="checkbox" class="w-showstarttext" ${showStartText ? 'checked' : ''} />
+              <span>Show text label</span>
+            </label>
+            <div class="tc-fixed-width-row tc-start-text-row" style="${!showStartText ? 'opacity:0.4;' : ''}">
+              <span class="tc-fixed-width-label">Label text</span>
+              <div class="tc-fixed-width-input-wrap">
+                <input type="text" class="win11-input w-starttext" value="${escapeHtml(curText)}" placeholder="Start" style="width: 80px;" ${!showStartText ? 'disabled' : ''} />
+              </div>
+            </div>
+          </div>
+        `;
+      } else if (isWindowSwitcher) {
+        specializedOptionsHtml = `
+          <div class="tc-opt-checks">
+            <label class="inline-check">
+              <input type="checkbox" class="w-showappname" ${w.showAppName !== false ? 'checked' : ''} />
+              <span>Show application name</span>
+            </label>
+            <label class="inline-check">
+              <input type="checkbox" class="w-combineapps" ${w.combineApps ? 'checked' : ''} />
+              <span>Combine same apps</span>
+            </label>
+            <label class="inline-check">
+              <input type="checkbox" class="w-showthumbnails" ${w.showThumbnails !== false ? 'checked' : ''} />
+              <span>Show window thumbnails</span>
+            </label>
+          </div>
+        `;
+      } else if (isBattery) {
+        const curStyle = w.batteryIconStyle || 'win11';
+        const curMode = w.batteryPercentMode || 'outside-right';
+
+        specializedOptionsHtml = `
+          <div class="tc-opt-row tc-opt-row-wrap">
+            <div class="tc-field">
+              <label>Battery icon style</label>
+              <select class="win11-select w-batteryicon">
+                <option value="win11" ${curStyle === 'win11' ? 'selected' : ''}>W11</option>
+                <option value="win10" ${curStyle === 'win10' ? 'selected' : ''}>W10</option>
+                <option value="macos" ${curStyle === 'macos' ? 'selected' : ''}>M27</option>
+              </select>
+            </div>
+            <div class="tc-field">
+              <label>Percentage position</label>
+              <select class="win11-select w-batterypercent">
+                <option value="hide" ${curMode === 'hide' || curMode === 'none' ? 'selected' : ''}>None</option>
+                <option value="outside-left" ${curMode === 'outside-left' || curMode === 'left' ? 'selected' : ''}>Left</option>
+                <option value="outside-right" ${curMode === 'outside-right' || curMode === 'right' ? 'selected' : ''}>Right</option>
+              </select>
+            </div>
+          </div>
+        `;
+      } else if (isClock) {
+        specializedOptionsHtml = `
+          <div class="tc-opt-checks">
+            <label class="inline-check">
+              <input type="checkbox" class="w-showseconds" ${w.showSeconds !== false ? 'checked' : ''} />
+              <span>Show seconds</span>
+            </label>
+            <label class="inline-check">
+              <input type="checkbox" class="w-showdate" ${w.showDate !== false ? 'checked' : ''} />
+              <span>Show date</span>
+            </label>
+          </div>
+        `;
+      } else if (isSystemMonitor) {
+        specializedOptionsHtml = `
+          <div class="tc-opt-checks">
+            <label class="inline-check">
+              <input type="checkbox" class="w-showcpu" ${w.showCpu !== false ? 'checked' : ''} />
+              <span>Show CPU</span>
+            </label>
+            <label class="inline-check">
+              <input type="checkbox" class="w-showram" ${w.showRam !== false ? 'checked' : ''} />
+              <span>Show RAM</span>
+            </label>
+            <label class="inline-check">
+              <input type="checkbox" class="w-showgpu" ${w.showGpu !== false ? 'checked' : ''} />
+              <span>Show GPU</span>
+            </label>
+          </div>
+        `;
+      }
+
+      const hasMultipleModes = !w.supportedModes || w.supportedModes.length > 1;
+      let displayModeHtml = '';
+      if (hasMultipleModes) {
+        const modes = w.supportedModes && w.supportedModes.length > 0 ? w.supportedModes : ['widget', 'icon'];
+        const modeLabels = {
+          widget: 'Full Mode',
+          compact: 'Compact Mode',
+          icon: 'Icon Mode'
+        };
+        const options = modes
+          .map((m) => {
+            const label = modeLabels[m] || (m.charAt(0).toUpperCase() + m.slice(1) + ' Mode');
+            const selected = (w.displayMode || 'widget') === m ? 'selected' : '';
+            return `<option value="${m}" ${selected}>${label}</option>`;
+          })
+          .join('');
+        displayModeHtml = `
+          <div class="tc-field">
+            <label>Display mode</label>
+            <select class="win11-select w-displaymode">
+              ${options}
+            </select>
+          </div>
+        `;
+      }
 
       chip.innerHTML = `
-        <div class="rp-chip-left">
-          <span class="rp-chip-grip">⋮⋮</span>
-          <span class="rp-chip-order">${orderText}</span>
-          <span class="rp-chip-name" title="${escapeHtml(w.name)}">${escapeHtml(w.name)}</span>
+        <div class="tc-card-header">
+          <div class="tc-header-info">
+            <span class="tc-widget-name" title="${escapeHtml(w.name)}">${escapeHtml(w.name)}</span>
+            ${authorTagHtml ? `<div class="tc-tag-row">${authorTagHtml}</div>` : ''}
+          </div>
+          <button type="button" class="tc-collapse-btn" title="${isExpanded ? 'Collapse options' : 'Expand options'}" aria-label="Toggle options">
+            <svg class="tc-chevron" viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="4 6 8 10 12 6"></polyline>
+            </svg>
+          </button>
         </div>
-        <div class="rp-chip-right">
-          <span class="rp-chip-badge">${badgeText}</span>
+
+        <div class="tc-card-body">
+          <div class="tc-card-sub" title="${escapeHtml(w.description || '')}">
+            ${escapeHtml(w.description || 'Widget')} · Widgets/${escapeHtml(w.folderName || '')}
+          </div>
+
+          <div class="tc-card-options tc-no-drag">
+            ${displayModeHtml ? `<div class="tc-opt-row">${displayModeHtml}</div>` : ''}
+
+            <div class="tc-width-section">
+              <label class="inline-check">
+                <input type="checkbox" class="w-autowidth" ${isAutoWidth ? 'checked' : ''} />
+                <span>Dynamic width</span>
+              </label>
+              <div class="tc-fixed-width-row" style="${isAutoWidth ? 'opacity:0.4;' : ''}">
+                <span class="tc-fixed-width-label">Fixed width</span>
+                <div class="tc-fixed-width-input-wrap">
+                  <input type="number" class="win11-input w-width" min="34" max="640" value="${w.width || 160}" ${isAutoWidth ? 'disabled' : ''} />
+                  <span class="tc-fixed-width-unit">px</span>
+                </div>
+              </div>
+            </div>
+
+            ${specializedOptionsHtml}
+          </div>
         </div>
       `;
-      attachPreviewChipDrag(chip, w);
+
+      const displayModeSelect = chip.querySelector('.w-displaymode');
+      const autoWidthInput = chip.querySelector('.w-autowidth');
+      const widthInput = chip.querySelector('.w-width');
+
+      const showAppNameInput = chip.querySelector('.w-showappname');
+      const combineAppsInput = chip.querySelector('.w-combineapps');
+      const showThumbnailsInput = chip.querySelector('.w-showthumbnails');
+      const startIconSelect = chip.querySelector('.w-starticon');
+      const startIconColorSelect = chip.querySelector('.w-starticoncolor');
+      const showStartTextInput = chip.querySelector('.w-showstarttext');
+      const startTextInput = chip.querySelector('.w-starttext');
+      const batteryIconSelect = chip.querySelector('.w-batteryicon');
+      const batteryPercentSelect = chip.querySelector('.w-batterypercent');
+      const showSecondsInput = chip.querySelector('.w-showseconds');
+      const showDateInput = chip.querySelector('.w-showdate');
+      const showCpuInput = chip.querySelector('.w-showcpu');
+      const showRamInput = chip.querySelector('.w-showram');
+      const showGpuInput = chip.querySelector('.w-showgpu');
+
+      const pushUpdate = () => {
+        let targetSlot = chip.dataset.region || regionKey;
+        let isEnabled = targetSlot !== 'unused';
+
+        let newOrder = w.order ?? (idx + 1) * 10;
+
+        if (showStartTextInput && startTextInput) {
+          startTextInput.disabled = !showStartTextInput.checked;
+          const stWrap = chip.querySelector('.tc-start-text-row') || startTextInput.parentElement;
+          if (stWrap) {
+            stWrap.style.opacity = showStartTextInput.checked ? '1' : '0.4';
+          }
+        }
+
+        if (autoWidthInput && widthInput) {
+          widthInput.disabled = autoWidthInput.checked;
+          const fwWrap = chip.querySelector('.tc-fixed-width-row') || widthInput.parentElement;
+          if (fwWrap) {
+            fwWrap.style.opacity = autoWidthInput.checked ? '0.4' : '1';
+          }
+        }
+
+        window.winzen.send('update_widget_state', {
+          id: w.id,
+          enabled: isEnabled,
+          slot: targetSlot,
+          order: newOrder,
+          width: parseInt(widthInput.value, 10) || 160,
+          autoWidth: autoWidthInput.checked,
+          showAppName: showAppNameInput ? showAppNameInput.checked : (w.showAppName !== false),
+          combineApps: combineAppsInput ? combineAppsInput.checked : !!w.combineApps,
+          showThumbnails: showThumbnailsInput ? showThumbnailsInput.checked : (w.showThumbnails !== false),
+          startIcon: startIconSelect ? startIconSelect.value : (w.startIcon || 'chromeos'),
+          startIconColorMode: startIconColorSelect ? startIconColorSelect.value : (w.startIconColorMode || 'text'),
+          startText: startTextInput ? startTextInput.value : (w.startText || 'Start'),
+          showStartText: showStartTextInput ? showStartTextInput.checked : !!w.showStartText,
+          batteryIconStyle: batteryIconSelect ? batteryIconSelect.value : (w.batteryIconStyle || 'win11'),
+          batteryPercentMode: batteryPercentSelect ? batteryPercentSelect.value : (w.batteryPercentMode || 'outside-right'),
+          showSeconds: showSecondsInput ? showSecondsInput.checked : (w.showSeconds !== false),
+          showDate: showDateInput ? showDateInput.checked : (w.showDate !== false),
+          showCpu: showCpuInput ? showCpuInput.checked : (w.showCpu !== false),
+          showRam: showRamInput ? showRamInput.checked : (w.showRam !== false),
+          showGpu: showGpuInput ? showGpuInput.checked : (w.showGpu !== false),
+          displayMode: displayModeSelect ? displayModeSelect.value : (w.displayMode || (w.supportedModes && w.supportedModes[0] ? w.supportedModes[0] : 'widget')),
+          aspectRatio: w.aspectRatio || '1:1'
+        });
+      };
+
+      if (displayModeSelect) displayModeSelect.addEventListener('change', pushUpdate);
+      autoWidthInput.addEventListener('change', pushUpdate);
+      widthInput.addEventListener('change', pushUpdate);
+
+      if (showAppNameInput) showAppNameInput.addEventListener('change', pushUpdate);
+      if (combineAppsInput) combineAppsInput.addEventListener('change', pushUpdate);
+      if (showThumbnailsInput) showThumbnailsInput.addEventListener('change', pushUpdate);
+      if (startIconSelect) startIconSelect.addEventListener('change', pushUpdate);
+      if (startIconColorSelect) startIconColorSelect.addEventListener('change', pushUpdate);
+      if (showStartTextInput) showStartTextInput.addEventListener('change', pushUpdate);
+      if (startTextInput) startTextInput.addEventListener('change', pushUpdate);
+      if (batteryIconSelect) batteryIconSelect.addEventListener('change', pushUpdate);
+      if (batteryPercentSelect) batteryPercentSelect.addEventListener('change', pushUpdate);
+      if (showSecondsInput) showSecondsInput.addEventListener('change', pushUpdate);
+      if (showDateInput) showDateInput.addEventListener('change', pushUpdate);
+      if (showCpuInput) showCpuInput.addEventListener('change', pushUpdate);
+      if (showRamInput) showRamInput.addEventListener('change', pushUpdate);
+      if (showGpuInput) showGpuInput.addEventListener('change', pushUpdate);
+
+      const collapseBtn = chip.querySelector('.tc-collapse-btn');
+      const toggleCollapse = () => {
+        const willExpand = !chip.classList.contains('is-expanded');
+        chip.classList.toggle('is-expanded', willExpand);
+        if (collapseBtn) {
+          collapseBtn.title = willExpand ? 'Collapse options' : 'Expand options';
+        }
+        if (willExpand) {
+          expandedWidgetIds.add(w.id);
+        } else {
+          expandedWidgetIds.delete(w.id);
+        }
+      };
+
+      if (collapseBtn) {
+        collapseBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          toggleCollapse();
+        });
+      }
+
+      attachPreviewChipDrag(chip, w, toggleCollapse);
       container.appendChild(chip);
     });
   }
 
-  function attachPreviewChipDrag(chip, w) {
+  function attachPreviewChipDrag(chip, w, toggleCollapse) {
     chip.addEventListener('pointerdown', (e) => {
       if (e.button !== 0) return;
+      if (e.target.closest('input, select, button, label, .tc-no-drag, .arrange-btn')) return;
       e.preventDefault();
 
       const chipRect = chip.getBoundingClientRect();
@@ -613,12 +971,16 @@ function initSettingsPage() {
           document.body.classList.add('is-dragging-preview-chip');
 
           dragGhost = document.createElement('div');
-          dragGhost.className = 'rp-chip rp-chip-ghost';
-          dragGhost.innerHTML = chip.innerHTML;
+          dragGhost.className = 'rp-chip-ghost';
+          dragGhost.innerHTML = `
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;font-size:12px;font-weight:600;color:#fff;">
+              <span>${escapeHtml(w.name)}</span>
+            </div>
+          `;
           dragGhost.style.width = `${chipRect.width}px`;
-          dragGhost.style.height = `${chipRect.height}px`;
+          dragGhost.style.height = `38px`;
           dragGhost.style.left = `${moveEv.clientX - ghostOffsetX}px`;
-          dragGhost.style.top = `${moveEv.clientY - ghostOffsetY}px`;
+          dragGhost.style.top = `${moveEv.clientY - 19}px`;
           document.body.appendChild(dragGhost);
 
           dragPlaceholder = document.createElement('div');
@@ -627,7 +989,7 @@ function initSettingsPage() {
           dragPlaceholder.dataset.widgetName = w.name;
           dragPlaceholder.innerHTML = `<span>Drop here</span>`;
           dragPlaceholder.style.width = '100%';
-          dragPlaceholder.style.height = `${chipRect.height}px`;
+          dragPlaceholder.style.height = `${Math.min(chipRect.height, 120)}px`;
 
           chip.classList.add('is-dragging-source');
           chip.parentNode.insertBefore(dragPlaceholder, chip);
@@ -728,7 +1090,14 @@ function initSettingsPage() {
         document.body.classList.remove('is-dragging-preview-chip');
         zones.forEach((z) => z.zoneEl && z.zoneEl.classList.remove('drag-active'));
 
-        if (!dragStarted) return;
+        if (!dragStarted) {
+          if (e.target.closest('.tc-card-header') && !e.target.closest('button, input, select, label')) {
+            if (typeof toggleCollapse === 'function') {
+              toggleCollapse();
+            }
+          }
+          return;
+        }
 
         if (dragGhost && dragGhost.parentNode) {
           dragGhost.parentNode.removeChild(dragGhost);
@@ -791,15 +1160,9 @@ function initSettingsPage() {
       const items = z.container.querySelectorAll('.rp-chip:not(.empty-placeholder), .rp-chip-placeholder');
       if (z.badge) z.badge.textContent = items.length;
 
-      items.forEach((item, idx) => {
+      items.forEach((item) => {
         const orderSpan = item.querySelector('.rp-chip-order');
-        if (orderSpan) {
-          orderSpan.textContent = z.key === 'unused' ? '—' : `#${idx + 1}`;
-        }
-        const badgeSpan = item.querySelector('.rp-chip-badge');
-        if (badgeSpan && !item.classList.contains('rp-chip-placeholder')) {
-          badgeSpan.textContent = z.key === 'unused' ? 'Inactive' : 'Active';
-        }
+        if (orderSpan) orderSpan.remove();
       });
     });
   }
@@ -852,487 +1215,169 @@ function initSettingsPage() {
     if (badgePreviewCenter) badgePreviewCenter.textContent = centerCount;
     if (badgePreviewRight) badgePreviewRight.textContent = rightCount;
     if (badgePreviewUnused) badgePreviewUnused.textContent = unusedCount;
-
-    const groups = { left: [], center: [], right: [], unused: [] };
-    latestWidgets.forEach((w) => {
-      const isUnused = !w.enabled || (w.slot || '').toLowerCase() === 'unused' || (w.slot || '').toLowerCase() === 'disabled';
-      if (isUnused) {
-        groups.unused.push(w);
-      } else {
-        const s = (w.slot || 'right').toLowerCase();
-        if (s === 'left') groups.left.push(w);
-        else if (s === 'center') groups.center.push(w);
-        else groups.right.push(w);
-      }
-    });
-    ['left', 'center', 'right', 'unused'].forEach((r) => groups[r].sort((a, b) => (a.order ?? 10) - (b.order ?? 10)));
-    if (widgetsRegionLeft) renderRegionStack(widgetsRegionLeft, groups.left, 'left');
-    if (widgetsRegionCenter) renderRegionStack(widgetsRegionCenter, groups.center, 'center');
-    if (widgetsRegionRight) renderRegionStack(widgetsRegionRight, groups.right, 'right');
-    if (widgetsRegionUnused) renderRegionStack(widgetsRegionUnused, groups.unused, 'unused');
   }
 
-  function renderRegionStack(container, regionWidgets, regionKey) {
-    container.innerHTML = '';
-    const regionName = regionKey === 'unused' ? 'Inactive' : `${regionKey.charAt(0).toUpperCase() + regionKey.slice(1)} region`;
-
-    if (regionWidgets.length === 0) {
-      container.innerHTML = `<div class="region-empty">No widgets in ${regionName} — drag a widget here in the preview above or select this region below</div>`;
-      return;
-    }
-
-    regionWidgets.forEach((w, index) => {
-      const isAutoWidth = w.autoWidth !== false;
-      const isWindowSwitcher = w.id === 'community.zen-active-windows';
-      const isStartLauncher = w.id === 'community.zen-start-button';
-      const isBattery = w.id === 'community.zen-battery';
-      const isClock = w.id === 'community.zen-clock-pill';
-      const isSystemMonitor = w.id === 'community.zen-system-monitor';
-
-      const expander = document.createElement('div');
-      expander.className = 'win11-expander widget-expander';
-      expander.dataset.widgetId = w.id;
-
-      let specializedOptionsHtml = '';
-
-      if (isStartLauncher) {
-        const curIcon = w.startIcon || 'chromeos';
-        const curColorMode = w.startIconColorMode || 'text';
-        const curText = w.startText || 'Launcher';
-        const showStartText = !!w.showStartText;
-
-        specializedOptionsHtml = `
-          <div class="subrow-field">
-            <label>Launcher icon</label>
-            <select class="win11-select w-starticon">
-              <option value="chromeos" ${curIcon === 'chromeos' ? 'selected' : ''}>ChromeOS</option>
-              <option value="windows" ${curIcon === 'windows' ? 'selected' : ''}>Windows 11</option>
-              <option value="win10" ${curIcon === 'win10' ? 'selected' : ''}>Windows 10</option>
-              <option value="apple" ${curIcon === 'apple' ? 'selected' : ''}>Apple</option>
-            </select>
-          </div>
-          <div class="subrow-field">
-            <label>Icon color</label>
-            <select class="win11-select w-starticoncolor">
-              <option value="text" ${curColorMode === 'text' ? 'selected' : ''}>Text color</option>
-              <option value="accent" ${curColorMode === 'accent' ? 'selected' : ''}>Accent color</option>
-            </select>
-          </div>
-          <label class="inline-check">
-            <input type="checkbox" class="w-showstarttext" ${showStartText ? 'checked' : ''} />
-            <span>Show text label</span>
-          </label>
-          <div class="subrow-field" style="${!showStartText ? 'opacity:0.4;' : ''}">
-            <label>Label text</label>
-            <input type="text" class="win11-input w-starttext" value="${escapeHtml(curText)}" placeholder="Start" style="width: 100px;" ${!showStartText ? 'disabled' : ''} />
-          </div>
-        `;
-      } else if (isWindowSwitcher) {
-        specializedOptionsHtml = `
-          <label class="inline-check">
-            <input type="checkbox" class="w-showappname" ${w.showAppName !== false ? 'checked' : ''} />
-            <span>Show application name</span>
-          </label>
-          <label class="inline-check">
-            <input type="checkbox" class="w-combineapps" ${w.combineApps ? 'checked' : ''} />
-            <span>Combine same apps</span>
-          </label>
-          <label class="inline-check">
-            <input type="checkbox" class="w-showthumbnails" ${w.showThumbnails !== false ? 'checked' : ''} />
-            <span>Show window thumbnails</span>
-          </label>
-        `;
-      } else if (isBattery) {
-        const curStyle = w.batteryIconStyle || 'win11';
-        const curMode = w.batteryPercentMode || 'outside-right';
-
-        specializedOptionsHtml = `
-          <div class="subrow-field">
-            <label>Battery icon style</label>
-            <select class="win11-select w-batteryicon">
-              <option value="win11" ${curStyle === 'win11' ? 'selected' : ''}>W11</option>
-              <option value="win10" ${curStyle === 'win10' ? 'selected' : ''}>W10</option>
-              <option value="macos" ${curStyle === 'macos' ? 'selected' : ''}>M27</option>
-            </select>
-          </div>
-          <div class="subrow-field">
-            <label>Percentage position</label>
-            <select class="win11-select w-batterypercent">
-              <option value="hide" ${curMode === 'hide' || curMode === 'none' ? 'selected' : ''}>None</option>
-              <option value="outside-left" ${curMode === 'outside-left' || curMode === 'left' ? 'selected' : ''}>Left</option>
-              <option value="outside-right" ${curMode === 'outside-right' || curMode === 'right' ? 'selected' : ''}>Right</option>
-            </select>
-          </div>
-        `;
-      } else if (isClock) {
-        specializedOptionsHtml = `
-          <label class="inline-check">
-            <input type="checkbox" class="w-showseconds" ${w.showSeconds !== false ? 'checked' : ''} />
-            <span>Show seconds</span>
-          </label>
-          <label class="inline-check">
-            <input type="checkbox" class="w-showdate" ${w.showDate !== false ? 'checked' : ''} />
-            <span>Show date</span>
-          </label>
-        `;
-      } else if (isSystemMonitor) {
-        specializedOptionsHtml = `
-          <label class="inline-check">
-            <input type="checkbox" class="w-showcpu" ${w.showCpu !== false ? 'checked' : ''} />
-            <span>Show CPU</span>
-          </label>
-          <label class="inline-check">
-            <input type="checkbox" class="w-showram" ${w.showRam !== false ? 'checked' : ''} />
-            <span>Show RAM</span>
-          </label>
-          <label class="inline-check">
-            <input type="checkbox" class="w-showgpu" ${w.showGpu !== false ? 'checked' : ''} />
-            <span>Show GPU</span>
-          </label>
-        `;
-      }
-
-      const hasMultipleModes = !w.supportedModes || w.supportedModes.length > 1;
-      let displayModeHtml = '';
-      if (hasMultipleModes) {
-        const modes = w.supportedModes && w.supportedModes.length > 0 ? w.supportedModes : ['widget', 'icon'];
-        const modeLabels = {
-          widget: 'Full Mode',
-          compact: 'Compact Mode (1 2 3)',
-          icon: 'Icon Mode'
-        };
-        const options = modes
-          .map((m) => {
-            const label = modeLabels[m] || (m.charAt(0).toUpperCase() + m.slice(1) + ' Mode');
-            const selected = (w.displayMode || 'widget') === m ? 'selected' : '';
-            return `<option value="${m}" ${selected}>${label}</option>`;
-          })
-          .join('');
-        displayModeHtml = `
-          <div class="subrow-field">
-            <label>Display mode</label>
-            <select class="win11-select w-displaymode">
-              ${options}
-            </select>
-          </div>
-        `;
-      }
-
-      const authorName = (w.author || 'Community').trim();
-      const isOfficial = authorName.toLowerCase() === 'official';
-      const authorTagHtml = `<span class="widget-author-tag ${isOfficial ? 'is-official' : ''}">${escapeHtml(isOfficial ? 'Official' : authorName)}</span>`;
-
-      expander.innerHTML = `
-        <div class="win11-card">
-          <div class="card-left">
-            <div class="card-titles">
-              <div class="card-title-row">
-                <span class="card-title">${escapeHtml(w.name)}</span>
-                ${authorTagHtml}
-              </div>
-              <span class="card-subtitle">${escapeHtml(w.description || 'Widget')} · Widgets/${escapeHtml(w.folderName)}</span>
-            </div>
-          </div>
-          <div class="card-right">
-            <div class="arrange-btns">
-              <button class="arrange-btn btn-move-up" title="Move earlier in ${regionName}" ${index === 0 ? 'disabled' : ''}>↑</button>
-              <button class="arrange-btn btn-move-down" title="Move later in ${regionName}" ${index === regionWidgets.length - 1 ? 'disabled' : ''}>↓</button>
-            </div>
-            <span class="toggle-state-text w-state-lbl">${w.enabled ? 'On' : 'Off'}</span>
-            <label class="win11-toggle">
-              <input type="checkbox" class="w-enable" ${w.enabled ? 'checked' : ''} />
-              <span class="toggle-track"><span class="toggle-thumb"></span></span>
-            </label>
-          </div>
-        </div>
-        <div class="expander-subrow widget-row-options">
-          <div class="subrow-field">
-            <label>Region</label>
-            <select class="win11-select w-slot">
-              <option value="left" ${regionKey === 'left' ? 'selected' : ''}>Left region</option>
-              <option value="center" ${regionKey === 'center' ? 'selected' : ''}>Center region</option>
-              <option value="right" ${regionKey === 'right' ? 'selected' : ''}>Right region</option>
-              <option value="unused" ${regionKey === 'unused' ? 'selected' : ''}>Inactive</option>
-            </select>
-          </div>
-          ${displayModeHtml}
-          <label class="inline-check">
-            <input type="checkbox" class="w-autowidth" ${isAutoWidth ? 'checked' : ''} />
-            <span>Dynamic width</span>
-          </label>
-          <div class="subrow-field" style="${isAutoWidth ? 'opacity:0.4;' : ''}">
-            <label>Fixed width</label>
-            <input type="number" class="win11-input w-width" min="34" max="640" value="${w.width || 160}" ${isAutoWidth ? 'disabled' : ''} style="width: 80px;" />
-          </div>
-          ${specializedOptionsHtml}
-        </div>
-      `;
-
-      const btnMoveUp = expander.querySelector('.btn-move-up');
-      const btnMoveDown = expander.querySelector('.btn-move-down');
-      const enableInput = expander.querySelector('.w-enable');
-      const stateLbl = expander.querySelector('.w-state-lbl');
-      const slotSelect = expander.querySelector('.w-slot');
-      const displayModeSelect = expander.querySelector('.w-displaymode');
-      const autoWidthInput = expander.querySelector('.w-autowidth');
-      const widthInput = expander.querySelector('.w-width');
-
-      const showAppNameInput = expander.querySelector('.w-showappname');
-      const combineAppsInput = expander.querySelector('.w-combineapps');
-      const showThumbnailsInput = expander.querySelector('.w-showthumbnails');
-      const startIconSelect = expander.querySelector('.w-starticon');
-      const startIconColorSelect = expander.querySelector('.w-starticoncolor');
-      const showStartTextInput = expander.querySelector('.w-showstarttext');
-      const startTextInput = expander.querySelector('.w-starttext');
-      const batteryIconSelect = expander.querySelector('.w-batteryicon');
-      const batteryPercentSelect = expander.querySelector('.w-batterypercent');
-      const showSecondsInput = expander.querySelector('.w-showseconds');
-      const showDateInput = expander.querySelector('.w-showdate');
-      const showCpuInput = expander.querySelector('.w-showcpu');
-      const showRamInput = expander.querySelector('.w-showram');
-      const showGpuInput = expander.querySelector('.w-showgpu');
-
-      btnMoveUp.addEventListener('click', () => {
-        swapWidgetOrderInRegion(regionWidgets, index, index - 1, regionKey);
-      });
-
-      btnMoveDown.addEventListener('click', () => {
-        swapWidgetOrderInRegion(regionWidgets, index, index + 1, regionKey);
-      });
-
-      const pushUpdate = () => {
-        let isEnabled = enableInput.checked;
-        let targetSlot = slotSelect.value;
-
-        if (targetSlot === 'unused') {
-          isEnabled = false;
-          enableInput.checked = false;
-        } else if (!isEnabled && targetSlot !== 'unused' && regionKey === 'unused') {
-          isEnabled = true;
-          enableInput.checked = true;
-        }
-
-        if (stateLbl) stateLbl.textContent = isEnabled ? 'On' : 'Off';
-
-        let newOrder = w.order ?? (index + 1) * 10;
-        if (targetSlot !== regionKey) {
-          const targetCount = latestWidgets.filter((item) => (item.slot || 'right').toLowerCase() === targetSlot).length;
-          newOrder = (targetCount + 1) * 10;
-        }
-
-        if (showStartTextInput && startTextInput) {
-          startTextInput.disabled = !showStartTextInput.checked;
-          startTextInput.parentElement.style.opacity = showStartTextInput.checked ? '1' : '0.4';
-        }
-
-        window.winzen.send('update_widget_state', {
-          id: w.id,
-          enabled: isEnabled,
-          slot: targetSlot,
-          order: newOrder,
-          width: parseInt(widthInput.value, 10) || 160,
-          autoWidth: autoWidthInput.checked,
-          showAppName: showAppNameInput ? showAppNameInput.checked : (w.showAppName !== false),
-          combineApps: combineAppsInput ? combineAppsInput.checked : !!w.combineApps,
-          showThumbnails: showThumbnailsInput ? showThumbnailsInput.checked : (w.showThumbnails !== false),
-          startIcon: startIconSelect ? startIconSelect.value : (w.startIcon || 'chromeos'),
-          startIconColorMode: startIconColorSelect ? startIconColorSelect.value : (w.startIconColorMode || 'text'),
-          startText: startTextInput ? startTextInput.value : (w.startText || 'Start'),
-          showStartText: showStartTextInput ? showStartTextInput.checked : !!w.showStartText,
-          batteryIconStyle: batteryIconSelect ? batteryIconSelect.value : (w.batteryIconStyle || 'win11'),
-          batteryPercentMode: batteryPercentSelect ? batteryPercentSelect.value : (w.batteryPercentMode || 'outside-right'),
-          showSeconds: showSecondsInput ? showSecondsInput.checked : (w.showSeconds !== false),
-          showDate: showDateInput ? showDateInput.checked : (w.showDate !== false),
-          showCpu: showCpuInput ? showCpuInput.checked : (w.showCpu !== false),
-          showRam: showRamInput ? showRamInput.checked : (w.showRam !== false),
-          showGpu: showGpuInput ? showGpuInput.checked : (w.showGpu !== false),
-          displayMode: displayModeSelect ? displayModeSelect.value : (w.displayMode || (w.supportedModes && w.supportedModes[0] ? w.supportedModes[0] : 'widget')),
-          aspectRatio: w.aspectRatio || '1:1'
-        });
-      };
-
-      enableInput.addEventListener('change', pushUpdate);
-      slotSelect.addEventListener('change', pushUpdate);
-      if (displayModeSelect) displayModeSelect.addEventListener('change', pushUpdate);
-      autoWidthInput.addEventListener('change', pushUpdate);
-      widthInput.addEventListener('change', pushUpdate);
-
-      if (showAppNameInput) showAppNameInput.addEventListener('change', pushUpdate);
-      if (combineAppsInput) combineAppsInput.addEventListener('change', pushUpdate);
-      if (showThumbnailsInput) showThumbnailsInput.addEventListener('change', pushUpdate);
-      if (startIconSelect) startIconSelect.addEventListener('change', pushUpdate);
-      if (startIconColorSelect) startIconColorSelect.addEventListener('change', pushUpdate);
-      if (showStartTextInput) showStartTextInput.addEventListener('change', pushUpdate);
-      if (startTextInput) startTextInput.addEventListener('change', pushUpdate);
-      if (batteryIconSelect) batteryIconSelect.addEventListener('change', pushUpdate);
-      if (batteryPercentSelect) batteryPercentSelect.addEventListener('change', pushUpdate);
-      if (showSecondsInput) showSecondsInput.addEventListener('change', pushUpdate);
-      if (showDateInput) showDateInput.addEventListener('change', pushUpdate);
-      if (showCpuInput) showCpuInput.addEventListener('change', pushUpdate);
-      if (showRamInput) showRamInput.addEventListener('change', pushUpdate);
-      if (showGpuInput) showGpuInput.addEventListener('change', pushUpdate);
-
-      container.appendChild(expander);
-    });
-  }
-
-  function swapWidgetOrderInRegion(regionList, fromIdx, toIdx, regionKey) {
-    if (toIdx < 0 || toIdx >= regionList.length) return;
-    const copy = regionList.slice();
-    const [moved] = copy.splice(fromIdx, 1);
-    copy.splice(toIdx, 0, moved);
-
-    const updates = copy.map((item, idx) => ({
-      id: item.id,
-      slot: regionKey,
-      order: (idx + 1) * 10,
-      enabled: regionKey !== 'unused'
-    }));
-
-    window.winzen.send('reorder_widgets', { items: updates });
-  }
+  let draggedTileId = null;
 
   function renderControlCenterSettings(ccWidgets, allWidgets) {
-    if (!ccSettingsPreviewGrid || !ccSettingsModulesList) return;
+    if (!ccSettingsPreviewGrid) return;
 
-    // 1. Grid Preview
+    latestCcWidgets = (ccWidgets || []).slice().sort((a, b) => (a.order ?? 10) - (b.order ?? 10));
+
+    // 1. Interactive Grid Preview
     ccSettingsPreviewGrid.innerHTML = '';
-    if (ccWidgets.length === 0) {
-      ccSettingsPreviewGrid.innerHTML = '<div style="color:#888;font-size:12px;grid-column:span 2;padding:12px;text-align:center;">No active modules in Control Center</div>';
+    if (latestCcWidgets.length === 0) {
+      ccSettingsPreviewGrid.innerHTML = '<div style="color:var(--win11-text-tertiary);font-size:12px;grid-column:span 2;padding:24px 12px;text-align:center;">No modules in Control Center. Add one below.</div>';
     } else {
-      ccWidgets.forEach((m) => {
+      latestCcWidgets.forEach((m) => {
         const tile = document.createElement('div');
         tile.className = 'cc-preview-tile';
-        tile.dataset.aspect = m.aspectRatio || '1:1';
+        const ratio = m.aspectRatio === '1:2' ? '1:2' : '1:1';
+        tile.dataset.aspect = ratio;
+        tile.dataset.id = m.id;
+        tile.setAttribute('draggable', 'true');
+
+        const ratioLabel = ratio === '1:2' ? '1:2 Wide' : '1:1 Square';
+
         tile.innerHTML = `
-          <span class="cc-preview-title">${escapeHtml(m.name || m.id)}</span>
-          <span class="cc-preview-ratio">${m.aspectRatio || '1:1'}</span>
+          <div class="cc-tile-header">
+            <span class="cc-tile-title" title="${escapeHtml(m.name || m.id)}">${escapeHtml(m.name || m.id)}</span>
+            <div class="cc-tile-actions">
+              <button type="button" class="cc-tile-btn cc-tile-btn-aspect" title="Click to toggle aspect ratio">${ratioLabel}</button>
+              <button type="button" class="cc-tile-btn cc-tile-btn-del" title="Remove module from Control Center">✕</button>
+            </div>
+          </div>
+          <div class="cc-tile-body">
+            <span class="cc-tile-tag">${ratio === '1:2' ? 'Wide Slider' : 'Square Tile'}</span>
+          </div>
         `;
+
+        // Toggle aspect ratio
+        const btnAspect = tile.querySelector('.cc-tile-btn-aspect');
+        btnAspect.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          const nextRatio = ratio === '1:2' ? '1:1' : '1:2';
+          const payload = latestCcWidgets.map((item) => ({
+            id: item.id,
+            order: item.order,
+            aspectRatio: item.id === m.id ? nextRatio : (item.aspectRatio || '1:1'),
+            enabled: item.enabled !== false
+          }));
+          window.winzen.send('update_control_center_widgets', { items: payload });
+        });
+
+        // Delete module
+        const btnDel = tile.querySelector('.cc-tile-btn-del');
+        btnDel.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          const filtered = latestCcWidgets.filter((item) => item.id !== m.id);
+          const payload = filtered.map((item, idx) => ({
+            id: item.id,
+            order: (idx + 1) * 10,
+            aspectRatio: item.aspectRatio || '1:1',
+            enabled: item.enabled !== false
+          }));
+          window.winzen.send('update_control_center_widgets', { items: payload });
+        });
+
+        // Drag & Drop reordering
+        tile.addEventListener('dragstart', (ev) => {
+          draggedTileId = m.id;
+          tile.classList.add('is-dragging');
+          ev.dataTransfer.effectAllowed = 'move';
+          try { ev.dataTransfer.setData('text/plain', m.id); } catch { }
+        });
+
+        tile.addEventListener('dragend', () => {
+          tile.classList.remove('is-dragging');
+          draggedTileId = null;
+          ccSettingsPreviewGrid.querySelectorAll('.cc-preview-tile').forEach((t) => t.classList.remove('drag-over'));
+        });
+
+        tile.addEventListener('dragover', (ev) => {
+          if (!draggedTileId || draggedTileId === m.id) return;
+          ev.preventDefault();
+          ev.dataTransfer.dropEffect = 'move';
+          tile.classList.add('drag-over');
+        });
+
+        tile.addEventListener('dragleave', () => {
+          tile.classList.remove('drag-over');
+        });
+
+        tile.addEventListener('drop', (ev) => {
+          if (!draggedTileId || draggedTileId === m.id) return;
+          ev.preventDefault();
+          tile.classList.remove('drag-over');
+
+          const fromIdx = latestCcWidgets.findIndex((item) => item.id === draggedTileId);
+          const toIdx = latestCcWidgets.findIndex((item) => item.id === m.id);
+          if (fromIdx !== -1 && toIdx !== -1) {
+            const reordered = latestCcWidgets.slice();
+            const [moved] = reordered.splice(fromIdx, 1);
+            reordered.splice(toIdx, 0, moved);
+
+            const payload = reordered.map((item, idx) => ({
+              id: item.id,
+              order: (idx + 1) * 10,
+              aspectRatio: item.aspectRatio || '1:1',
+              enabled: item.enabled !== false
+            }));
+
+            window.winzen.send('update_control_center_widgets', { items: payload });
+          }
+          draggedTileId = null;
+        });
+
         ccSettingsPreviewGrid.appendChild(tile);
       });
     }
 
-    // 2. Active Modules list
-    ccSettingsModulesList.innerHTML = '';
-    if (ccWidgets.length === 0) {
-      ccSettingsModulesList.innerHTML = '<div class="region-empty">No modules configured in Control Center</div>';
-    } else {
-      ccWidgets.forEach((m, idx) => {
-        const row = document.createElement('div');
-        row.className = 'cc-module-row';
-        row.dataset.id = m.id;
-        row.innerHTML = `
-          <div class="cc-module-info">
-            <span class="cc-module-name">${escapeHtml(m.name || m.id)}</span>
-          </div>
-          <div class="cc-module-controls">
-            <select class="win11-select cc-mod-aspect">
-              <option value="1:1" ${(m.aspectRatio || '1:1') === '1:1' ? 'selected' : ''}>1:1 (Square)</option>
-              <option value="1:2" ${m.aspectRatio === '1:2' ? 'selected' : ''}>1:2 (Wide Slider)</option>
-            </select>
-            <div class="arrange-btns">
-              <button class="arrange-btn btn-cc-up" ${idx === 0 ? 'disabled' : ''}>↑</button>
-              <button class="arrange-btn btn-cc-down" ${idx === ccWidgets.length - 1 ? 'disabled' : ''}>↓</button>
+    // 2. Available Widgets to Add (Only widgets NOT currently inside Control Center)
+    if (ccAvailableWidgetsGrid) {
+      ccAvailableWidgetsGrid.innerHTML = '';
+      const currentIds = new Set(latestCcWidgets.map((w) => w.id));
+      const availableList = (allWidgets || []).filter((w) => !currentIds.has(w.id) && !w.id.includes('zen-control-center'));
+
+      if (availableList.length === 0) {
+        ccAvailableWidgetsGrid.innerHTML = '<div class="cc-empty-available">All available widgets have been added to Control Center.</div>';
+      } else {
+        availableList.forEach((w) => {
+          const tile = document.createElement('div');
+          tile.className = 'cc-available-tile';
+          tile.title = `Click to add ${escapeHtml(w.name)} to Control Center`;
+          tile.innerHTML = `
+            <div class="cc-avail-info">
+              <span class="cc-avail-name">${escapeHtml(w.name)}</span>
+              <span class="cc-avail-desc">${escapeHtml(w.description || 'Widget')}</span>
             </div>
-            <button class="arrange-btn btn-cc-del" title="Remove module" style="color: #ff99a4;">✕</button>
-          </div>
-        `;
+            <button type="button" class="cc-btn-add-tile" aria-label="Add to Control Center">
+              <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="8" y1="2.5" x2="8" y2="13.5"></line><line x1="2.5" y1="8" x2="13.5" y2="8"></line></svg>
+              <span>Add</span>
+            </button>
+          `;
 
-        const aspectSelect = row.querySelector('.cc-mod-aspect');
-        aspectSelect.addEventListener('change', () => {
-          const updated = ccWidgets.map((item) => ({
-            id: item.id,
-            order: item.order,
-            aspectRatio: item.id === m.id ? aspectSelect.value : (item.aspectRatio || '1:1'),
-            enabled: item.enabled !== false
-          }));
-          window.winzen.send('update_control_center_widgets', { items: updated });
-        });
-
-        const btnUp = row.querySelector('.btn-cc-up');
-        btnUp.addEventListener('click', () => {
-          if (idx > 0) {
-            const listCopy = ccWidgets.slice();
-            const temp = listCopy[idx - 1];
-            listCopy[idx - 1] = listCopy[idx];
-            listCopy[idx] = temp;
-            const updated = listCopy.map((item, i) => ({
+          tile.addEventListener('click', () => {
+            const defaultAspect = (w.supportedModes && w.supportedModes.includes('widget')) ? '1:2' : '1:1';
+            const updated = latestCcWidgets.map((item, i) => ({
               id: item.id,
               order: (i + 1) * 10,
               aspectRatio: item.aspectRatio || '1:1',
               enabled: item.enabled !== false
             }));
+            updated.push({
+              id: w.id,
+              order: (updated.length + 1) * 10,
+              aspectRatio: defaultAspect,
+              enabled: true
+            });
             window.winzen.send('update_control_center_widgets', { items: updated });
-          }
-        });
+          });
 
-        const btnDown = row.querySelector('.btn-cc-down');
-        btnDown.addEventListener('click', () => {
-          if (idx < ccWidgets.length - 1) {
-            const listCopy = ccWidgets.slice();
-            const temp = listCopy[idx + 1];
-            listCopy[idx + 1] = listCopy[idx];
-            listCopy[idx] = temp;
-            const updated = listCopy.map((item, i) => ({
-              id: item.id,
-              order: (i + 1) * 10,
-              aspectRatio: item.aspectRatio || '1:1',
-              enabled: item.enabled !== false
-            }));
-            window.winzen.send('update_control_center_widgets', { items: updated });
-          }
+          ccAvailableWidgetsGrid.appendChild(tile);
         });
-
-        const btnDel = row.querySelector('.btn-cc-del');
-        btnDel.addEventListener('click', () => {
-          const filtered = ccWidgets.filter((item) => item.id !== m.id);
-          const updated = filtered.map((item, i) => ({
-            id: item.id,
-            order: (i + 1) * 10,
-            aspectRatio: item.aspectRatio || '1:1',
-            enabled: item.enabled !== false
-          }));
-          window.winzen.send('update_control_center_widgets', { items: updated });
-        });
-
-        ccSettingsModulesList.appendChild(row);
-      });
+      }
     }
-
-    // 3. Populate Add Select
-    if (selectAddCcWidget) {
-      selectAddCcWidget.innerHTML = '<option value="">Select widget to add...</option>';
-      const currentIds = new Set(ccWidgets.map((w) => w.id));
-      (allWidgets || []).forEach((w) => {
-        if (!currentIds.has(w.id) && !w.id.includes('zen-control-center')) {
-          const opt = document.createElement('option');
-          opt.value = w.id;
-          opt.textContent = w.name || w.id;
-          selectAddCcWidget.appendChild(opt);
-        }
-      });
-    }
-  }
-
-  if (btnAddModuleToCc) {
-    btnAddModuleToCc.addEventListener('click', () => {
-      const selectedId = selectAddCcWidget.value;
-      if (!selectedId) return;
-      const aspect = selectAddCcAspect ? selectAddCcAspect.value : '1:2';
-      const updated = latestCcWidgets.map((item, i) => ({
-        id: item.id,
-        order: (i + 1) * 10,
-        aspectRatio: item.aspectRatio || '1:1',
-        enabled: item.enabled !== false
-      }));
-      updated.push({
-        id: selectedId,
-        order: (updated.length + 1) * 10,
-        aspectRatio: aspect,
-        enabled: true
-      });
-      window.winzen.send('update_control_center_widgets', { items: updated });
-    });
   }
 
   function escapeHtml(str) {

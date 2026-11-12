@@ -8,6 +8,12 @@ let combineApps = typeof widgetConfig !== 'undefined' && widgetConfig
 let showThumbnails = typeof widgetConfig !== 'undefined' && widgetConfig
   ? widgetConfig.showThumbnails !== false
   : true;
+let iconSizePx = typeof widgetConfig !== 'undefined' && widgetConfig && typeof widgetConfig.iconSizePx === 'number'
+  ? Math.max(12, Math.min(32, widgetConfig.iconSizePx))
+  : 18;
+if (strip) {
+  strip.style.setProperty('--aw-icon-size', `${iconSizePx}px`);
+}
 let animationsEnabled = typeof widgetConfig !== 'undefined' && widgetConfig
   ? widgetConfig.animations !== false
   : true;
@@ -105,12 +111,17 @@ window.addEventListener('winzen:state', (e) => {
   const newShowAppName = cfg.showAppName !== false;
   const newCombineApps = !!cfg.combineApps;
   const newShowThumbnails = cfg.showThumbnails !== false;
+  const newIconSizePx = typeof cfg.iconSizePx === 'number' ? Math.max(12, Math.min(32, cfg.iconSizePx)) : 18;
 
-  if (newShowAppName !== showAppName || newCombineApps !== combineApps || newShowThumbnails !== showThumbnails) {
+  if (newShowAppName !== showAppName || newCombineApps !== combineApps || newShowThumbnails !== showThumbnails || newIconSizePx !== iconSizePx) {
     const combineChanged = newCombineApps !== combineApps;
     showAppName = newShowAppName;
     combineApps = newCombineApps;
     showThumbnails = newShowThumbnails;
+    iconSizePx = newIconSizePx;
+    if (strip) {
+      strip.style.setProperty('--aw-icon-size', `${iconSizePx}px`);
+    }
     if (combineChanged) {
       customOrder = [];
     }

@@ -68,7 +68,7 @@
 
 .date {
   font-size: 10.5px;
-  color: var(--winzen-accent, #60cdff);
+  color: var(--winzen-text, #ffffff);
   line-height: 1.15;
 }
 
@@ -98,7 +98,7 @@
 .in-control-center[data-aspect-ratio="1:1"] .date {
   font-size: 11.5px;
   font-weight: 400;
-  color: var(--winzen-text-secondary, #9ca3af);
+  color: var(--winzen-text, #ffffff);
   letter-spacing: 0.2px;
 }
 
@@ -124,5 +124,5 @@
 .in-control-center.cc-aspect-1-2 .date,
 .in-control-center[data-aspect-ratio="1:2"] .date {
   font-size: 11.5px;
-  color: var(--winzen-text-secondary, #9ca3af);
+  color: var(--winzen-text, #ffffff);
 }

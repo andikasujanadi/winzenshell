@@ -52,7 +52,6 @@ function renderDesktops(desktops, currentIndex) {
     desktops.forEach((d) => {
       const pill = document.createElement('button');
       pill.className = `vd-pill ${d.isCurrent ? 'active' : ''}`;
-      pill.title = `${d.name} (Click to switch)`;
       pill.setAttribute('aria-label', d.name);
 
       const numSpan = document.createElement('span');
@@ -82,7 +81,6 @@ function renderDesktops(desktops, currentIndex) {
       const numBtn = document.createElement('button');
       numBtn.className = `vd-compact-num ${d.isCurrent ? 'active' : ''}`;
       numBtn.textContent = String(d.index + 1);
-      numBtn.title = `${d.name || 'Desktop ' + (d.index + 1)} (Click to switch)`;
       numBtn.setAttribute('aria-label', d.name || `Desktop ${d.index + 1}`);
 
       numBtn.addEventListener('click', (ev) => {
@@ -99,9 +97,6 @@ function renderDesktops(desktops, currentIndex) {
   const idx = cur ? cur.index : currentIndex;
   if (iconBadge) iconBadge.textContent = String(idx + 1);
   if (iconLabel) iconLabel.textContent = cur ? cur.name : `Desktop ${idx + 1}`;
-  if (btnIconMode) {
-    btnIconMode.title = `Virtual Desktop: ${cur ? cur.name : 'Desktop ' + (idx + 1)} (Scroll to switch, click for Task View)`;
-  }
 }
 
 if (btnTaskView) {

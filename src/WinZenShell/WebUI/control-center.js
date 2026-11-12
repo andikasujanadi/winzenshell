@@ -126,6 +126,7 @@ function initControlCenter() {
 
   let currentTheme = 'dark';
   let currentAccent = '#3684E3';
+  let currentAnimations = true;
   let lastCcRenderSig = '';
 
   function buildCcSignature(widgets, settings) {
@@ -157,8 +158,12 @@ function initControlCenter() {
     if (!state) return;
     currentTheme = (state.settings && state.settings.theme) || 'dark';
     currentAccent = (state.settings && state.settings.accentColor) || '#3684E3';
+    currentAnimations = !(state.settings && state.settings.enableAnimations === false);
     document.documentElement.setAttribute('data-theme', currentTheme);
-    document.body.className = currentTheme === 'light' ? 'theme-light' : 'theme-dark';
+    document.body.className = `${currentTheme === 'light' ? 'theme-light' : 'theme-dark'}${currentAnimations ? '' : ' winzen-no-anim'}`;
+    document.querySelectorAll('.cc-card-content').forEach((el) => {
+      el.setAttribute('data-animations', currentAnimations ? 'on' : 'off');
+    });
     document.documentElement.style.setProperty('--winzen-accent', currentAccent);
     document.documentElement.style.setProperty('--winzen-border-accent', currentAccent);
     document.documentElement.style.setProperty('--win11-accent', currentAccent);
@@ -304,6 +309,7 @@ function initControlCenter() {
 
       content.dataset.theme = currentTheme;
       content.setAttribute('data-theme', currentTheme);
+      content.setAttribute('data-animations', currentAnimations ? 'on' : 'off');
       content.style.setProperty('--winzen-accent', currentAccent);
       content.style.setProperty('--winzen-border-accent', currentAccent);
       content.style.setProperty('--win11-accent', currentAccent);
@@ -373,6 +379,16 @@ function initControlCenter() {
           color: var(--winzen-text);
         }
         ${w.cssContent || ''}
+
+        :host([data-animations="off"]) *,
+        :host([data-animations="off"]) *::before,
+        :host([data-animations="off"]) *::after {
+          animation: none !important;
+          transition: none !important;
+        }
+        :host([data-animations="off"]) *:active {
+          transform: none !important;
+        }
       `;
       shadow.appendChild(styleEl);
 

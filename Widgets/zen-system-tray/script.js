@@ -21,10 +21,7 @@ function buildTrayButton(item, className) {
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.className = className;
-  const appTitle = item.tooltip || item.name || 'Tray App';
-  btn.title = inControlCenter
-    ? `${appTitle}\nClick: Open • Right-click: ${item.isPromoted ? 'Unpin from taskbar' : 'Pin to taskbar'}`
-    : appTitle;
+  btn.setAttribute('aria-label', item.tooltip || item.name || 'Tray App');
 
   if (item.iconDataUrl) {
     const img = document.createElement('img');
@@ -86,12 +83,6 @@ function renderTrayIcons(trayIcons) {
 
   const promoted = trayIcons.filter((item) => item && item.isPromoted);
   const hiddenCount = trayIcons.length - promoted.length;
-
-  if (trayChevronBtn) {
-    trayChevronBtn.title = hiddenCount > 0
-      ? `Show hidden icons (${hiddenCount})`
-      : `System tray (${trayIcons.length} active)`;
-  }
 
   const sig = promoted.map((p) => `${p.id}|${p.tooltip}|${p.iconDataUrl ? p.iconDataUrl.length : 0}`).join(';;') + `::${hiddenCount}`;
   if (sig === lastSignature) return;

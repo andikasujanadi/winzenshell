@@ -18,16 +18,18 @@ public partial class SettingsWebWindow : Window
 
     private readonly ShellStateService _shellState;
     private readonly Action? _quitCallback;
+    private readonly Action? _restartCallback;
     private IntPtr _hwnd = IntPtr.Zero;
     private bool _webViewReady;
 
     public bool AllowClose { get; set; }
 
-    public SettingsWebWindow(ShellStateService shellState, Action? quitCallback = null)
+    public SettingsWebWindow(ShellStateService shellState, Action? quitCallback = null, Action? restartCallback = null)
     {
         InitializeComponent();
         _shellState = shellState;
         _quitCallback = quitCallback;
+        _restartCallback = restartCallback;
         _shellState.StateChanged += OnShellStateChanged;
 
         Loaded += OnLoaded;
@@ -202,7 +204,9 @@ public partial class SettingsWebWindow : Window
                     string? theme = root.TryGetProperty("theme", out var tmProp) ? tmProp.GetString() : null;
                     int? cornerRadius = root.TryGetProperty("taskbarCornerRadiusPx", out var crProp) ? crProp.GetInt32() : null;
                     string? accent = root.TryGetProperty("accentColor", out var acProp) ? acProp.GetString() : null;
-                    _shellState.UpdateWorkAreaConfig(respect, dockEdge, heightPx, marginPx, theme, cornerRadius, accent);
+                    int? bgOpacity = root.TryGetProperty("backgroundOpacity", out var boProp) && boProp.ValueKind == JsonValueKind.Number ? boProp.GetInt32() : null;
+                    int? bgBlur = root.TryGetProperty("backgroundBlurStrength", out var bbProp) && bbProp.ValueKind == JsonValueKind.Number ? bbProp.GetInt32() : null;
+                    _shellState.UpdateWorkAreaConfig(respect, dockEdge, heightPx, marginPx, theme, cornerRadius, accent, bgOpacity, bgBlur);
                     break;
 
                 case "set_accent_color":
@@ -260,6 +264,9 @@ public partial class SettingsWebWindow : Window
                                      (wsgProp.ValueKind == JsonValueKind.True || wsgProp.ValueKind == JsonValueKind.False)
                         ? wsgProp.GetBoolean()
                         : null;
+                    int? wIconSizePx = root.TryGetProperty("iconSizePx", out var wispProp) && wispProp.ValueKind == JsonValueKind.Number
+                        ? wispProp.GetInt32()
+                        : null;
                     int? wOrder = root.TryGetProperty("order", out var woProp) && woProp.ValueKind == JsonValueKind.Number
                         ? woProp.GetInt32()
                         : null;
@@ -287,7 +294,8 @@ public partial class SettingsWebWindow : Window
                             wShowDate,
                             wShowCpu,
                             wShowRam,
-                            wShowGpu);
+                            wShowGpu,
+                            wIconSizePx);
                     }
                     break;
 
@@ -332,6 +340,11 @@ public partial class SettingsWebWindow : Window
 
                 case "quit_app":
                     _quitCallback?.Invoke();
+                    break;
+
+                case "restart_app":
+                case "restart_shell":
+                    _restartCallback?.Invoke();
                     break;
 
                 case "create_community_widget":

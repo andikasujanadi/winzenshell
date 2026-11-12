@@ -4,6 +4,8 @@ function initTaskbar() {
   const slotRight = document.getElementById('slot-right');
   const btnOpenStudio = document.getElementById('btnOpenStudio');
   const taskbarBar = document.getElementById('taskbarBar');
+  const taskbarWallpaperLayer = document.getElementById('taskbarWallpaperLayer');
+  const taskbarSurfaceLayer = document.getElementById('taskbarSurfaceLayer');
 
   let lastWidgetsSignature = '';
   let currentTheme = 'dark';
@@ -34,6 +36,35 @@ function initTaskbar() {
     document.documentElement.style.setProperty('--win11-accent', currentAccent);
 
     const isFloating = (settings.floatingMarginPx || 0) > 0;
+    const isFloatingRounded = isFloating && currentRadius > 0;
+    const bgOpacityPct = Math.max(20, Math.min(100, settings.backgroundOpacity ?? 100));
+    const bgBlurPct = Math.max(0, Math.min(100, settings.backgroundBlurStrength ?? 60));
+    const bgAlpha = (bgOpacityPct / 100).toFixed(2);
+    const isLightTheme = currentTheme === 'light';
+    const surfaceBg = isLightTheme ? `rgba(243, 243, 243, ${bgAlpha})` : `rgba(28, 28, 28, ${bgAlpha})`;
+    const htmlBg = (bgOpacityPct >= 100 && !isFloatingRounded) ? (isLightTheme ? '#f3f3f3' : '#1c1c1c') : 'transparent';
+    document.documentElement.style.setProperty('--taskbar-surface-bg', surfaceBg);
+    document.documentElement.style.setProperty('--taskbar-html-bg', htmlBg);
+
+    const isTransparentWithBlur = bgOpacityPct < 100 && bgBlurPct > 0;
+    const backdropUrl = state.backdropImageUrl || '';
+    if (taskbarWallpaperLayer) {
+      if (isTransparentWithBlur && backdropUrl) {
+        taskbarWallpaperLayer.style.display = 'block';
+        taskbarWallpaperLayer.style.backgroundImage = `url("${backdropUrl}")`;
+        taskbarWallpaperLayer.style.setProperty('--taskbar-wallpaper-blur', `${(bgBlurPct * 0.24).toFixed(1)}px`);
+      } else {
+        taskbarWallpaperLayer.style.display = 'none';
+        taskbarWallpaperLayer.style.backgroundImage = '';
+      }
+    }
+
+    const activeWinWidget = state.widgets.find((w) => w.id === 'community.zen-active-windows');
+    const appIconSizePx = activeWinWidget && typeof activeWinWidget.iconSizePx === 'number'
+      ? Math.max(12, Math.min(32, activeWinWidget.iconSizePx))
+      : 18;
+    document.documentElement.style.setProperty('--winzen-app-icon-size', `${appIconSizePx}px`);
+
     const isTop = (settings.dockEdge || 'Bottom').toLowerCase() === 'top';
     currentDockEdge = isTop ? 'top' : 'bottom';
     currentAnimations = settings.enableAnimations !== false;
@@ -101,6 +132,7 @@ function initTaskbar() {
       if (slot === 'control-center' || slot === 'unused' || slot === 'disabled') return;
 
       const isAutoWidth = w.autoWidth !== false;
+      const isShrinkableStrip = w.id === 'community.zen-active-windows';
       const isIconMode = (w.displayMode || 'widget') === 'icon';
 
       const host = document.createElement('div');
@@ -155,7 +187,9 @@ function initTaskbar() {
 
           display: inline-flex;
           align-items: center;
-          width: ${isAutoWidth ? 'max-content' : '100%'};
+          width: ${isAutoWidth ? (isShrinkableStrip ? 'auto' : 'max-content') : '100%'};
+          max-width: ${isShrinkableStrip ? '100%' : 'none'};
+          min-width: ${isShrinkableStrip ? '0' : 'auto'};
           height: 36px;
           max-height: 36px;
           overflow: visible;
@@ -183,6 +217,16 @@ function initTaskbar() {
           color: var(--winzen-text);
         }
         ${w.cssContent || ''}
+
+        :host([data-animations="off"]) *,
+        :host([data-animations="off"]) *::before,
+        :host([data-animations="off"]) *::after {
+          animation: none !important;
+          transition: none !important;
+        }
+        :host([data-animations="off"]) *:active {
+          transform: none !important;
+        }
       `;
       shadow.appendChild(styleEl);
 
@@ -191,7 +235,7 @@ function initTaskbar() {
       wrapper.dataset.inControlCenter = 'false';
       wrapper.dataset.theme = currentTheme;
       wrapper.setAttribute('data-theme', currentTheme);
-      wrapper.style.cssText = `width:${isAutoWidth ? 'max-content' : '100%'};height:36px;max-height:36px;display:inline-flex;align-items:center;`;
+      wrapper.style.cssText = `width:${isAutoWidth ? (isShrinkableStrip ? 'auto' : 'max-content') : '100%'};${isShrinkableStrip ? 'max-width:100%;min-width:0;' : ''}height:36px;max-height:36px;display:inline-flex;align-items:center;`;
       wrapper.innerHTML = w.htmlContent || '';
       shadow.appendChild(wrapper);
 
