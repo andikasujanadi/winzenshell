@@ -182,12 +182,14 @@ window.winzen.shell.onMetricsUpdate((metrics) => {
 ## Changelog
 
 ### v0.2.0 (2026-11-13)
-* **Interactive Control Center Studio**:
-  * Unified Control Center configuration directly into the **Layouts** settings tab.
-  * Real-time editable Control Center Grid Preview mirroring the flyout layout.
-  * Aspect ratio switching between square (1:1) and wide (1:2) directly in the preview grid.
-  * Drag-and-drop reordering and quick module removal.
-  * Android-style **"Add Widget to Control Center"** grid with mutual exclusivity (only widgets not currently in Control Center are displayed).
+* **Modular 4-Column Control Center Grid & Sizing Studio**:
+  * Edge-to-edge rounded container with dynamic monitor height clipping and vertical scroll when content overflows.
+  * Modular **4-column squircle grid** supporting `1x1`, `2x1`, `2x2`, `3x1`, and `4x1` widget spans.
+  * Dedicated **Edit Mode** with circular red remove badges (`⊖`), circular resize badges (`⤢`), squircle empty slot placeholders, and bottom "Done" pill button.
+  * Drag-and-drop widget reordering across the 4-column layout in both Control Center flyout and Settings Grid Preview.
+  * Bottom centered pill button toggling between **"Edit Controls"** and **"Done"**.
+  * Android-style **"Add Widget to Control Center"** slide-up drawer with mutual exclusivity (only widgets not currently in Control Center are displayed).
+  * Direct synchronization between Settings and flyout layouts.
 * **Settings UI Modernization**:
   * Clean two-section sidebar navigation (**Shell** & **Layouts**).
   * Seamless Fluent 2 sidebar actions (Widgets Folder, Refresh, Restart, Quit) with native icons and hover treatments.

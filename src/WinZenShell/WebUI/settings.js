@@ -1219,54 +1219,76 @@ function initSettingsPage() {
 
   let draggedTileId = null;
 
+  function normalizeSpan(widgetId, span) {
+    if (!span || span === '1:2') {
+      const isSlider = widgetId.includes('volume') || widgetId.includes('brightness') || widgetId.includes('battery');
+      return isSlider ? '4x1' : '2x1';
+    }
+    if (span === '1:1') return '2x2';
+    return span;
+  }
+
+  function getNextSpan(widgetId, currentSpan) {
+    const norm = normalizeSpan(widgetId, currentSpan);
+    const isSlider = widgetId.includes('volume') || widgetId.includes('brightness');
+    if (isSlider) {
+      const sliderCycle = ['4x1', '2x1', '1x1'];
+      const idx = sliderCycle.indexOf(norm);
+      return sliderCycle[(idx + 1) % sliderCycle.length];
+    }
+    const generalCycle = ['2x2', '2x1', '1x1', '4x1', '3x1'];
+    const idx = generalCycle.indexOf(norm);
+    if (idx === -1) return '2x2';
+    return generalCycle[(idx + 1) % generalCycle.length];
+  }
+
   function renderControlCenterSettings(ccWidgets, allWidgets) {
     if (!ccSettingsPreviewGrid) return;
 
     latestCcWidgets = (ccWidgets || []).slice().sort((a, b) => (a.order ?? 10) - (b.order ?? 10));
 
-    // 1. Interactive Grid Preview
+    // 1. Interactive 4-Column Grid Preview
     ccSettingsPreviewGrid.innerHTML = '';
     if (latestCcWidgets.length === 0) {
-      ccSettingsPreviewGrid.innerHTML = '<div style="color:var(--win11-text-tertiary);font-size:12px;grid-column:span 2;padding:24px 12px;text-align:center;">No modules in Control Center. Add one below.</div>';
+      ccSettingsPreviewGrid.innerHTML = '<div style="color:var(--win11-text-tertiary);font-size:12px;grid-column:span 4;padding:24px 12px;text-align:center;">No widgets in Control Center. Add one below.</div>';
     } else {
       latestCcWidgets.forEach((m) => {
         const tile = document.createElement('div');
         tile.className = 'cc-preview-tile';
-        const ratio = m.aspectRatio === '1:2' ? '1:2' : '1:1';
-        tile.dataset.aspect = ratio;
+        const span = normalizeSpan(m.id, m.aspectRatio);
+        tile.dataset.span = span;
+        tile.dataset.aspect = span;
         tile.dataset.id = m.id;
         tile.setAttribute('draggable', 'true');
-
-        const ratioLabel = ratio === '1:2' ? '1:2 Wide' : '1:1 Square';
 
         tile.innerHTML = `
           <div class="cc-tile-header">
             <span class="cc-tile-title" title="${escapeHtml(m.name || m.id)}">${escapeHtml(m.name || m.id)}</span>
             <div class="cc-tile-actions">
-              <button type="button" class="cc-tile-btn cc-tile-btn-aspect" title="Click to toggle aspect ratio">${ratioLabel}</button>
-              <button type="button" class="cc-tile-btn cc-tile-btn-del" title="Remove module from Control Center">✕</button>
+              <button type="button" class="cc-tile-btn cc-tile-btn-aspect" title="Click to cycle size (1x1, 2x1, 2x2, 3x1, 4x1)">${span}</button>
+              <button type="button" class="cc-tile-btn cc-tile-btn-del" title="Remove widget from Control Center">✕</button>
             </div>
           </div>
           <div class="cc-tile-body">
-            <span class="cc-tile-tag">${ratio === '1:2' ? 'Wide Slider' : 'Square Tile'}</span>
+            <span class="cc-tile-tag">${span} Tile</span>
           </div>
         `;
 
-        // Toggle aspect ratio
+        // Cycle size on click
         const btnAspect = tile.querySelector('.cc-tile-btn-aspect');
         btnAspect.addEventListener('click', (ev) => {
           ev.stopPropagation();
-          const nextRatio = ratio === '1:2' ? '1:1' : '1:2';
+          const nextSpan = getNextSpan(m.id, span);
           const payload = latestCcWidgets.map((item) => ({
             id: item.id,
             order: item.order,
-            aspectRatio: item.id === m.id ? nextRatio : (item.aspectRatio || '1:1'),
+            aspectRatio: item.id === m.id ? nextSpan : normalizeSpan(item.id, item.aspectRatio),
             enabled: item.enabled !== false
           }));
           window.winzen.send('update_control_center_widgets', { items: payload });
         });
 
-        // Delete module
+        // Delete widget
         const btnDel = tile.querySelector('.cc-tile-btn-del');
         btnDel.addEventListener('click', (ev) => {
           ev.stopPropagation();
@@ -1274,7 +1296,7 @@ function initSettingsPage() {
           const payload = filtered.map((item, idx) => ({
             id: item.id,
             order: (idx + 1) * 10,
-            aspectRatio: item.aspectRatio || '1:1',
+            aspectRatio: normalizeSpan(item.id, item.aspectRatio),
             enabled: item.enabled !== false
           }));
           window.winzen.send('update_control_center_widgets', { items: payload });
@@ -1320,7 +1342,7 @@ function initSettingsPage() {
             const payload = reordered.map((item, idx) => ({
               id: item.id,
               order: (idx + 1) * 10,
-              aspectRatio: item.aspectRatio || '1:1',
+              aspectRatio: normalizeSpan(item.id, item.aspectRatio),
               enabled: item.enabled !== false
             }));
 
@@ -1358,11 +1380,12 @@ function initSettingsPage() {
           `;
 
           tile.addEventListener('click', () => {
-            const defaultAspect = (w.supportedModes && w.supportedModes.includes('widget')) ? '1:2' : '1:1';
+            const isSlider = w.id.includes('volume') || w.id.includes('brightness') || w.id.includes('battery');
+            const defaultAspect = isSlider ? '4x1' : '2x2';
             const updated = latestCcWidgets.map((item, i) => ({
               id: item.id,
               order: (i + 1) * 10,
-              aspectRatio: item.aspectRatio || '1:1',
+              aspectRatio: normalizeSpan(item.id, item.aspectRatio),
               enabled: item.enabled !== false
             }));
             updated.push({

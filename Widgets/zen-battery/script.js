@@ -170,8 +170,10 @@ window.addEventListener('winzen:metrics', (e) => {
   updateBatteryDisplay(e.detail);
 });
 
-if (typeof widgetConfig !== 'undefined' && widgetConfig && widgetConfig.inControlCenter) {
+if (inControlCenter) {
   if (batteryRoot) batteryRoot.classList.add('in-control-center');
+  if (batteryRoot && batteryRoot.parentElement) batteryRoot.parentElement.classList.add('in-control-center');
+  if (root && root.host) root.host.classList.add('in-control-center');
 }
 
 window.addEventListener('winzen:state', (e) => {

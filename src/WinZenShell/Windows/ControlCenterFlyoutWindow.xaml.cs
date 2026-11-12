@@ -83,7 +83,7 @@ public partial class ControlCenterFlyoutWindow : Window
             _lastClipHeight = clientRect.Height;
             _lastClipDpi = dpiScale;
 
-            int radiusPhysical = (int)Math.Round(11 * dpiScale);
+            int radiusPhysical = (int)Math.Round(15 * dpiScale);
             int diameter = radiusPhysical * 2;
 
             IntPtr childRgn = Win32Api.CreateRoundRectRgn(0, 0, clientRect.Width + 1, clientRect.Height + 1, diameter, diameter);

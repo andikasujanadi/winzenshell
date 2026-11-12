@@ -1,30 +1,31 @@
 function initControlCenter() {
   const ccContainer = document.getElementById('ccContainer');
   const ccGrid = document.getElementById('ccGrid');
-  const ccTime = document.getElementById('ccTime');
-  const btnEdit = document.getElementById('btnCcEdit');
-  const btnEditText = document.getElementById('btnCcEditText');
-  const btnClose = document.getElementById('btnCcClose');
-  const ccEditFooter = document.getElementById('ccEditFooter');
-  const ccAddSelect = document.getElementById('ccAddSelect');
-  const btnCcAdd = document.getElementById('btnCcAdd');
+  const btnEditControls = document.getElementById('btnEditControls');
+  const btnDoneControls = document.getElementById('btnDoneControls');
+  const ccAddDrawer = document.getElementById('ccAddDrawer');
+  const ccDrawerList = document.getElementById('ccDrawerList');
+  const btnCcCloseDrawer = document.getElementById('btnCcCloseDrawer');
 
   let isEditing = false;
   let currentCcWidgets = [];
   let availableWidgets = [];
   let draggedCardId = null;
-
-  const SVG_PENCIL = '<path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm17.71-10.21a1.003 1.003 0 0 0 0-1.42l-2.34-2.34a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.82z"/>';
-  const SVG_CHECK = '<path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>';
-  const editSvg = document.getElementById('editIconPencil');
-  const ccHeader = document.querySelector('.cc-header');
   let lastSentHeight = 0;
+
+  let currentTheme = 'dark';
+  let currentAccent = '#3684E3';
+  let currentAnimations = true;
+  let lastCcRenderSig = '';
+
+  const SVG_MINUS = '<svg viewBox="0 0 16 16" width="8" height="8" fill="currentColor"><rect x="3" y="7" width="10" height="2" rx="1"/></svg>';
+  const SVG_RESIZE = '<svg viewBox="0 0 16 16" width="8" height="8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2h4v4M14 2L9 7M6 14H2v-4M2 14l5-5"/></svg>';
 
   function scheduleResize() {
     const measureAndSend = () => {
       if (!ccGrid || !window.winzen || typeof window.winzen.send !== 'function') return;
-      const headerH = ccHeader ? ccHeader.offsetHeight : 50;
-      const footerH = isEditing && ccEditFooter && ccEditFooter.style.display !== 'none' ? ccEditFooter.offsetHeight : 0;
+      const bottomBar = document.getElementById('ccBottomBar');
+      const bottomBarH = bottomBar ? bottomBar.offsetHeight : 44;
 
       let maxBottom = 0;
       const children = ccGrid.children;
@@ -33,13 +34,15 @@ function initControlCenter() {
       } else {
         for (let i = 0; i < children.length; i++) {
           const ch = children[i];
+          // Ignore placeholder slots when computing tight content height in normal mode
+          if (!isEditing && ch.classList.contains('cc-slot-placeholder')) continue;
           const bottom = ch.offsetTop + ch.offsetHeight;
           if (bottom > maxBottom) maxBottom = bottom;
         }
       }
 
-      const gridContentH = maxBottom + 14;
-      const total = Math.ceil(headerH + gridContentH + footerH + 4);
+      const gridContentH = maxBottom + 12; // bottom padding
+      const total = Math.ceil(gridContentH + bottomBarH + 4);
 
       if (total > 80 && Math.abs(total - lastSentHeight) >= 2) {
         lastSentHeight = total;
@@ -49,21 +52,21 @@ function initControlCenter() {
 
     requestAnimationFrame(() => {
       measureAndSend();
-      setTimeout(measureAndSend, 50);
-      setTimeout(measureAndSend, 150);
+      setTimeout(measureAndSend, 60);
+      setTimeout(measureAndSend, 160);
     });
   }
 
-  if (btnClose) {
-    btnClose.addEventListener('click', () => {
-      if (isEditing) toggleEditMode(false);
-      window.winzen.controlCenter.close();
-    });
+  if (btnEditControls) {
+    btnEditControls.addEventListener('click', () => toggleEditMode(true));
+  }
+  if (btnDoneControls) {
+    btnDoneControls.addEventListener('click', () => toggleEditMode(false));
   }
 
-  if (btnEdit) {
-    btnEdit.addEventListener('click', () => {
-      toggleEditMode(!isEditing);
+  if (btnCcCloseDrawer && ccAddDrawer) {
+    btnCcCloseDrawer.addEventListener('click', () => {
+      ccAddDrawer.style.display = 'none';
     });
   }
 
@@ -71,74 +74,103 @@ function initControlCenter() {
     isEditing = enable;
     if (isEditing) {
       ccContainer.classList.add('is-editing');
-      btnEdit.classList.add('is-active');
-      btnEditText.textContent = 'Done';
-      if (editSvg) editSvg.innerHTML = SVG_CHECK;
-      ccEditFooter.style.display = 'flex';
-      populateAddSelect();
+      if (btnEditControls) btnEditControls.style.display = 'none';
+      if (btnDoneControls) btnDoneControls.style.display = 'inline-flex';
     } else {
       ccContainer.classList.remove('is-editing');
-      btnEdit.classList.remove('is-active');
-      btnEditText.textContent = 'Edit';
-      if (editSvg) editSvg.innerHTML = SVG_PENCIL;
-      ccEditFooter.style.display = 'none';
+      if (btnEditControls) btnEditControls.style.display = 'inline-flex';
+      if (btnDoneControls) btnDoneControls.style.display = 'none';
+      if (ccAddDrawer) ccAddDrawer.style.display = 'none';
     }
+    renderControlCenter(currentCcWidgets);
     scheduleResize();
   }
 
-  function populateAddSelect() {
-    ccAddSelect.innerHTML = '<option value="">+ Add widget to Control Center...</option>';
+  function openAddDrawer() {
+    if (!ccAddDrawer || !ccDrawerList) return;
+    ccDrawerList.innerHTML = '';
+
     const currentIds = new Set(currentCcWidgets.map((w) => w.id));
-    availableWidgets.forEach((w) => {
-      if (!currentIds.has(w.id)) {
-        const opt = document.createElement('option');
-        opt.value = w.id;
-        opt.textContent = w.name || w.id;
-        ccAddSelect.appendChild(opt);
-      }
-    });
-  }
+    const available = availableWidgets.filter((w) => !currentIds.has(w.id) && w.id !== 'zen-control-center');
 
-  if (btnCcAdd) {
-    btnCcAdd.addEventListener('click', () => {
-      const selectedId = ccAddSelect.value;
-      if (!selectedId) return;
-
-      const widgetMeta = availableWidgets.find((w) => w.id === selectedId);
-      const newOrder = (currentCcWidgets.length + 1) * 10;
-      const newAspectRatio = selectedId.includes('brightness') ? '1:2' : '1:1';
-
-      const updated = currentCcWidgets.map((w, idx) => ({
-        id: w.id,
-        order: (idx + 1) * 10,
-        aspectRatio: w.aspectRatio || '1:1',
-        enabled: w.enabled !== false
-      }));
-
-      updated.push({
-        id: selectedId,
-        order: newOrder,
-        aspectRatio: newAspectRatio,
-        enabled: true
+    if (available.length === 0) {
+      ccDrawerList.innerHTML = '<div style="padding:16px;text-align:center;color:#888;font-size:12px;">All available widgets are already in Control Center.</div>';
+    } else {
+      available.forEach((w) => {
+        const item = document.createElement('div');
+        item.className = 'cc-drawer-item';
+        item.innerHTML = `
+          <div>
+            <div class="cc-drawer-item-title">${escapeHtml(w.name || w.id)}</div>
+            <div class="cc-drawer-item-sub">${escapeHtml(w.description || 'Widget')}</div>
+          </div>
+          <span class="cc-drawer-add-pill">+ Add</span>
+        `;
+        item.addEventListener('click', () => {
+          addWidgetToCc(w.id);
+          ccAddDrawer.style.display = 'none';
+        });
+        ccDrawerList.appendChild(item);
       });
+    }
 
-      window.winzen.send('update_control_center_widgets', { items: updated });
-    });
+    ccAddDrawer.style.display = 'flex';
   }
 
-  let currentTheme = 'dark';
-  let currentAccent = '#3684E3';
-  let currentAnimations = true;
-  let lastCcRenderSig = '';
+  function addWidgetToCc(widgetId) {
+    const isSlider = widgetId.includes('volume') || widgetId.includes('brightness') || widgetId.includes('battery');
+    const defaultSpan = isSlider ? '4x1' : '2x2';
+    const newOrder = (currentCcWidgets.length + 1) * 10;
+
+    const updated = currentCcWidgets.map((w, idx) => ({
+      id: w.id,
+      order: (idx + 1) * 10,
+      aspectRatio: normalizeSpan(w.id, w.aspectRatio),
+      enabled: w.enabled !== false
+    }));
+
+    updated.push({
+      id: widgetId,
+      order: newOrder,
+      aspectRatio: defaultSpan,
+      enabled: true
+    });
+
+    window.winzen.send('update_control_center_widgets', { items: updated });
+  }
+
+  function normalizeSpan(widgetId, span) {
+    if (!span || span === '1:2') {
+      const isSlider = widgetId.includes('volume') || widgetId.includes('brightness') || widgetId.includes('battery');
+      return isSlider ? '4x1' : '2x1';
+    }
+    if (span === '1:1') return '2x2';
+    return span;
+  }
+
+  function getNextSpan(widgetId, currentSpan) {
+    const norm = normalizeSpan(widgetId, currentSpan);
+    const isSlider = widgetId.includes('volume') || widgetId.includes('brightness');
+    if (isSlider) {
+      const sliderCycle = ['4x1', '2x1', '1x1'];
+      const idx = sliderCycle.indexOf(norm);
+      return sliderCycle[(idx + 1) % sliderCycle.length];
+    }
+    const generalCycle = ['2x2', '2x1', '1x1', '4x1', '3x1'];
+    const idx = generalCycle.indexOf(norm);
+    if (idx === -1) return '2x2';
+    return generalCycle[(idx + 1) % generalCycle.length];
+  }
 
   function buildCcSignature(widgets, settings) {
     return JSON.stringify({
       theme: (settings && settings.theme) || 'dark',
       accent: (settings && settings.accentColor) || '#3684E3',
+      isEditing: isEditing,
       widgets: (widgets || []).map((w) => ({
         id: w.id,
         order: w.order ?? 10,
-        aspectRatio: w.aspectRatio || (w.id.includes('brightness') ? '1:2' : '1:1'),
+        aspectRatio: normalizeSpan(w.id, w.aspectRatio),
         enabled: w.enabled !== false,
         batteryIconStyle: w.batteryIconStyle || 'win11',
         batteryPercentMode: w.batteryPercentMode || 'outside-right',
@@ -181,7 +213,6 @@ function initControlCenter() {
     } else if (window.winzen && window.winzen.metrics) {
       window.dispatchEvent(new CustomEvent('winzen:metrics', { detail: window.winzen.metrics }));
     }
-    if (isEditing) populateAddSelect();
   }
 
   window.addEventListener('winzen:state', (e) => {
@@ -191,23 +222,70 @@ function initControlCenter() {
   function renderControlCenter(widgets) {
     ccGrid.innerHTML = '';
 
-    if (widgets.length === 0) {
+    if (widgets.length === 0 && !isEditing) {
       ccGrid.innerHTML = `
-        <div class="cc-card" data-aspect-ratio="1:2" style="text-align:center;color:#9ca3af;font-size:12px;padding:24px 12px;">
-          No widgets in Control Center.<br />Click <strong>Edit</strong> above to add widgets.
+        <div class="cc-card" data-span="4x1" style="text-align:center;color:#9ca3af;font-size:12px;padding:24px 12px;grid-column:span 4;display:flex;align-items:center;justify-content:center;">
+          No widgets configured. Click Edit Controls below.
         </div>
       `;
+      scheduleResize();
       return;
     }
 
+    // Render placed widgets
+    let totalColsOccupied = 0;
     widgets.forEach((w) => {
-      const ratio = w.aspectRatio || (w.id.includes('brightness') ? '1:2' : '1:1');
+      const span = normalizeSpan(w.id, w.aspectRatio);
+
+      // Track columns occupied roughly to balance grid
+      const parts = span.split('x');
+      const cols = parseInt(parts[0], 10) || 2;
+      const rows = parseInt(parts[1], 10) || 1;
+      totalColsOccupied += cols * rows;
 
       const card = document.createElement('div');
       card.className = 'cc-card';
-      card.dataset.aspectRatio = ratio;
+      card.dataset.span = span;
+      card.dataset.aspectRatio = span;
       card.dataset.widgetId = w.id;
-      card.draggable = true;
+      card.draggable = isEditing;
+
+      // Badges for edit mode (Picture 4)
+      const btnRemove = document.createElement('button');
+      btnRemove.className = 'cc-card-badge-remove';
+      btnRemove.title = 'Remove widget';
+      btnRemove.setAttribute('aria-label', 'Remove widget');
+      btnRemove.innerHTML = SVG_MINUS;
+      btnRemove.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        const filtered = currentCcWidgets.filter((item) => item.id !== w.id);
+        const payload = filtered.map((item, idx) => ({
+          id: item.id,
+          order: (idx + 1) * 10,
+          aspectRatio: normalizeSpan(item.id, item.aspectRatio),
+          enabled: item.enabled !== false
+        }));
+        window.winzen.send('update_control_center_widgets', { items: payload });
+      });
+      card.appendChild(btnRemove);
+
+      const btnResize = document.createElement('button');
+      btnResize.className = 'cc-card-badge-resize';
+      btnResize.title = 'Resize widget';
+      btnResize.setAttribute('aria-label', 'Resize widget');
+      btnResize.innerHTML = SVG_RESIZE;
+      btnResize.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        const nextSpan = getNextSpan(w.id, span);
+        const payload = currentCcWidgets.map((item) => ({
+          id: item.id,
+          order: item.order,
+          aspectRatio: item.id === w.id ? nextSpan : normalizeSpan(item.id, item.aspectRatio),
+          enabled: item.enabled !== false
+        }));
+        window.winzen.send('update_control_center_widgets', { items: payload });
+      });
+      card.appendChild(btnResize);
 
       // Drag and drop reordering
       card.addEventListener('dragstart', (ev) => {
@@ -253,7 +331,7 @@ function initControlCenter() {
           const payload = reordered.map((item, idx) => ({
             id: item.id,
             order: (idx + 1) * 10,
-            aspectRatio: item.aspectRatio || '1:1',
+            aspectRatio: normalizeSpan(item.id, item.aspectRatio),
             enabled: item.enabled !== false
           }));
 
@@ -262,52 +340,15 @@ function initControlCenter() {
         draggedCardId = null;
       });
 
-      // Card Header
-      const header = document.createElement('div');
-      header.className = 'cc-card-header';
-      header.innerHTML = `
-        <span class="cc-card-label">${escapeHtml(w.name || 'Widget')}</span>
-        <div class="cc-card-actions">
-          <button class="cc-btn-resize" title="Toggle Aspect Ratio">${ratio === '1:2' ? '1:1 Square' : '1:2 Wide'}</button>
-          <button class="cc-btn-delete" title="Remove module">✕</button>
-        </div>
-      `;
-
-      const btnResize = header.querySelector('.cc-btn-resize');
-      btnResize.addEventListener('click', (ev) => {
-        ev.stopPropagation();
-        const nextRatio = ratio === '1:2' ? '1:1' : '1:2';
-        const payload = currentCcWidgets.map((item) => ({
-          id: item.id,
-          order: item.order,
-          aspectRatio: item.id === w.id ? nextRatio : (item.aspectRatio || '1:1'),
-          enabled: item.enabled !== false
-        }));
-        window.winzen.send('update_control_center_widgets', { items: payload });
-      });
-
-      const btnDel = header.querySelector('.cc-btn-delete');
-      btnDel.addEventListener('click', (ev) => {
-        ev.stopPropagation();
-        const filtered = currentCcWidgets.filter((item) => item.id !== w.id);
-        const payload = filtered.map((item, idx) => ({
-          id: item.id,
-          order: (idx + 1) * 10,
-          aspectRatio: item.aspectRatio || '1:1',
-          enabled: item.enabled !== false
-        }));
-        window.winzen.send('update_control_center_widgets', { items: payload });
-      });
-
-      card.appendChild(header);
-
       // Card Content with Shadow DOM
       const content = document.createElement('div');
       content.className = 'cc-card-content';
       content.dataset.inControlCenter = 'true';
-      content.dataset.aspectRatio = ratio;
+      content.dataset.aspectRatio = span;
+      content.dataset.span = span;
       content.setAttribute('data-in-control-center', 'true');
-      content.setAttribute('data-aspect-ratio', ratio);
+      content.setAttribute('data-aspect-ratio', span);
+      content.setAttribute('data-span', span);
 
       content.dataset.theme = currentTheme;
       content.setAttribute('data-theme', currentTheme);
@@ -353,12 +394,14 @@ function initControlCenter() {
           display: flex;
           flex-direction: column;
           align-items: stretch;
-          justify-content: flex-start;
+          justify-content: center;
           width: 100%;
           height: 100%;
           min-height: 0;
           font-family: var(--winzen-font);
           color: var(--winzen-text);
+          box-sizing: border-box;
+          padding: 8px 10px;
         }
 
         :host([data-theme="light"]), :host(.theme-light) {
@@ -378,54 +421,110 @@ function initControlCenter() {
           --winzen-accent-pressed: ${currentAccent};
           --winzen-purple: #7c3aed;
           --winzen-danger: #dc2626;
-          color: var(--winzen-text);
         }
-        ${w.cssContent || ''}
 
-        :host([data-animations="off"]) *,
-        :host([data-animations="off"]) *::before,
-        :host([data-animations="off"]) *::after {
-          animation: none !important;
-          transition: none !important;
+        /* Full width slider styling */
+        .slider-row {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          width: 100%;
+          padding: 0 4px;
         }
-        :host([data-animations="off"]) *:active {
-          transform: none !important;
+        .slider-row .slider-val {
+          font-size: 12px;
+          font-weight: 600;
+          min-width: 36px;
+          text-align: right;
+          font-variant-numeric: tabular-nums;
         }
+        .slider-row input[type="range"] {
+          flex: 1 1 auto;
+          height: 4px;
+          border-radius: 2px;
+          outline: none;
+          accent-color: var(--winzen-accent, #3684e3);
+          cursor: pointer;
+        }
+
+        /* Clock styling */
+        .clock-pill {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 100%;
+          text-align: center;
+          background: transparent;
+          border: none;
+        }
+        .clock-pill .time {
+          font-size: 22px;
+          font-weight: 600;
+          letter-spacing: -0.3px;
+        }
+        .clock-pill .date {
+          font-size: 11px;
+          color: var(--winzen-text-secondary);
+          margin-top: 2px;
+        }
+
+        /* Telemetry styling */
+        .telemetry-card {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          width: 100%;
+          justify-content: center;
+        }
+
+        /* Battery styling */
+        .battery-widget {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          width: 100%;
+          gap: 12px;
+        }
+
+        ${w.cssContent || ''}
       `;
       shadow.appendChild(styleEl);
 
-      const wrapper = document.createElement('div');
-      wrapper.className = `widget-root-container in-control-center cc-aspect-${ratio.replace(':', '-')} theme-${currentTheme}`;
-      wrapper.dataset.inControlCenter = 'true';
-      wrapper.dataset.aspectRatio = ratio;
-      wrapper.dataset.theme = currentTheme;
-      wrapper.setAttribute('data-in-control-center', 'true');
-      wrapper.setAttribute('data-theme', currentTheme);
-      wrapper.setAttribute('data-aspect-ratio', ratio);
-      wrapper.style.cssText = 'width:100%; height:100%; flex:1; display:flex; flex-direction:column; justify-content:flex-start; align-items:stretch; min-height:0;';
-      wrapper.innerHTML = w.htmlContent || '';
-      shadow.appendChild(wrapper);
+      const htmlWrapper = document.createElement('div');
+      htmlWrapper.style.width = '100%';
+      htmlWrapper.style.height = '100%';
+      htmlWrapper.style.display = 'flex';
+      htmlWrapper.style.alignItems = 'center';
+      htmlWrapper.style.justifyContent = 'center';
+      htmlWrapper.innerHTML = w.htmlContent || '';
+      shadow.appendChild(htmlWrapper);
 
       card.appendChild(content);
       ccGrid.appendChild(card);
 
+      // Execute widget script
       if (w.jsContent) {
         try {
-          shadow.createElement = (...args) => window.document.createElement(...args);
           const configCopy = {
-            ...w,
-            displayMode: 'widget',
+            id: w.id,
+            name: w.name,
+            aspectRatio: span,
+            colSpan: cols,
+            rowSpan: rows,
             inControlCenter: true,
-            aspectRatio: ratio,
+            theme: currentTheme,
+            accentColor: currentAccent,
             batteryIconStyle: w.batteryIconStyle,
             batteryPercentMode: w.batteryPercentMode,
             startIcon: w.startIcon,
             startIconColorMode: w.startIconColorMode,
-            showSeconds: w.showSeconds !== false,
-            showDate: w.showDate !== false,
-            showCpu: w.showCpu !== false,
-            showRam: w.showRam !== false,
-            showGpu: w.showGpu !== false
+            showSeconds: w.showSeconds,
+            showDate: w.showDate,
+            showCpu: w.showCpu,
+            showRam: w.showRam,
+            showGpu: w.showGpu
           };
           const fn = new Function('root', 'document', 'winzen', 'widgetConfig', w.jsContent);
           fn(shadow, shadow, window.winzen, configCopy);
@@ -435,7 +534,24 @@ function initControlCenter() {
       }
     });
 
-    if (window.winzen.metrics) {
+    // In Edit Mode, render empty slot placeholders (as in Picture 2)
+    if (isEditing) {
+      // Complete current row and add at least 4 more empty slots
+      const remainder = totalColsOccupied % 4;
+      const neededToFillRow = remainder === 0 ? 0 : (4 - remainder);
+      const totalPlaceholders = Math.max(4, neededToFillRow + 4);
+
+      for (let i = 0; i < totalPlaceholders; i++) {
+        const slot = document.createElement('div');
+        slot.className = 'cc-slot-placeholder';
+        slot.title = 'Add Widget';
+        slot.innerHTML = '<span class="cc-slot-plus">+</span>';
+        slot.addEventListener('click', () => openAddDrawer());
+        ccGrid.appendChild(slot);
+      }
+    }
+
+    if (window.winzen && window.winzen.metrics) {
       window.dispatchEvent(new CustomEvent('winzen:metrics', { detail: window.winzen.metrics }));
     }
     scheduleResize();
@@ -444,9 +560,6 @@ function initControlCenter() {
   window.addEventListener('winzen:metrics', (e) => {
     const m = e.detail;
     if (!m) return;
-    if (m.timeFormatted && ccTime) {
-      ccTime.textContent = m.timeFormatted;
-    }
   });
 
   function escapeHtml(s) {
@@ -461,8 +574,4 @@ function initControlCenter() {
   }
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initControlCenter);
-} else {
-  initControlCenter();
-}
+document.addEventListener('DOMContentLoaded', initControlCenter);

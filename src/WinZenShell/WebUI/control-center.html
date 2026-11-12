@@ -9,39 +9,25 @@
 </head>
 <body>
   <div class="cc-container" id="ccContainer">
-    <!-- Header -->
-    <header class="cc-header">
-      <div class="cc-header-left">
-        <span class="cc-title">Control Center</span>
-        <span class="cc-time" id="ccTime">--:--</span>
-      </div>
-      <div class="cc-header-actions">
-        <button class="cc-action-btn cc-edit-btn" id="btnCcEdit" title="Edit Control Center Layout" aria-label="Edit">
-          <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" id="editIconPencil">
-            <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm17.71-10.21a1.003 1.003 0 0 0 0-1.42l-2.34-2.34a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.82z"/>
-          </svg>
-          <span class="edit-text" id="btnCcEditText">Edit</span>
-        </button>
-        <button class="cc-action-btn" id="btnCcClose" title="Close" aria-label="Close">
-          <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor">
-            <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854Z"/>
-          </svg>
-        </button>
-      </div>
-    </header>
-
-    <!-- Grid Layout for Widgets -->
+    <!-- Grid Layout for 4-Column Modular Widgets -->
     <main class="cc-grid" id="ccGrid">
-      <!-- Widgets mounted here dynamically based on aspect ratio (1:2 wide or 1:1 square) -->
+      <!-- Widgets mounted here dynamically (1x1, 2x1, 2x2, 3x1, 4x1) -->
     </main>
 
-    <!-- Edit Mode Bar -->
-    <footer class="cc-edit-footer" id="ccEditFooter" style="display: none;">
-      <select class="cc-add-select" id="ccAddSelect">
-        <option value="">+ Add widget to Control Center...</option>
-      </select>
-      <button class="cc-add-btn" id="btnCcAdd">+ Add</button>
+    <!-- Bottom Pill Action Bar -->
+    <footer class="cc-bottom-bar" id="ccBottomBar">
+      <button class="cc-pill-btn" id="btnEditControls" type="button">Edit Controls</button>
+      <button class="cc-pill-btn cc-done-btn" id="btnDoneControls" type="button" style="display: none;">Done</button>
     </footer>
+
+    <!-- Add Widget Drawer (shows available widgets not yet in Control Center) -->
+    <div class="cc-add-drawer" id="ccAddDrawer" style="display: none;">
+      <div class="cc-drawer-header">
+        <span class="cc-drawer-title">Add Widget</span>
+        <button class="cc-drawer-close" id="btnCcCloseDrawer" type="button" aria-label="Close">✕</button>
+      </div>
+      <div class="cc-drawer-list" id="ccDrawerList"></div>
+    </div>
   </div>
 
   <script src="bridge.js"></script>

@@ -261,6 +261,11 @@ public partial class TaskbarWebWindow : Window
                         var ccFlyout = EnsureControlCenterFlyout();
                         ccFlyout.ShowAt(mon.Right - 380, 34, Top, Height, _shellState.Settings.DockEdge);
                         await System.Threading.Tasks.Task.Delay(600);
+                        if (parts.Length > 2 && string.Equals(parts[2], "edit", StringComparison.OrdinalIgnoreCase))
+                        {
+                            await _controlCenterFlyout.CcWebView.CoreWebView2.ExecuteScriptAsync("document.getElementById('btnEditControls')?.click();");
+                            await System.Threading.Tasks.Task.Delay(500);
+                        }
                         if (_controlCenterFlyout.CcWebView?.CoreWebView2 != null)
                         {
                             using var fs = new FileStream(outPath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite);
@@ -336,7 +341,7 @@ public partial class TaskbarWebWindow : Window
                             {
                                 if (_controlCenterFlyout?.CcWebView?.CoreWebView2 != null)
                                 {
-                                    await _controlCenterFlyout.CcWebView.CoreWebView2.ExecuteScriptAsync("document.getElementById('btnEdit')?.click();");
+                                    await _controlCenterFlyout.CcWebView.CoreWebView2.ExecuteScriptAsync("document.getElementById('btnEditControls')?.click();");
                                 }
                             }));
                         }

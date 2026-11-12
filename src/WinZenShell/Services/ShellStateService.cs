@@ -17,7 +17,13 @@ public class ControlCenterItemConfig
     public int Order { get; set; } = 10;
 
     [JsonPropertyName("aspectRatio")]
-    public string AspectRatio { get; set; } = "1:1"; // "1:1" or "1:2"
+    public string AspectRatio { get; set; } = "2x1"; // "1x1", "2x1", "2x2", "3x1", "4x1"
+
+    [JsonPropertyName("colSpan")]
+    public int ColSpan { get; set; } = 2;
+
+    [JsonPropertyName("rowSpan")]
+    public int RowSpan { get; set; } = 1;
 
     [JsonPropertyName("enabled")]
     public bool Enabled { get; set; } = true;
@@ -35,7 +41,13 @@ public class ControlCenterItemPayload
     public int Order { get; set; } = 10;
 
     [JsonPropertyName("aspectRatio")]
-    public string AspectRatio { get; set; } = "1:1";
+    public string AspectRatio { get; set; } = "2x1";
+
+    [JsonPropertyName("colSpan")]
+    public int ColSpan { get; set; } = 2;
+
+    [JsonPropertyName("rowSpan")]
+    public int RowSpan { get; set; } = 1;
 
     [JsonPropertyName("enabled")]
     public bool Enabled { get; set; } = true;
@@ -631,6 +643,18 @@ public class ShellStateService
     public void UpdateControlCenterWidgets(List<ControlCenterItemConfig> items)
     {
         if (items == null) return;
+        foreach (var it in items)
+        {
+            if (it.AspectRatio != null && it.AspectRatio.Contains('x'))
+            {
+                var parts = it.AspectRatio.Split('x');
+                if (parts.Length == 2 && int.TryParse(parts[0], out int c) && int.TryParse(parts[1], out int r))
+                {
+                    it.ColSpan = c;
+                    it.RowSpan = r;
+                }
+            }
+        }
         _settings.ControlCenterWidgets = items;
         SaveSettings();
         _statusBanner = "Control Center saved";
@@ -647,12 +671,49 @@ public class ShellStateService
             var match = allWidgets.Find(w => w.Id == cc.Id || w.FolderName == cc.Id || $"community.{w.FolderName}" == cc.Id);
             if (match != null)
             {
+                int colSpan = cc.ColSpan;
+                int rowSpan = cc.RowSpan;
+                string ratio = cc.AspectRatio ?? "";
+                if (colSpan <= 0 || rowSpan <= 0)
+                {
+                    if (ratio.Contains('x'))
+                    {
+                        var parts = ratio.Split('x');
+                        if (parts.Length == 2 && int.TryParse(parts[0], out int c) && int.TryParse(parts[1], out int r))
+                        {
+                            colSpan = c;
+                            rowSpan = r;
+                        }
+                    }
+                }
+                if (colSpan <= 0 || rowSpan <= 0)
+                {
+                    if (ratio == "1:2")
+                    {
+                        colSpan = (match.Id.Contains("volume") || match.Id.Contains("brightness") || match.Id.Contains("battery")) ? 4 : 2;
+                        rowSpan = 1;
+                    }
+                    else if (ratio == "1:1")
+                    {
+                        colSpan = 2;
+                        rowSpan = 2;
+                    }
+                    else
+                    {
+                        colSpan = 2;
+                        rowSpan = 1;
+                    }
+                }
+                string finalRatio = $"{colSpan}x{rowSpan}";
+
                 ccPayload.Add(new ControlCenterItemPayload
                 {
                     Id = match.Id,
                     Name = match.Name,
                     Order = cc.Order,
-                    AspectRatio = !string.IsNullOrWhiteSpace(cc.AspectRatio) ? cc.AspectRatio : "1:1",
+                    AspectRatio = finalRatio,
+                    ColSpan = colSpan,
+                    RowSpan = rowSpan,
                     Enabled = cc.Enabled,
                     HtmlContent = match.HtmlContent,
                     CssContent = match.CssContent,
