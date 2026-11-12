@@ -21,7 +21,7 @@ public partial class ControlCenterFlyoutWindow : Window
     private int _lastClipWidth = -1;
     private int _lastClipHeight = -1;
     private double _lastClipDpi = -1;
-    private double _desiredHeight = 420;
+    private double _contentHeight = 520;
     private double _lastTaskbarTop;
     private double _lastTaskbarHeight = 50;
     private string _lastDockEdge = "Bottom";
@@ -261,9 +261,9 @@ public partial class ControlCenterFlyoutWindow : Window
                     break;
 
                 case "resize_control_center":
-                    if (root.TryGetProperty("height", out var hProp) && hProp.TryGetDouble(out double reqH) && reqH > 100)
+                    if (root.TryGetProperty("height", out var hProp) && hProp.TryGetDouble(out double reqH) && reqH > 50)
                     {
-                        _desiredHeight = reqH;
+                        _contentHeight = reqH;
                         Dispatcher.Invoke(ApplyDynamicBounds);
                     }
                     break;
@@ -281,19 +281,54 @@ public partial class ControlCenterFlyoutWindow : Window
         }
     }
 
-    private double ClampTargetHeight(double rawHeight)
+    private double GetAvailableMonitorHeight()
     {
         var mon = WorkAreaAppBarService.GetPrimaryMonitorInfo().rcMonitor;
-        double dpiScale = System.Windows.Media.VisualTreeHelper.GetDpi(this).DpiScaleY;
-        if (dpiScale <= 0) dpiScale = 1.0;
-        double monitorDipHeight = mon.Height / dpiScale;
-        double maxH = Math.Max(260, Math.Min(560, monitorDipHeight - Math.Max(_lastTaskbarHeight, 50) - 36));
-        return Math.Clamp(Math.Round(rawHeight), 170, maxH);
+        double dpiY = System.Windows.Media.VisualTreeHelper.GetDpi(this).DpiScaleY;
+        if (dpiY <= 0) dpiY = 1.0;
+
+        double monitorTop = mon.Top / dpiY;
+        double monitorBottom = mon.Bottom / dpiY;
+        double monitorHeight = mon.Height / dpiY;
+
+        const double floatingGap = 10.0;
+        double taskbarH = Math.Max(_lastTaskbarHeight, 40.0);
+        double tbTop = _lastTaskbarTop;
+        if (tbTop <= 0)
+        {
+            tbTop = string.Equals(_lastDockEdge, "Top", StringComparison.OrdinalIgnoreCase)
+                ? monitorTop
+                : monitorBottom - taskbarH;
+        }
+
+        double availableH;
+        if (string.Equals(_lastDockEdge, "Top", StringComparison.OrdinalIgnoreCase))
+        {
+            double top = tbTop + taskbarH + floatingGap;
+            double bottom = monitorBottom - floatingGap;
+            availableH = bottom - top;
+        }
+        else
+        {
+            double top = monitorTop + floatingGap;
+            double bottom = tbTop - floatingGap;
+            availableH = bottom - top;
+        }
+
+        return Math.Max(240.0, Math.Min(monitorHeight - (floatingGap * 2), availableH));
+    }
+
+    private double ClampToAvailableHeight(double requestedContentHeight)
+    {
+        double maxAvailable = GetAvailableMonitorHeight();
+        if (requestedContentHeight <= 0) requestedContentHeight = 360;
+        // Clip to requested content height, but never exceed available monitor height
+        return Math.Clamp(Math.Round(requestedContentHeight), 160.0, maxAvailable);
     }
 
     private void ApplyDynamicBounds()
     {
-        double targetHeight = ClampTargetHeight(_desiredHeight);
+        double targetHeight = ClampToAvailableHeight(_contentHeight);
         if (Math.Abs(Height - targetHeight) < 2.0) return;
         const double floatingGap = 10.0;
 
@@ -311,26 +346,23 @@ public partial class ControlCenterFlyoutWindow : Window
         _lastTaskbarHeight = taskbarHeight;
         _lastDockEdge = dockEdge;
 
+        double dpiX = System.Windows.Media.VisualTreeHelper.GetDpi(this).DpiScaleX;
+        double dpiY = System.Windows.Media.VisualTreeHelper.GetDpi(this).DpiScaleY;
+        if (dpiX <= 0) dpiX = 1.0;
+        if (dpiY <= 0) dpiY = 1.0;
+
+        var mon = WorkAreaAppBarService.GetPrimaryMonitorInfo().rcMonitor;
+        double monitorLeft = mon.Left / dpiX;
+        double monitorRight = mon.Right / dpiX;
+        double monitorTop = mon.Top / dpiY;
+        double monitorBottom = mon.Bottom / dpiY;
+
         double flyoutWidth = Width;
-        double flyoutHeight = ClampTargetHeight(_desiredHeight);
+        double flyoutHeight = ClampToAvailableHeight(_contentHeight);
         Height = flyoutHeight;
 
         double left = anchorScreenX + (anchorWidth / 2.0) - (flyoutWidth / 2.0);
         const double floatingGap = 10.0;
-        double top;
-
-        if (string.Equals(dockEdge, "Top", StringComparison.OrdinalIgnoreCase))
-        {
-            top = taskbarTop + taskbarHeight + floatingGap;
-        }
-        else
-        {
-            top = taskbarTop - flyoutHeight - floatingGap;
-        }
-
-        var mon = WorkAreaAppBarService.GetPrimaryMonitorInfo().rcMonitor;
-        double monitorLeft = mon.Left;
-        double monitorRight = mon.Right;
         const double sideMargin = 12.0;
 
         if (left + flyoutWidth > monitorRight - sideMargin)
@@ -339,6 +371,18 @@ public partial class ControlCenterFlyoutWindow : Window
             left = monitorLeft + sideMargin;
 
         Left = left;
+
+        double top;
+        if (string.Equals(dockEdge, "Top", StringComparison.OrdinalIgnoreCase))
+        {
+            top = taskbarTop + taskbarHeight + floatingGap;
+        }
+        else
+        {
+            top = taskbarTop - flyoutHeight - floatingGap;
+            if (top < monitorTop + floatingGap)
+                top = monitorTop + floatingGap;
+        }
 
         ApplyCornerClipping();
         ApplyTheme(_shellState.Settings.Theme);

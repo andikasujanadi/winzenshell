@@ -24,7 +24,7 @@ function initControlCenter() {
     const measureAndSend = () => {
       if (!ccGrid || !window.winzen || typeof window.winzen.send !== 'function') return;
       const headerH = ccHeader ? ccHeader.offsetHeight : 50;
-      const footerH = isEditing && ccEditFooter ? ccEditFooter.offsetHeight : 0;
+      const footerH = isEditing && ccEditFooter && ccEditFooter.style.display !== 'none' ? ccEditFooter.offsetHeight : 0;
 
       let maxBottom = 0;
       const children = ccGrid.children;
@@ -36,11 +36,12 @@ function initControlCenter() {
           const bottom = ch.offsetTop + ch.offsetHeight;
           if (bottom > maxBottom) maxBottom = bottom;
         }
-        maxBottom += 14;
       }
 
-      const total = Math.ceil(headerH + maxBottom + footerH + 4);
-      if (total > 100 && Math.abs(total - lastSentHeight) >= 2) {
+      const gridContentH = maxBottom + 14;
+      const total = Math.ceil(headerH + gridContentH + footerH + 4);
+
+      if (total > 80 && Math.abs(total - lastSentHeight) >= 2) {
         lastSentHeight = total;
         window.winzen.send('resize_control_center', { height: total });
       }
@@ -48,7 +49,8 @@ function initControlCenter() {
 
     requestAnimationFrame(() => {
       measureAndSend();
-      setTimeout(measureAndSend, 60);
+      setTimeout(measureAndSend, 50);
+      setTimeout(measureAndSend, 150);
     });
   }
 
