@@ -42,3 +42,26 @@
 - **Controls (`ToggleSwitch`)**: `40px × 20px` pill track (`#60CDFF` when checked with `#000000` thumb; `#232323` with `#8A8A8A` border when unchecked)
 - **Taskbar Height**: `48px` total (`38px` interactive item height, `4px` border radius, `16px × 3px` `#60CDFF` bottom active indicator pill)
 - **Widget Dynamic Sizing**: Widgets default to `autoWidth: true` (`width: max-content`), expanding and contracting automatically to fit their child elements.
+
+## 5. Control Center Grid & Modular Widget System
+- **Grid Architecture**: 4-column squircle grid (`grid-template-columns: repeat(4, 1fr)`), 76px row unit height, 10px gap, 16px padding.
+- **Card Corner Radius**: `16px` squircle curves with subtle inner border (`1px solid rgba(255, 255, 255, 0.08)` / `#e5e7eb` in Light theme).
+- **Supported Widget Aspect Ratios / Spans**:
+  - `1x1`: Squircle square (76px × 76px nominal), compact icon/telemetry tile.
+  - `2x1`: Half-width horizontal banner (2 columns × 1 row).
+  - `2x2`: Double square tile (2 columns × 2 rows).
+  - `1x2`: Vertical tall card (1 column × 2 rows), optimized for vertical sliders.
+  - `3x1`: Wide banner (3 columns × 1 row).
+  - `4x1`: Full-width banner (4 columns × 1 row).
+- **Empty Placeholders**: Soft gray squircle placeholders (`rgba(255, 255, 255, 0.04)` in Dark mode / `rgba(0, 0, 0, 0.06)` in Light mode) preserving spatial layout and user placement.
+- **Edit Mode Affordances**:
+  - Delete badge: `20px` circular red badge (`#ef4444`) top-right with `⊖` glyph.
+  - Resize handle: `18px` circular glass badge (`rgba(255, 255, 255, 0.16)` / `rgba(0, 0, 0, 0.16)`) bottom-right with `⤢` diagonal resize glyph.
+  - Action Bar: Bottom centered pill action buttons (**"Edit Controls"**, **"Done"**, and **"+ Add Widget"**).
+- **Widget-Specific Layout Rules**:
+  - `zen-battery`:
+    - `1x1`: Vertical center stack with battery icon (`scale(1.25)`), bold 15px percentage, and centered 46px × 4px mini progress bar.
+    - `2x1`, `3x1`, `4x1`: 2-row CSS grid with icon and percentage top-left, status text top-right, and 100% full-width progress bar bottom row.
+  - `zen-clock-pill`: Bold time header with localized date subtitle across all spans.
+  - `zen-system-monitor`: Multi-row or multi-column layout showing live CPU, RAM, and GPU meters without overflow.
+  - `zen-volume` & `zen-brightness`: Vertical slider layout in `1x2` with high values at the top and anchored bottom icon.

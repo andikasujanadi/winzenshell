@@ -237,16 +237,98 @@
 }
 
 /* CONTROL CENTER 2x1 Layout */
+/* CONTROL CENTER Horizontal Banners (2x1, 3x1, 4x1) */
+:host([data-span="2x1"]) .cc-battery-body,
+.in-control-center.cc-span-2x1 .cc-battery-body,
+.in-control-center[data-span="2x1"] .cc-battery-body,
+:host([data-span="3x1"]) .cc-battery-body,
+.in-control-center.cc-span-3x1 .cc-battery-body,
+.in-control-center[data-span="3x1"] .cc-battery-body,
+:host([data-span="4x1"]) .cc-battery-body,
+.in-control-center.cc-span-4x1 .cc-battery-body,
+.in-control-center[data-span="4x1"] .cc-battery-body,
+:host([data-aspect-ratio="4x1"]) .cc-battery-body,
+.in-control-center.cc-aspect-1-2 .cc-battery-body,
+.in-control-center[data-aspect-ratio="1:2"] .cc-battery-body {
+  display: grid !important;
+  grid-template-columns: auto 1fr !important;
+  grid-template-rows: auto auto !important;
+  row-gap: 8px !important;
+  column-gap: 12px !important;
+  width: 100% !important;
+  height: 100% !important;
+  align-content: center !important;
+  padding: 6px 12px !important;
+  box-sizing: border-box !important;
+}
+
 :host([data-span="2x1"]) .cc-batt-top,
-.in-control-center.cc-span-2x1 .cc-batt-top {
+.in-control-center.cc-span-2x1 .cc-batt-top,
+.in-control-center[data-span="2x1"] .cc-batt-top,
+:host([data-span="3x1"]) .cc-batt-top,
+.in-control-center.cc-span-3x1 .cc-batt-top,
+.in-control-center[data-span="3x1"] .cc-batt-top,
+:host([data-span="4x1"]) .cc-batt-top,
+.in-control-center.cc-span-4x1 .cc-batt-top,
+.in-control-center[data-span="4x1"] .cc-batt-top {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
   display: flex !important;
   align-items: center !important;
-  justify-content: space-between !important;
+  gap: 8px !important;
   padding-right: 0 !important;
 }
+
 :host([data-span="2x1"]) .cc-batt-pct,
-.in-control-center.cc-span-2x1 .cc-batt-pct {
+.in-control-center.cc-span-2x1 .cc-batt-pct,
+:host([data-span="3x1"]) .cc-batt-pct,
+.in-control-center.cc-span-3x1 .cc-batt-pct,
+:host([data-span="4x1"]) .cc-batt-pct,
+.in-control-center.cc-span-4x1 .cc-batt-pct {
   font-size: 18px !important;
+  font-weight: 700 !important;
+}
+
+:host([data-span="2x1"]) .cc-batt-status,
+.in-control-center.cc-span-2x1 .cc-batt-status,
+:host([data-span="3x1"]) .cc-batt-status,
+.in-control-center.cc-span-3x1 .cc-batt-status,
+:host([data-span="4x1"]) .cc-batt-status,
+.in-control-center.cc-span-4x1 .cc-batt-status {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  text-align: right !important;
+  align-self: center !important;
+  font-size: 11.5px !important;
+  font-weight: 500 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  display: block !important;
+}
+
+:host([data-span="2x1"]) .cc-batt-track,
+.in-control-center.cc-span-2x1 .cc-batt-track,
+:host([data-span="3x1"]) .cc-batt-track,
+.in-control-center.cc-span-3x1 .cc-batt-track,
+:host([data-span="4x1"]) .cc-batt-track,
+.in-control-center.cc-span-4x1 .cc-batt-track {
+  grid-column: 1 / -1 !important;
+  grid-row: 2 !important;
+  width: 100% !important;
+  height: 5px !important;
+  border-radius: 2.5px !important;
+  flex: none !important;
+}
+
+:host([data-span="2x1"]) .cc-batt-fill,
+.in-control-center.cc-span-2x1 .cc-batt-fill,
+:host([data-span="3x1"]) .cc-batt-fill,
+.in-control-center.cc-span-3x1 .cc-batt-fill,
+:host([data-span="4x1"]) .cc-batt-fill,
+.in-control-center.cc-span-4x1 .cc-batt-fill {
+  height: 5px !important;
+  border-radius: 2.5px !important;
 }
 
 /* CONTROL CENTER 2x2 Layout */
@@ -288,32 +370,6 @@
   max-width: 120px !important;
   height: 6px !important;
   margin: 0 auto !important;
-}
-
-:host([data-span="4x1"]) .cc-battery-body,
-:host([data-span="3x1"]) .cc-battery-body,
-:host([data-aspect-ratio="4x1"]) .cc-battery-body,
-.in-control-center.cc-aspect-1-2 .cc-battery-body,
-.in-control-center[data-aspect-ratio="1:2"] .cc-battery-body {
-  flex-direction: row;
-  align-items: center;
-  gap: 12px;
-}
-
-:host([data-span="4x1"]) .cc-batt-pct,
-:host([data-span="3x1"]) .cc-batt-pct,
-:host([data-aspect-ratio="4x1"]) .cc-batt-pct,
-.in-control-center.cc-aspect-1-2 .cc-batt-pct,
-.in-control-center[data-aspect-ratio="1:2"] .cc-batt-pct {
-  font-size: 15px;
-}
-
-:host([data-span="4x1"]) .cc-batt-track,
-:host([data-span="3x1"]) .cc-batt-track,
-:host([data-aspect-ratio="4x1"]) .cc-batt-track,
-.in-control-center.cc-aspect-1-2 .cc-batt-track,
-.in-control-center[data-aspect-ratio="1:2"] .cc-batt-track {
-  flex: 1;
 }
 
 /* CONTROL CENTER 1x2 Vertical Design */

@@ -1,6 +1,6 @@
 # WinZenShell — Antigravity Session Handoff & Architecture Guide
 
-> **Current State**: `v0.2.0`  
+> **Current State**: `v0.2.1`  
 > **Platform**: Windows 11 (64-bit)  
 > **Framework**: .NET 10 (WPF) + Microsoft.Web.WebView2 + Native Win32 APIs  
 > **Frontend**: Vanilla Web Components (Custom Elements v1, Shadow DOM, CSS Custom Properties)
@@ -131,6 +131,22 @@ This document serves as the complete handoff for another Antigravity AI pair pro
   - Settings studio: `Widgets & Layout` region arrangement containers, preview chips, and `Zen Control Center` preview tiles.
   - Dynamic icon tinting (`currentColor`) for start button launcher icons (Apple, ChromeOS, Windows 10).
 
+### 3.7 Control Center Modular Grid Studio & Telemetry (v0.2.1)
+- **4-Column Squircle Grid**:
+  - Implemented in `src/WinZenShell/WebUI/control-center.js` and `control-center.css`.
+  - Supports `1x1`, `2x1`, `2x2`, `1x2`, `3x1`, and `4x1` widget aspect ratios / spans.
+  - Interactive edit mode with `⊖` remove badge, `⤢` resize drag handle, and empty placeholder slots allowing user-defined layout gaps.
+  - Automatic edit-mode exit on flyout dismissal and synchronization with Settings Control Center editor.
+- **Hardware Telemetry & GPU Performance Counters**:
+  - P/Invoke resolution of `PdhAddEnglishCounterW` in `SystemMetricsService.cs` guarantees localized-safe GPU engine utilization reading.
+  - Real-time `DispatcherTimer` (1s interval) in `ControlCenterFlyoutWindow.xaml.cs` streams live CPU, RAM, and GPU metrics continuously while the flyout is visible.
+- **Battery Widget Redesign**:
+  - `1x1`: Centered vertical stack with battery icon (`scale(1.25)`), bold 15px percentage, and mini centered progress bar (hiding truncated status text).
+  - `2x1`, `3x1`, `4x1`: 2-row CSS grid layout with icon and percentage top-left, status text top-right, and 100% full-width progress bar bottom row.
+- **Vertical Ergonomics & Date Display**:
+  - `zen-volume` and `zen-brightness` vertical `1x2` slider orientation with high values at top and icon anchored at bottom.
+  - `zen-clock-pill` date enforced across all spans in Control Center.
+
 ---
 
 ## 4. Repository Structure
@@ -151,7 +167,7 @@ winzenshell/
 │
 ├── src/WinZenShell/                        # .NET 10 WPF Application
 │   ├── App.xaml / App.xaml.cs              # Entry point, single-instance mutex, failsafe hotkeys
-│   ├── WinZenShell.csproj                  # Project config (net10.0-windows, v0.1.0-alpha)
+│   ├── WinZenShell.csproj                  # Project config (net10.0-windows, v0.2.1)
 │   ├── Native/
 │   │   └── Win32Api.cs                     # P/Invoke definitions (User32, Shell32, DwmApi, Ole32)
 │   ├── Services/

@@ -1188,17 +1188,84 @@ function initControlCenter() {
           border-radius: 2px !important;
         }
 
-        /* Battery 2x1 Layout */
+        /* Battery Horizontal Banners (2x1, 3x1, 4x1) */
+        :host([data-span="2x1"]) .cc-battery-body,
+        [data-span="2x1"] .cc-battery-body,
+        :host([data-span="3x1"]) .cc-battery-body,
+        [data-span="3x1"] .cc-battery-body,
+        :host([data-span="4x1"]) .cc-battery-body,
+        [data-span="4x1"] .cc-battery-body {
+          display: grid !important;
+          grid-template-columns: auto 1fr !important;
+          grid-template-rows: auto auto !important;
+          row-gap: 8px !important;
+          column-gap: 12px !important;
+          width: 100% !important;
+          height: 100% !important;
+          align-content: center !important;
+          padding: 6px 12px !important;
+          box-sizing: border-box !important;
+        }
         :host([data-span="2x1"]) .cc-batt-top,
-        [data-span="2x1"] .cc-batt-top {
+        [data-span="2x1"] .cc-batt-top,
+        :host([data-span="3x1"]) .cc-batt-top,
+        [data-span="3x1"] .cc-batt-top,
+        :host([data-span="4x1"]) .cc-batt-top,
+        [data-span="4x1"] .cc-batt-top {
+          grid-column: 1 !important;
+          grid-row: 1 !important;
           display: flex !important;
           align-items: center !important;
-          justify-content: space-between !important;
+          gap: 8px !important;
           padding-right: 0 !important;
         }
         :host([data-span="2x1"]) .cc-batt-pct,
-        [data-span="2x1"] .cc-batt-pct {
+        [data-span="2x1"] .cc-batt-pct,
+        :host([data-span="3x1"]) .cc-batt-pct,
+        [data-span="3x1"] .cc-batt-pct,
+        :host([data-span="4x1"]) .cc-batt-pct,
+        [data-span="4x1"] .cc-batt-pct {
           font-size: 18px !important;
+          font-weight: 700 !important;
+        }
+        :host([data-span="2x1"]) .cc-batt-status,
+        [data-span="2x1"] .cc-batt-status,
+        :host([data-span="3x1"]) .cc-batt-status,
+        [data-span="3x1"] .cc-batt-status,
+        :host([data-span="4x1"]) .cc-batt-status,
+        [data-span="4x1"] .cc-batt-status {
+          grid-column: 2 !important;
+          grid-row: 1 !important;
+          text-align: right !important;
+          align-self: center !important;
+          font-size: 11.5px !important;
+          font-weight: 500 !important;
+          white-space: nowrap !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+          display: block !important;
+        }
+        :host([data-span="2x1"]) .cc-batt-track,
+        [data-span="2x1"] .cc-batt-track,
+        :host([data-span="3x1"]) .cc-batt-track,
+        [data-span="3x1"] .cc-batt-track,
+        :host([data-span="4x1"]) .cc-batt-track,
+        [data-span="4x1"] .cc-batt-track {
+          grid-column: 1 / -1 !important;
+          grid-row: 2 !important;
+          width: 100% !important;
+          height: 5px !important;
+          border-radius: 2.5px !important;
+          flex: none !important;
+        }
+        :host([data-span="2x1"]) .cc-batt-fill,
+        [data-span="2x1"] .cc-batt-fill,
+        :host([data-span="3x1"]) .cc-batt-fill,
+        [data-span="3x1"] .cc-batt-fill,
+        :host([data-span="4x1"]) .cc-batt-fill,
+        [data-span="4x1"] .cc-batt-fill {
+          height: 5px !important;
+          border-radius: 2.5px !important;
         }
 
         /* Battery 2x2 Layout */

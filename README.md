@@ -5,7 +5,7 @@
 [![Platform: Windows 11](https://img.shields.io/badge/Platform-Windows%2011%20(64--bit)-0078D4?logo=windows11&logoColor=white)](https://microsoft.com/windows)
 [![Runtime: .NET 10](https://img.shields.io/badge/Runtime-.NET%2010%20(WPF)-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 [![Frontend: WebView2](https://img.shields.io/badge/Frontend-WebView2%20%7C%20Web%20Components-008080?logo=microsoftedge&logoColor=white)](https://developer.microsoft.com/microsoft-edge/webview2/)
-[![Release: v0.2.0](https://img.shields.io/badge/Release-v0.2.0-0078D4)](README.md#changelog)
+[![Release: v0.2.1](https://img.shields.io/badge/Release-v0.2.1-0078D4)](README.md#changelog)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 **WinZenShell** is a modular, high-performance Windows 11 custom taskbar and community widget studio.  
@@ -16,8 +16,8 @@ It combines a **100% Web Frontend** (HTML5, Modern CSS, Web Components, Shadow D
 ---
 
 > [!IMPORTANT]
-> **Release Notice (`v0.2.0`)**:  
-> WinZenShell v0.2.0 delivers an interactive Control Center studio, redesigned Fluent 2 Settings UI, GPU telemetry monitoring, one-click shell restart, and enhanced layout customization.
+> **Release Notice (`v0.2.1`)**:  
+> WinZenShell v0.2.1 introduces a modular 4-column Control Center grid studio with responsive widget layouts (`1x1`, `2x1`, `2x2`, `1x2`, `3x1`, `4x1`), real-time GPU telemetry, redesigned battery banners, slider ergonomic improvements, and synchronized layout editing.
 
 ---
 
@@ -180,6 +180,26 @@ window.winzen.shell.onMetricsUpdate((metrics) => {
 ---
 
 ## Changelog
+
+### v0.2.1 (2026-11-13)
+* **Modular Control Center Grid System & Custom Sizing**:
+  * Redesigned Control Center layout into a flexible 4-column squircle grid (`1x1`, `2x1`, `2x2`, `1x2`, `3x1`, `4x1`).
+  * Empty slot placeholders allowing custom positioning and spacing across the 4-column grid.
+  * Draggable resize handles on cards for fluid span adjustments on the fly.
+  * Exiting the Control Center flyout automatically exits edit mode so the flyout reopens in normal viewing mode.
+  * Control Center editor in the Settings app is fully synchronized with flyout layout configurations.
+* **Responsive Widget Designs**:
+  * **Clock & Date (`zen-clock-pill`)**: Enforces date visibility across all Control Center widget spans (`1x1`, `2x1`, `2x2`, `1x2`, `3x1`, `4x1`), preventing taskbar clock preferences from hiding the date.
+  * **Battery (`zen-battery`)**:
+    * **1x1 Compact**: Clean centered vertical stack featuring battery icon, bold percentage, and mini centered progress bar (hiding truncated status text).
+    * **2x1, 3x1 & 4x1 Horizontal Banners**: 2-row grid structure with battery icon and percentage on top-left, charging status on top-right, and a full-width progress bar spanning 100% across the bottom row.
+  * **System Telemetry (`zen-system-monitor`)**:
+    * Fixed PDH English counter entrypoint (`PdhAddEnglishCounterW`) for robust, localized-independent GPU counter resolution.
+    * Integrated dedicated 1-second background metrics timer in Control Center flyout to continuously stream live CPU, RAM, and GPU utilization without stutter.
+    * Responsive multi-column layout for `1x1`, `2x1`, `2x2`, `1x2`, `4x1` with no flex-overflow clipping.
+  * **Volume & Brightness (`zen-volume`, `zen-brightness`)**:
+    * Ergonomic vertical slider layout for `1x2` vertical slots with slider orientation flipped (high values at top, low values at bottom, icon anchored at bottom).
+    * Synchronized slider handle positions across both orientation states.
 
 ### v0.2.0 (2026-11-13)
 * **Modular 4-Column Control Center Grid & Sizing Studio**:
