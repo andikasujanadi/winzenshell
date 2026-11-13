@@ -547,6 +547,11 @@ function initControlCenter() {
           --winzen-radius: 10px;
           --winzen-radius-lg: 14px;
           --winzen-radius-pill: 9999px;
+          --slider-thumb-outer: ${isLightHost ? '#ffffff' : '#454545'};
+          --bright-thumb-outer: ${isLightHost ? '#ffffff' : '#454545'};
+          --vol-thumb-outer: ${isLightHost ? '#ffffff' : '#454545'};
+          --bright-track-bg: ${isLightHost ? 'rgba(0, 0, 0, 0.3)' : 'rgba(255, 255, 255, 0.42)'};
+          --vol-track-bg: ${isLightHost ? 'rgba(0, 0, 0, 0.3)' : 'rgba(255, 255, 255, 0.42)'};
           --winzen-font: 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, sans-serif;
 
           display: flex;
@@ -1044,7 +1049,7 @@ function initControlCenter() {
           border-radius: 50% !important;
           background: var(--winzen-accent, #3684e3) !important;
           background-clip: padding-box !important;
-          border: 4px solid var(--bright-thumb-outer, #fff) !important;
+          border: 4px solid var(--slider-thumb-outer, var(--bright-thumb-outer, var(--vol-thumb-outer, #454545))) !important;
           cursor: pointer !important;
           margin-top: -6px !important;
           box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4) !important;
