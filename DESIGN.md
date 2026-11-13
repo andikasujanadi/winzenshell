@@ -65,3 +65,8 @@
   - `zen-clock-pill`: Bold time header with localized date subtitle across all spans.
   - `zen-system-monitor`: Multi-row or multi-column layout showing live CPU, RAM, and GPU meters without overflow.
   - `zen-volume` & `zen-brightness`: Vertical slider layout in `1x2` with high values at the top and anchored bottom icon.
+  - `zen-bluetooth` & `zen-network`:
+    - `1x1`: Centered circular or rounded square icon wrap with state fill / accent indicator.
+    - `2x1`: Horizontal 2-column card with left icon wrap (34px × 34px) and right text column (bold 13px label and 11px muted sublabel).
+    - `1x2`: Vertical centered capsule with 44px circular icon badge, bold 12px label, and 10px truncated status sublabel.
+    - `3x1`, `4x1`, `2x2`: Expanded cards showing connected device details, signal/status badge, and quick action affordances.

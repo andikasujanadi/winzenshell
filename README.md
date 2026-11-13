@@ -74,9 +74,11 @@ It combines a **100% Web Frontend** (HTML5, Modern CSS, Web Components, Shadow D
 ```
 WinZenShell (Host)
   ├── WorkAreaAppBarService    -> SHAppBarMessage + SPI_SETWORKAREA
-  ├── SystemMetricsService     -> CPU, RAM, Battery & Window enumeration
+  ├── SystemMetricsService     -> CPU, RAM, Battery, GPU & Window enumeration
   ├── AudioService             -> CoreAudio IAudioEndpointVolume
   ├── BrightnessService        -> WmiMonitorBrightness / DDC-CI
+  ├── NetworkService           -> WLAN API Wi-Fi scanning & NetworkInformation
+  ├── BluetoothService         -> bthprops.cpl Bluetooth radio & device status
   ├── VirtualDesktopService    -> IVirtualDesktopManager
   ├── AppLauncherService       -> Start Menu indexer & icon extractor
   └── WidgetManagerService     -> Manifest discovery & hot-reload
@@ -200,6 +202,10 @@ window.winzen.shell.onMetricsUpdate((metrics) => {
   * **Volume & Brightness (`zen-volume`, `zen-brightness`)**:
     * Ergonomic vertical slider layout for `1x2` vertical slots with slider orientation flipped (high values at top, low values at bottom, icon anchored at bottom).
     * Synchronized slider handle positions across both orientation states.
+  * **Bluetooth (`zen-bluetooth`)**:
+    * Official Bluetooth widget powered by native `bthprops.cpl` Win32 APIs for instantaneous radio & paired/connected device detection.
+    * Interactive controls: click icon wrap to toggle radio state, click text or right-click to open Windows Bluetooth Settings (`ms-settings:bluetooth`).
+    * Full responsive layout support for `1x1`, `2x1`, `3x1`, `4x1`, `1x2`, and `2x2` in Control Center and Taskbar icon/widget modes.
 
 ### v0.2.0 (2026-11-13)
 * **Modular 4-Column Control Center Grid & Sizing Studio**:

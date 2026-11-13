@@ -37,6 +37,7 @@ public partial class TaskbarWebWindow : Window
     private BatteryFlyoutWindow? _batteryFlyout;
     private TrayOverflowFlyoutWindow? _trayOverflowFlyout;
     private readonly NetworkService _networkService;
+    private readonly BluetoothService _bluetoothService;
     private readonly TrayIconService _trayIconService;
     private readonly WallpaperBackdropService _wallpaperBackdrop = new();
     private FileSystemWatcher? _triggerWatcher;
@@ -65,10 +66,12 @@ public partial class TaskbarWebWindow : Window
         _audioService = new AudioService();
         _virtualDesktopService = new VirtualDesktopService();
         _networkService = new NetworkService();
+        _bluetoothService = new BluetoothService();
         _trayIconService = new TrayIconService();
         _metricsService.Audio = _audioService;
         _metricsService.VirtualDesktops = _virtualDesktopService;
         _metricsService.Network = _networkService;
+        _metricsService.Bluetooth = _bluetoothService;
         _metricsService.TrayIcons = _trayIconService;
         _appLauncherService = appLauncherService;
         _openSettingsCallback = openSettingsCallback;
@@ -77,6 +80,7 @@ public partial class TaskbarWebWindow : Window
         _shellState.TaskbarVisibilityRequested += OnTaskbarVisibilityRequested;
         _shellState.TaskbarBoundsUpdated += OnTaskbarBoundsUpdated;
         _networkService.NetworkChanged += (_, _) => Dispatcher.Invoke(BroadcastMetrics);
+        _bluetoothService.BluetoothChanged += (_, _) => Dispatcher.Invoke(BroadcastMetrics);
         _brightnessService.BrightnessChanged += val => Dispatcher.Invoke(() =>
         {
             if (_brightnessFlyout != null && _brightnessFlyout.IsVisible)
@@ -1298,6 +1302,14 @@ public partial class TaskbarWebWindow : Window
                     });
                     break;
 
+                case "toggle_bluetooth":
+                    _ = _bluetoothService.ToggleBluetoothAsync();
+                    break;
+
+                case "open_bluetooth_settings":
+                    BluetoothService.OpenWindowsBluetoothSettings();
+                    break;
+
                 case "toggle_battery_flyout":
                     double batX = root.TryGetProperty("x", out var batXProp) && batXProp.TryGetDouble(out double batXd) ? batXd : 0;
                     double batW = root.TryGetProperty("width", out var batWProp) && batWProp.TryGetDouble(out double batWd) ? batWd : 40;
@@ -2064,6 +2076,14 @@ public partial class TaskbarWebWindow : Window
                     CloseAllFlyouts();
                     _batteryFlyout.ShowAt(mon.Right - 220, 48, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
                 });
+            }
+            else if (action == "toggle_bluetooth")
+            {
+                _ = _bluetoothService.ToggleBluetoothAsync();
+            }
+            else if (action == "open_bluetooth_settings")
+            {
+                BluetoothService.OpenWindowsBluetoothSettings();
             }
         }
         catch { }

@@ -285,6 +285,8 @@ public partial class ControlCenterFlyoutWindow : Window
                 case "activate_tray_icon":
                 case "toggle_network_flyout":
                 case "toggle_battery_flyout":
+                case "toggle_bluetooth":
+                case "open_bluetooth_settings":
                     _forwardActionCallback?.Invoke(action, e.WebMessageAsJson);
                     break;
             }

@@ -208,7 +208,8 @@ public class ShellStateService
             {
                 new() { Id = "community.zen-volume", Order = 10, AspectRatio = "1:2", Enabled = true },
                 new() { Id = "community.zen-brightness", Order = 20, AspectRatio = "1:2", Enabled = true },
-                new() { Id = "community.zen-system-monitor", Order = 30, AspectRatio = "1:1", Enabled = true }
+                new() { Id = "community.zen-system-monitor", Order = 30, AspectRatio = "1:1", Enabled = true },
+                new() { Id = "community.zen-bluetooth", Order = 40, AspectRatio = "2x1", Enabled = true }
             };
         }
 

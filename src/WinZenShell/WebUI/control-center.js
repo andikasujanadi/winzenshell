@@ -875,13 +875,17 @@ function initControlCenter() {
           max-height: 4px !important;
         }
 
-        /* Network Widget responsive rules */
+        /* Network & Bluetooth Widget responsive rules */
         :host([data-span="1x1"]) .net-text-col,
-        [data-span="1x1"] .net-text-col {
+        [data-span="1x1"] .net-text-col,
+        :host([data-span="1x1"]) .bt-text-col,
+        [data-span="1x1"] .bt-text-col {
           display: none !important;
         }
         :host([data-span="1x1"]) .network-pill,
-        [data-span="1x1"] .network-pill {
+        [data-span="1x1"] .network-pill,
+        :host([data-span="1x1"]) .bluetooth-pill,
+        [data-span="1x1"] .bluetooth-pill {
           flex-direction: column !important;
           align-items: center !important;
           justify-content: center !important;
@@ -890,13 +894,17 @@ function initControlCenter() {
           height: 100% !important;
         }
         :host([data-span="1x1"]) .network-icon-wrap,
-        [data-span="1x1"] .network-icon-wrap {
+        [data-span="1x1"] .network-icon-wrap,
+        :host([data-span="1x1"]) .bluetooth-icon-wrap,
+        [data-span="1x1"] .bluetooth-icon-wrap {
           width: 38px !important;
           height: 38px !important;
           border-radius: 50% !important;
         }
         :host([data-span="1x2"]) .network-pill,
-        [data-span="1x2"] .network-pill {
+        [data-span="1x2"] .network-pill,
+        :host([data-span="1x2"]) .bluetooth-pill,
+        [data-span="1x2"] .bluetooth-pill {
           display: flex !important;
           flex-direction: column !important;
           align-items: center !important;
@@ -909,7 +917,9 @@ function initControlCenter() {
           box-sizing: border-box !important;
         }
         :host([data-span="1x2"]) .network-icon-wrap,
-        [data-span="1x2"] .network-icon-wrap {
+        [data-span="1x2"] .network-icon-wrap,
+        :host([data-span="1x2"]) .bluetooth-icon-wrap,
+        [data-span="1x2"] .bluetooth-icon-wrap {
           width: 44px !important;
           height: 44px !important;
           border-radius: 50% !important;
@@ -919,12 +929,16 @@ function initControlCenter() {
           flex-shrink: 0 !important;
         }
         :host([data-span="1x2"]) .network-icon-wrap .net-icon,
-        [data-span="1x2"] .network-icon-wrap .net-icon {
+        [data-span="1x2"] .network-icon-wrap .net-icon,
+        :host([data-span="1x2"]) .bluetooth-icon-wrap .bt-icon,
+        [data-span="1x2"] .bluetooth-icon-wrap .bt-icon {
           width: 22px !important;
           height: 22px !important;
         }
         :host([data-span="1x2"]) .net-text-col,
-        [data-span="1x2"] .net-text-col {
+        [data-span="1x2"] .net-text-col,
+        :host([data-span="1x2"]) .bt-text-col,
+        [data-span="1x2"] .bt-text-col {
           display: flex !important;
           flex-direction: column !important;
           align-items: center !important;
@@ -935,7 +949,9 @@ function initControlCenter() {
           overflow: hidden !important;
         }
         :host([data-span="1x2"]) .net-label,
-        [data-span="1x2"] .net-label {
+        [data-span="1x2"] .net-label,
+        :host([data-span="1x2"]) .bt-label,
+        [data-span="1x2"] .bt-label {
           font-size: 12px !important;
           font-weight: 600 !important;
           white-space: nowrap !important;
@@ -945,7 +961,9 @@ function initControlCenter() {
           display: block !important;
         }
         :host([data-span="1x2"]) .net-sublabel,
-        [data-span="1x2"] .net-sublabel {
+        [data-span="1x2"] .net-sublabel,
+        :host([data-span="1x2"]) .bt-sublabel,
+        [data-span="1x2"] .bt-sublabel {
           font-size: 10px !important;
           opacity: 0.75 !important;
           white-space: nowrap !important;
@@ -955,7 +973,9 @@ function initControlCenter() {
           display: block !important;
         }
         :host([data-span="2x1"]) .network-pill,
-        [data-span="2x1"] .network-pill {
+        [data-span="2x1"] .network-pill,
+        :host([data-span="2x1"]) .bluetooth-pill,
+        [data-span="2x1"] .bluetooth-pill {
           flex-direction: row !important;
           align-items: center !important;
           padding: 0 10px !important;

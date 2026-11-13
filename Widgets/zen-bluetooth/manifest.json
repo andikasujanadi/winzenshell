@@ -1,0 +1,15 @@
+{
+  "id": "community.zen-bluetooth",
+  "name": "Bluetooth",
+  "version": "1.0.0",
+  "author": "Official",
+  "description": "Bluetooth status indicator, device connection details, and quick toggle / settings access.",
+  "entry": "index.html",
+  "slot": "right",
+  "width": 34,
+  "autoWidth": true,
+  "displayMode": "icon",
+  "supportedModes": ["icon", "widget"],
+  "supportedAspectRatios": ["1x1", "2x1", "3x1", "4x1", "1x2", "2x2"],
+  "order": 4
+}

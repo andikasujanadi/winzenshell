@@ -61,6 +61,11 @@ public class SystemMetricsSnapshot
     public string LocalIpAddress { get; set; } = "";
     public string GatewayAddress { get; set; } = "";
     public bool IsNetworkConnected { get; set; } = false;
+    public bool BluetoothAvailable { get; set; } = false;
+    public bool BluetoothEnabled { get; set; } = false;
+    public bool BluetoothConnected { get; set; } = false;
+    public string BluetoothDeviceName { get; set; } = "";
+    public string BluetoothStatusText { get; set; } = "Off";
     public List<TrayIconItem> TrayIcons { get; set; } = new();
 }
 
@@ -70,6 +75,7 @@ public class SystemMetricsService
     public AudioService? Audio { get; set; }
     public VirtualDesktopService? VirtualDesktops { get; set; }
     public NetworkService? Network { get; set; }
+    public BluetoothService? Bluetooth { get; set; }
     public TrayIconService? TrayIcons { get; set; }
 
     private DateTime _lastCpuCheck = DateTime.UtcNow;
@@ -190,6 +196,22 @@ public class SystemMetricsService
             isNetConnected = netInfo.IsConnected;
         }
 
+        bool btAvailable = false;
+        bool btEnabled = false;
+        bool btConnected = false;
+        string btDeviceName = "";
+        string btStatus = "Off";
+
+        if (Bluetooth != null)
+        {
+            var btInfo = Bluetooth.GetBluetoothStatus();
+            btAvailable = btInfo.IsAvailable;
+            btEnabled = btInfo.IsEnabled;
+            btConnected = btInfo.IsConnected;
+            btDeviceName = btInfo.ConnectedDeviceName;
+            btStatus = btInfo.StatusText;
+        }
+
         return new SystemMetricsSnapshot
         {
             CpuPercent = cpu,
@@ -218,6 +240,11 @@ public class SystemMetricsService
             LocalIpAddress = localIp,
             GatewayAddress = gatewayIp,
             IsNetworkConnected = isNetConnected,
+            BluetoothAvailable = btAvailable,
+            BluetoothEnabled = btEnabled,
+            BluetoothConnected = btConnected,
+            BluetoothDeviceName = btDeviceName,
+            BluetoothStatusText = btStatus,
             TrayIcons = TrayIcons?.GetActiveTrayIcons() ?? new()
         };
     }

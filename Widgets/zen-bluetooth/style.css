@@ -1,0 +1,324 @@
+:host {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  font-family: var(--winzen-font, 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, sans-serif);
+  color: var(--winzen-text, #ffffff);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+.bluetooth-pill {
+  height: 36px;
+  max-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 8px;
+  border-radius: var(--winzen-radius-xs, 4px);
+  background: transparent;
+  border: 1px solid transparent;
+  color: inherit;
+  cursor: pointer;
+  outline: none;
+  transition: background-color 0.12s ease, border-color 0.12s ease, transform 0.1s ease;
+}
+
+.bluetooth-pill:hover {
+  background: var(--winzen-surface-hover, rgba(255, 255, 255, 0.0605));
+  border-color: var(--winzen-border, rgba(255, 255, 255, 0.08));
+}
+
+.bluetooth-pill:active {
+  transform: scale(0.97);
+}
+
+.bluetooth-icon-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border-radius: 4px;
+}
+
+.bt-icon {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+  transition: fill 0.2s ease;
+}
+
+.state-connected .bt-icon {
+  fill: var(--winzen-accent, #60cdff);
+}
+
+.state-on .bt-icon {
+  fill: #ffffff;
+}
+
+.state-off .bt-icon {
+  fill: #888888;
+  opacity: 0.6;
+}
+
+.bt-text-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.bt-label {
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 1.1;
+  color: var(--winzen-text, #ffffff);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  max-width: 90px;
+  display: none;
+}
+
+.bt-sublabel {
+  display: none;
+}
+
+/* Control Center Card Layout (2x1 default) */
+.in-control-center .bluetooth-pill {
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 0 10px;
+  gap: 10px;
+  border-radius: 6px;
+}
+
+.in-control-center .bluetooth-icon-wrap {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.in-control-center .bluetooth-icon-wrap:hover {
+  filter: brightness(1.15);
+}
+
+.in-control-center .state-connected .bluetooth-icon-wrap,
+.in-control-center .state-on .bluetooth-icon-wrap {
+  background: color-mix(in srgb, var(--winzen-accent, #60cdff) 18%, transparent);
+}
+
+.in-control-center .state-connected .bt-icon,
+.in-control-center .state-on .bt-icon {
+  fill: var(--winzen-accent, #60cdff);
+}
+
+.in-control-center .bt-text-col {
+  width: 100%;
+  gap: 2px;
+  cursor: pointer;
+}
+
+.in-control-center .bt-label {
+  display: block !important;
+  max-width: 100%;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.in-control-center .bt-sublabel {
+  display: block !important;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--winzen-text-secondary, #9ca3af);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Control Center 1x1 Compact Layout */
+:host([data-span="1x1"]) .bluetooth-pill,
+.in-control-center.cc-span-1x1 .bluetooth-pill,
+.in-control-center[data-span="1x1"] .bluetooth-pill {
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 4px !important;
+  gap: 4px !important;
+}
+
+:host([data-span="1x1"]) .bluetooth-icon-wrap,
+.in-control-center.cc-span-1x1 .bluetooth-icon-wrap,
+.in-control-center[data-span="1x1"] .bluetooth-icon-wrap {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 8px !important;
+}
+
+:host([data-span="1x1"]) .bt-text-col,
+.in-control-center.cc-span-1x1 .bt-text-col,
+.in-control-center[data-span="1x1"] .bt-text-col {
+  display: none !important;
+}
+
+/* Control Center 1x2 Vertical Design */
+:host([data-span="1x2"]) .bluetooth-pill,
+.in-control-center.cc-span-1x2 .bluetooth-pill,
+.in-control-center[data-span="1x2"] .bluetooth-pill {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  width: 100% !important;
+  height: 100% !important;
+  padding: 10px 4px !important;
+  gap: 8px !important;
+  box-sizing: border-box !important;
+}
+
+:host([data-span="1x2"]) .bluetooth-icon-wrap,
+.in-control-center.cc-span-1x2 .bluetooth-icon-wrap,
+.in-control-center[data-span="1x2"] .bluetooth-icon-wrap {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+:host([data-span="1x2"]) .bt-text-col,
+.in-control-center.cc-span-1x2 .bt-text-col,
+.in-control-center[data-span="1x2"] .bt-text-col {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  width: 100% !important;
+  gap: 2px !important;
+  overflow: hidden !important;
+}
+
+:host([data-span="1x2"]) .bt-label,
+.in-control-center.cc-span-1x2 .bt-label,
+.in-control-center[data-span="1x2"] .bt-label {
+  display: block !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  max-width: 66px !important;
+}
+
+:host([data-span="1x2"]) .bt-sublabel,
+.in-control-center.cc-span-1x2 .bt-sublabel,
+.in-control-center[data-span="1x2"] .bt-sublabel {
+  display: block !important;
+  font-size: 10px !important;
+  opacity: 0.75 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  max-width: 66px !important;
+}
+
+/* Control Center 3x1 and 4x1 Wide Layout */
+:host([data-span="3x1"]) .bluetooth-pill,
+:host([data-span="4x1"]) .bluetooth-pill,
+.in-control-center.cc-span-3x1 .bluetooth-pill,
+.in-control-center.cc-span-4x1 .bluetooth-pill,
+.in-control-center[data-span="3x1"] .bluetooth-pill,
+.in-control-center[data-span="4x1"] .bluetooth-pill {
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  padding: 0 16px !important;
+  gap: 14px !important;
+}
+
+/* Light Theme Overrides */
+:host([data-theme="light"]) .bluetooth-pill,
+:host(.theme-light) .bluetooth-pill,
+[data-theme="light"] .bluetooth-pill,
+.theme-light .bluetooth-pill,
+body.theme-light .bluetooth-pill {
+  color: #1b1b1b;
+}
+
+:host([data-theme="light"]) .bluetooth-pill:hover,
+:host(.theme-light) .bluetooth-pill:hover,
+[data-theme="light"] .bluetooth-pill:hover,
+.theme-light .bluetooth-pill:hover,
+body.theme-light .bluetooth-pill:hover {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+:host([data-theme="light"]) .bluetooth-pill .bt-icon,
+:host(.theme-light) .bluetooth-pill .bt-icon {
+  fill: #1b1b1b;
+}
+
+:host([data-theme="light"]) .in-control-center .bluetooth-icon-wrap,
+.theme-light .in-control-center .bluetooth-icon-wrap {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+:host([data-theme="light"]) .in-control-center .state-connected .bluetooth-icon-wrap,
+:host(.theme-light) .in-control-center .state-connected .bluetooth-icon-wrap,
+:host([data-theme="light"]) .in-control-center .state-on .bluetooth-icon-wrap,
+:host(.theme-light) .in-control-center .state-on .bluetooth-icon-wrap {
+  background: color-mix(in srgb, var(--winzen-accent, #3684e3) 14%, transparent);
+}
+
+:host([data-theme="light"]) .in-control-center .state-connected .bt-icon,
+:host(.theme-light) .in-control-center .state-connected .bt-icon,
+:host([data-theme="light"]) .in-control-center .state-on .bt-icon,
+:host(.theme-light) .in-control-center .state-on .bt-icon {
+  fill: var(--winzen-accent, #3684e3);
+}
+
+:host([data-theme="light"]) .bt-label,
+:host(.theme-light) .bt-label,
+[data-theme="light"] .bt-label,
+.theme-light .bt-label,
+body.theme-light .bt-label {
+  color: #1b1b1b;
+}
+
+:host([data-theme="light"]) .in-control-center .bt-sublabel,
+.theme-light .in-control-center .bt-sublabel {
+  color: #5c5c5c;
+}
+
+:host([data-theme="light"]) .state-off .bt-icon,
+:host(.theme-light) .state-off .bt-icon,
+[data-theme="light"] .state-off .bt-icon,
+.theme-light .state-off .bt-icon,
+body.theme-light .state-off .bt-icon {
+  fill: #777777;
+}
