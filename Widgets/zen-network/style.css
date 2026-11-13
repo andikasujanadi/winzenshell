@@ -212,3 +212,68 @@ body.theme-light .net-label {
 body.theme-light .state-offline .net-icon {
   fill: #777777;
 }
+
+/* CONTROL CENTER 1x2 Vertical Design */
+:host([data-span="1x2"]) .network-pill,
+.in-control-center.cc-span-1x2 .network-pill,
+.in-control-center[data-span="1x2"] .network-pill {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  width: 100% !important;
+  height: 100% !important;
+  padding: 10px 4px !important;
+  gap: 8px !important;
+  box-sizing: border-box !important;
+}
+
+:host([data-span="1x2"]) .network-icon-wrap,
+.in-control-center.cc-span-1x2 .network-icon-wrap,
+.in-control-center[data-span="1x2"] .network-icon-wrap {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+:host([data-span="1x2"]) .net-text-col,
+.in-control-center.cc-span-1x2 .net-text-col,
+.in-control-center[data-span="1x2"] .net-text-col {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  width: 100% !important;
+  gap: 2px !important;
+  overflow: hidden !important;
+}
+
+:host([data-span="1x2"]) .net-label,
+.in-control-center.cc-span-1x2 .net-label,
+.in-control-center[data-span="1x2"] .net-label {
+  display: block !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  max-width: 66px !important;
+}
+
+:host([data-span="1x2"]) .net-sublabel,
+.in-control-center.cc-span-1x2 .net-sublabel,
+.in-control-center[data-span="1x2"] .net-sublabel {
+  display: block !important;
+  font-size: 10px !important;
+  opacity: 0.75 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  max-width: 66px !important;
+}

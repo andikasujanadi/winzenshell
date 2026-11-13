@@ -1951,6 +1951,7 @@ body.theme-light .cc-preview-placeholder {
 }
 
 .cc-preview-tile[data-span="1x1"] { grid-column: span 1; grid-row: span 1; min-height: 68px; }
+.cc-preview-tile[data-span="1x2"] { grid-column: span 1; grid-row: span 2; min-height: 144px; }
 .cc-preview-tile[data-span="2x1"] { grid-column: span 2; grid-row: span 1; min-height: 68px; }
 .cc-preview-tile[data-span="2x2"] { grid-column: span 2; grid-row: span 2; min-height: 144px; }
 .cc-preview-tile[data-span="3x1"] { grid-column: span 3; grid-row: span 1; min-height: 68px; }

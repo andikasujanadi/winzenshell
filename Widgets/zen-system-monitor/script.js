@@ -16,9 +16,9 @@ const viewWidget = root.getElementById('viewWidget');
 const inControlCenter = typeof widgetConfig !== 'undefined' && widgetConfig && !!widgetConfig.inControlCenter;
 const isWidgetMode = typeof widgetConfig !== 'undefined' && widgetConfig && widgetConfig.displayMode === 'widget';
 
-let showCpu = typeof widgetConfig !== 'undefined' && widgetConfig ? widgetConfig.showCpu !== false : true;
-let showRam = typeof widgetConfig !== 'undefined' && widgetConfig ? widgetConfig.showRam !== false : true;
-let showGpu = typeof widgetConfig !== 'undefined' && widgetConfig ? widgetConfig.showGpu !== false : true;
+let showCpu = inControlCenter ? true : (typeof widgetConfig !== 'undefined' && widgetConfig ? widgetConfig.showCpu !== false : true);
+let showRam = inControlCenter ? true : (typeof widgetConfig !== 'undefined' && widgetConfig ? widgetConfig.showRam !== false : true);
+let showGpu = inControlCenter ? true : (typeof widgetConfig !== 'undefined' && widgetConfig ? widgetConfig.showGpu !== false : true);
 
 if (isWidgetMode || inControlCenter) {
   if (viewIcon) viewIcon.style.display = 'none';
@@ -29,6 +29,11 @@ if (isWidgetMode || inControlCenter) {
 }
 
 function applyStatVisibility() {
+  if (inControlCenter) {
+    showCpu = true;
+    showRam = true;
+    showGpu = true;
+  }
   if (colCpu) colCpu.style.display = showCpu ? '' : 'none';
   if (colRam) colRam.style.display = showRam ? '' : 'none';
   if (colGpu) colGpu.style.display = showGpu ? '' : 'none';
@@ -70,10 +75,15 @@ if (sysPill) {
 window.addEventListener('winzen:state', (e) => {
   const state = e.detail;
   if (!state) return;
-  const list = inControlCenter && Array.isArray(state.controlCenterWidgets)
-    ? state.controlCenterWidgets
-    : (Array.isArray(state.widgets) ? state.widgets : []);
-  const cfg = list.find((w) => w.id === 'community.zen-system-monitor');
+  if (inControlCenter) {
+    showCpu = true;
+    showRam = true;
+    showGpu = true;
+    applyStatVisibility();
+    return;
+  }
+  const list = Array.isArray(state.widgets) ? state.widgets : [];
+  const cfg = list.find((w) => w.id === 'community.zen-system-monitor' || w.id === 'zen-system-monitor');
   if (!cfg) return;
 
   showCpu = cfg.showCpu !== false;

@@ -543,7 +543,7 @@ public class SystemMetricsService
     [DllImport("pdh.dll", CharSet = CharSet.Unicode)]
     private static extern uint PdhOpenQuery(string? szDataSource, IntPtr dwUserData, out IntPtr phQuery);
 
-    [DllImport("pdh.dll", CharSet = CharSet.Unicode)]
+    [DllImport("pdh.dll", CharSet = CharSet.Unicode, EntryPoint = "PdhAddEnglishCounterW")]
     private static extern uint PdhAddEnglishCounter(IntPtr hQuery, string szFullCounterPath, IntPtr dwUserData, out IntPtr phCounter);
 
     [DllImport("pdh.dll")]

@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Text.Json;
 using System.Windows;
+using System.Windows.Threading;
 using Microsoft.Web.WebView2.Core;
 using WinZenShell.Native;
 using WinZenShell.Services;
@@ -25,6 +26,7 @@ public partial class ControlCenterFlyoutWindow : Window
     private double _lastTaskbarTop;
     private double _lastTaskbarHeight = 50;
     private string _lastDockEdge = "Bottom";
+    private readonly DispatcherTimer _metricsTimer;
     public DateTime LastDeactivatedTime { get; private set; } = DateTime.MinValue;
 
     public ControlCenterFlyoutWindow(
@@ -43,8 +45,18 @@ public partial class ControlCenterFlyoutWindow : Window
         _audioService = audioService;
         _forwardActionCallback = forwardActionCallback;
 
+        _metricsTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromSeconds(1.0)
+        };
+        _metricsTimer.Tick += (_, _) =>
+        {
+            if (IsVisible) BroadcastMetrics();
+        };
+
         Deactivated += (_, _) =>
         {
+            _metricsTimer.Stop();
             ExitEditMode();
             FlyoutAnimationHelper.HandleDeactivated(this, () => LastDeactivatedTime = DateTime.UtcNow);
         };
@@ -392,6 +404,7 @@ public partial class ControlCenterFlyoutWindow : Window
         FlyoutAnimationHelper.AnimateShow(this, top, dockEdge, activate: true, useOpacityFade: false);
 
         PushStateToWeb(_shellState.BuildPayload());
+        _metricsTimer.Start();
         BroadcastMetrics();
     }
 

@@ -72,57 +72,215 @@
   line-height: 1.15;
 }
 
-/* CONTROL CENTER 1:1 Responsive Layout — Centered & Refined */
+/* CONTROL CENTER BASE: Always ensure date is visible in Control Center */
+.in-control-center .date {
+  display: block !important;
+}
+
+/* CONTROL CENTER 1x1 Compact Layout */
+:host([data-span="1x1"]) .clock-pill,
+.in-control-center.cc-span-1x1 .clock-pill,
+.in-control-center[data-span="1x1"] .clock-pill,
 .in-control-center.cc-aspect-1-1 .clock-pill,
 .in-control-center[data-aspect-ratio="1:1"] .clock-pill {
-  height: 100%;
-  max-height: 100%;
-  width: 100%;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  gap: 3px;
-  padding: 4px;
+  height: 100% !important;
+  max-height: 100% !important;
+  width: 100% !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  gap: 2px !important;
+  padding: 4px 2px !important;
+  box-sizing: border-box !important;
 }
 
+:host([data-span="1x1"]) .time,
+.in-control-center.cc-span-1x1 .time,
+.in-control-center[data-span="1x1"] .time,
 .in-control-center.cc-aspect-1-1 .time,
 .in-control-center[data-aspect-ratio="1:1"] .time {
-  font-size: 18px;
-  font-weight: 600;
-  line-height: 1.1;
-  letter-spacing: 0.2px;
-  color: var(--winzen-text, #ffffff);
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  line-height: 1.1 !important;
+  letter-spacing: 0.2px !important;
+  color: var(--winzen-text, #ffffff) !important;
 }
 
+:host([data-span="1x1"]) .date,
+.in-control-center.cc-span-1x1 .date,
+.in-control-center[data-span="1x1"] .date,
 .in-control-center.cc-aspect-1-1 .date,
 .in-control-center[data-aspect-ratio="1:1"] .date {
-  font-size: 11.5px;
-  font-weight: 400;
-  color: var(--winzen-text, #ffffff);
-  letter-spacing: 0.2px;
+  display: block !important;
+  font-size: 9.5px !important;
+  font-weight: 500 !important;
+  color: var(--winzen-text, #ffffff) !important;
+  opacity: 0.8 !important;
+  letter-spacing: 0.2px !important;
+  line-height: 1.1 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  max-width: 68px !important;
 }
 
-/* CONTROL CENTER 1:2 Wide Layout */
-.in-control-center.cc-aspect-1-2 .clock-pill,
-.in-control-center[data-aspect-ratio="1:2"] .clock-pill {
-  height: 100%;
-  max-height: 100%;
-  width: 100%;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-around;
-  padding: 6px 12px;
+/* CONTROL CENTER 2x1 Wide Banner Layout */
+:host([data-span="2x1"]) .clock-pill,
+.in-control-center.cc-span-2x1 .clock-pill,
+.in-control-center[data-span="2x1"] .clock-pill,
+.in-control-center.cc-aspect-2-1 .clock-pill,
+.in-control-center[data-aspect-ratio="2:1"] .clock-pill {
+  height: 100% !important;
+  max-height: 100% !important;
+  width: 100% !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important;
+  padding: 6px !important;
+  box-sizing: border-box !important;
 }
 
-.in-control-center.cc-aspect-1-2 .time,
-.in-control-center[data-aspect-ratio="1:2"] .time {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--winzen-text, #ffffff);
+:host([data-span="2x1"]) .time,
+.in-control-center.cc-span-2x1 .time,
+.in-control-center[data-span="2x1"] .time,
+.in-control-center.cc-aspect-2-1 .time,
+.in-control-center[data-aspect-ratio="2:1"] .time {
+  font-size: 22px !important;
+  font-weight: 700 !important;
+  line-height: 1.1 !important;
+  color: var(--winzen-text, #ffffff) !important;
 }
 
-.in-control-center.cc-aspect-1-2 .date,
-.in-control-center[data-aspect-ratio="1:2"] .date {
-  font-size: 11.5px;
-  color: var(--winzen-text, #ffffff);
+:host([data-span="2x1"]) .date,
+.in-control-center.cc-span-2x1 .date,
+.in-control-center[data-span="2x1"] .date,
+.in-control-center.cc-aspect-2-1 .date,
+.in-control-center[data-aspect-ratio="2:1"] .date {
+  display: block !important;
+  font-size: 11.5px !important;
+  font-weight: 500 !important;
+  opacity: 0.8 !important;
+  line-height: 1.1 !important;
+  color: var(--winzen-text, #ffffff) !important;
+}
+
+/* CONTROL CENTER 2x2 Large Card Layout */
+:host([data-span="2x2"]) .clock-pill,
+.in-control-center.cc-span-2x2 .clock-pill,
+.in-control-center[data-span="2x2"] .clock-pill,
+.in-control-center.cc-aspect-2-2 .clock-pill,
+.in-control-center[data-aspect-ratio="2:2"] .clock-pill {
+  height: 100% !important;
+  max-height: 100% !important;
+  width: 100% !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  padding: 12px !important;
+  box-sizing: border-box !important;
+}
+
+:host([data-span="2x2"]) .time,
+.in-control-center.cc-span-2x2 .time,
+.in-control-center[data-span="2x2"] .time,
+.in-control-center.cc-aspect-2-2 .time,
+.in-control-center[data-aspect-ratio="2:2"] .time {
+  font-size: 32px !important;
+  font-weight: 700 !important;
+  line-height: 1.1 !important;
+  color: var(--winzen-text, #ffffff) !important;
+}
+
+:host([data-span="2x2"]) .date,
+.in-control-center.cc-span-2x2 .date,
+.in-control-center[data-span="2x2"] .date,
+.in-control-center.cc-aspect-2-2 .date,
+.in-control-center[data-aspect-ratio="2:2"] .date {
+  display: block !important;
+  font-size: 13.5px !important;
+  font-weight: 500 !important;
+  opacity: 0.8 !important;
+  line-height: 1.2 !important;
+  color: var(--winzen-text, #ffffff) !important;
+}
+
+/* CONTROL CENTER 1x2 Vertical Design */
+:host([data-span="1x2"]) .clock-pill,
+.in-control-center.cc-span-1x2 .clock-pill,
+.in-control-center[data-span="1x2"] .clock-pill {
+  height: 100% !important;
+  max-height: 100% !important;
+  width: 100% !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  gap: 10px !important;
+  padding: 8px 4px !important;
+  box-sizing: border-box !important;
+}
+
+:host([data-span="1x2"]) .time,
+.in-control-center.cc-span-1x2 .time,
+.in-control-center[data-span="1x2"] .time {
+  font-size: 22px !important;
+  font-weight: 700 !important;
+  line-height: 1.1 !important;
+}
+
+:host([data-span="1x2"]) .date,
+.in-control-center.cc-span-1x2 .date,
+.in-control-center[data-span="1x2"] .date {
+  display: block !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  opacity: 0.75 !important;
+  text-align: center !important;
+  line-height: 1.3 !important;
+  max-width: 64px !important;
+}
+
+/* CONTROL CENTER 4x1 / 3x1 Horizontal Strip */
+:host([data-span="4x1"]) .clock-pill,
+.in-control-center.cc-span-4x1 .clock-pill,
+.in-control-center[data-span="4x1"] .clock-pill,
+:host([data-span="3x1"]) .clock-pill,
+.in-control-center.cc-span-3x1 .clock-pill,
+.in-control-center[data-span="3x1"] .clock-pill {
+  height: 100% !important;
+  max-height: 100% !important;
+  width: 100% !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 14px !important;
+  padding: 8px 16px !important;
+  box-sizing: border-box !important;
+}
+
+:host([data-span="4x1"]) .time,
+.in-control-center.cc-span-4x1 .time,
+.in-control-center[data-span="4x1"] .time,
+:host([data-span="3x1"]) .time,
+.in-control-center.cc-span-3x1 .time,
+.in-control-center[data-span="3x1"] .time {
+  font-size: 24px !important;
+  font-weight: 700 !important;
+  line-height: 1.1 !important;
+}
+
+:host([data-span="4x1"]) .date,
+.in-control-center.cc-span-4x1 .date,
+.in-control-center[data-span="4x1"] .date,
+:host([data-span="3x1"]) .date,
+.in-control-center.cc-span-3x1 .date,
+.in-control-center[data-span="3x1"] .date {
+  display: block !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  opacity: 0.8 !important;
+  line-height: 1.2 !important;
 }

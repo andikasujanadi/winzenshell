@@ -674,19 +674,16 @@ public class ShellStateService
                 int colSpan = cc.ColSpan;
                 int rowSpan = cc.RowSpan;
                 string ratio = cc.AspectRatio ?? "";
-                if (colSpan <= 0 || rowSpan <= 0)
+                if (ratio.Contains('x'))
                 {
-                    if (ratio.Contains('x'))
+                    var parts = ratio.Split('x');
+                    if (parts.Length == 2 && int.TryParse(parts[0], out int c) && int.TryParse(parts[1], out int r))
                     {
-                        var parts = ratio.Split('x');
-                        if (parts.Length == 2 && int.TryParse(parts[0], out int c) && int.TryParse(parts[1], out int r))
-                        {
-                            colSpan = c;
-                            rowSpan = r;
-                        }
+                        colSpan = Math.Clamp(c, 1, 4);
+                        rowSpan = Math.Clamp(r, 1, 2);
                     }
                 }
-                if (colSpan <= 0 || rowSpan <= 0)
+                else if (colSpan <= 0 || rowSpan <= 0)
                 {
                     if (ratio == "1:2")
                     {

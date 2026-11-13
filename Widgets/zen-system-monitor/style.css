@@ -155,78 +155,285 @@
   color: #1b1b1b;
 }
 
-/* CONTROL CENTER 1:1 Responsive Design — Refined & Balanced */
-.in-control-center.cc-aspect-1-1 .view-widget,
-.in-control-center[data-aspect-ratio="1:1"] .view-widget {
-  height: 100%;
-  width: 100%;
+/* ========================================================
+   CONTROL CENTER RESPONSIVE LAYOUTS FOR TELEMETRY
+   ======================================================== */
+
+.in-control-center .view-widget {
+  height: 100% !important;
+  width: 100% !important;
 }
 
+/* Base override: ensure columns never get clipped */
+.in-control-center .stat-col {
+  min-width: 0 !important;
+}
+
+/* 1x1 Compact Layout (76x76): Stacked 3 items (CPU, RAM, GPU) */
+:host([data-span="1x1"]) .sys-pill,
+.in-control-center.cc-span-1x1 .sys-pill,
+.in-control-center[data-span="1x1"] .sys-pill,
 .in-control-center.cc-aspect-1-1 .sys-pill,
 .in-control-center[data-aspect-ratio="1:1"] .sys-pill {
-  height: 100%;
-  max-height: 100%;
-  flex-direction: column;
-  justify-content: center;
-  gap: 6px;
-  padding: 2px 0;
+  height: 100% !important;
+  max-height: 100% !important;
+  width: 100% !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: space-evenly !important;
+  gap: 3px !important;
+  padding: 4px 6px !important;
+  box-sizing: border-box !important;
 }
 
+:host([data-span="1x1"]) .stat-col,
+.in-control-center.cc-span-1x1 .stat-col,
+.in-control-center[data-span="1x1"] .stat-col,
 .in-control-center.cc-aspect-1-1 .stat-col,
 .in-control-center[data-aspect-ratio="1:1"] .stat-col {
-  flex: 0 0 auto;
-  width: 100%;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
+  flex: 0 0 auto !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
 }
 
+:host([data-span="1x1"]) .stat-head,
+.in-control-center.cc-span-1x1 .stat-head,
+.in-control-center[data-span="1x1"] .stat-head,
 .in-control-center.cc-aspect-1-1 .stat-head,
 .in-control-center[data-aspect-ratio="1:1"] .stat-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  font-size: 10px;
-  font-weight: 500;
-  color: var(--winzen-text-secondary, #9ca3af);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  font-size: 9px !important;
+  font-weight: 500 !important;
 }
 
+:host([data-span="1x1"]) .stat-head strong,
+.in-control-center.cc-span-1x1 .stat-head strong,
+.in-control-center[data-span="1x1"] .stat-head strong,
 .in-control-center.cc-aspect-1-1 .stat-head strong,
 .in-control-center[data-aspect-ratio="1:1"] .stat-head strong {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--winzen-text, #ffffff);
+  font-size: 10px !important;
+  font-weight: 600 !important;
 }
 
-:host([data-theme="light"]) .in-control-center.cc-aspect-1-1 .stat-head strong,
-:host(.theme-light) .in-control-center.cc-aspect-1-1 .stat-head strong,
-[data-theme="light"] .in-control-center.cc-aspect-1-1 .stat-head strong,
-.theme-light .in-control-center.cc-aspect-1-1 .stat-head strong,
-:host([data-theme="light"]) .in-control-center[data-aspect-ratio="1:1"] .stat-head strong,
-:host(.theme-light) .in-control-center[data-aspect-ratio="1:1"] .stat-head strong,
-[data-theme="light"] .in-control-center[data-aspect-ratio="1:1"] .stat-head strong,
-.theme-light .in-control-center[data-aspect-ratio="1:1"] .stat-head strong {
-  color: #1b1b1b;
-}
-
+:host([data-span="1x1"]) .bar-track,
+.in-control-center.cc-span-1x1 .bar-track,
+.in-control-center[data-span="1x1"] .bar-track,
 .in-control-center.cc-aspect-1-1 .bar-track,
 .in-control-center[data-aspect-ratio="1:1"] .bar-track {
-  height: 4px;
-  border-radius: 2px;
+  height: 3px !important;
+  border-radius: 1.5px !important;
 }
 
-/* CONTROL CENTER 1:2 Wide Layout */
-.in-control-center.cc-aspect-1-2 .sys-pill,
-.in-control-center[data-aspect-ratio="1:2"] .sys-pill {
-  height: 100%;
-  max-height: 100%;
-  padding: 6px 6px;
-  gap: 12px;
+/* 2x1 Horizontal Strip (160x76): 3 columns side by side */
+:host([data-span="2x1"]) .sys-pill,
+.in-control-center.cc-span-2x1 .sys-pill,
+.in-control-center[data-span="2x1"] .sys-pill,
+.in-control-center.cc-aspect-2-1 .sys-pill,
+.in-control-center[data-aspect-ratio="2:1"] .sys-pill {
+  height: 100% !important;
+  max-height: 100% !important;
+  width: 100% !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+  padding: 6px 8px !important;
+  box-sizing: border-box !important;
 }
-.in-control-center.cc-aspect-1-2 .stat-head strong,
-.in-control-center[data-aspect-ratio="1:2"] .stat-head strong {
-  font-size: 12.5px;
+
+:host([data-span="2x1"]) .stat-col,
+.in-control-center.cc-span-2x1 .stat-col,
+.in-control-center[data-span="2x1"] .stat-col,
+.in-control-center.cc-aspect-2-1 .stat-col,
+.in-control-center[data-aspect-ratio="2:1"] .stat-col {
+  flex: 1 1 0 !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 3px !important;
+}
+
+:host([data-span="2x1"]) .stat-head,
+.in-control-center.cc-span-2x1 .stat-head,
+.in-control-center[data-span="2x1"] .stat-head,
+.in-control-center.cc-aspect-2-1 .stat-head,
+.in-control-center[data-aspect-ratio="2:1"] .stat-head {
+  display: flex !important;
+  align-items: baseline !important;
+  justify-content: space-between !important;
+  font-size: 9.5px !important;
+}
+
+:host([data-span="2x1"]) .stat-head strong,
+.in-control-center.cc-span-2x1 .stat-head strong,
+.in-control-center[data-span="2x1"] .stat-head strong,
+.in-control-center.cc-aspect-2-1 .stat-head strong,
+.in-control-center[data-aspect-ratio="2:1"] .stat-head strong {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+
+:host([data-span="2x1"]) .bar-track,
+.in-control-center.cc-span-2x1 .bar-track,
+.in-control-center[data-span="2x1"] .bar-track,
+.in-control-center.cc-aspect-2-1 .bar-track,
+.in-control-center[data-aspect-ratio="2:1"] .bar-track {
+  height: 4px !important;
+  border-radius: 2px !important;
+}
+
+/* 2x2 Large Card Layout (160x160): Stacked 3 full bars */
+:host([data-span="2x2"]) .sys-pill,
+.in-control-center.cc-span-2x2 .sys-pill,
+.in-control-center[data-span="2x2"] .sys-pill,
+.in-control-center.cc-aspect-2-2 .sys-pill,
+.in-control-center[data-aspect-ratio="2:2"] .sys-pill {
+  height: 100% !important;
+  max-height: 100% !important;
+  width: 100% !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: space-evenly !important;
+  gap: 12px !important;
+  padding: 12px !important;
+  box-sizing: border-box !important;
+}
+
+:host([data-span="2x2"]) .stat-col,
+.in-control-center.cc-span-2x2 .stat-col,
+.in-control-center[data-span="2x2"] .stat-col,
+.in-control-center.cc-aspect-2-2 .stat-col,
+.in-control-center[data-aspect-ratio="2:2"] .stat-col {
+  flex: 0 0 auto !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+}
+
+:host([data-span="2x2"]) .stat-head,
+.in-control-center.cc-span-2x2 .stat-head,
+.in-control-center[data-span="2x2"] .stat-head,
+.in-control-center.cc-aspect-2-2 .stat-head,
+.in-control-center[data-aspect-ratio="2:2"] .stat-head {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+}
+
+:host([data-span="2x2"]) .stat-head strong,
+.in-control-center.cc-span-2x2 .stat-head strong,
+.in-control-center[data-span="2x2"] .stat-head strong,
+.in-control-center.cc-aspect-2-2 .stat-head strong,
+.in-control-center[data-aspect-ratio="2:2"] .stat-head strong {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+}
+
+:host([data-span="2x2"]) .bar-track,
+.in-control-center.cc-span-2x2 .bar-track,
+.in-control-center[data-span="2x2"] .bar-track,
+.in-control-center.cc-aspect-2-2 .bar-track,
+.in-control-center[data-aspect-ratio="2:2"] .bar-track {
+  height: 5px !important;
+  border-radius: 2.5px !important;
+}
+
+/* 1x2 Vertical Design (76x160): Vertical stacked with top edit badge clearance */
+:host([data-span="1x2"]) .sys-pill,
+.in-control-center.cc-span-1x2 .sys-pill,
+.in-control-center[data-span="1x2"] .sys-pill {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: space-evenly !important;
+  height: 100% !important;
+  width: 100% !important;
+  gap: 10px !important;
+  padding: 22px 8px 10px 8px !important;
+  box-sizing: border-box !important;
+}
+
+:host([data-span="1x2"]) .stat-col,
+.in-control-center.cc-span-1x2 .stat-col,
+.in-control-center[data-span="1x2"] .stat-col {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 3px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+:host([data-span="1x2"]) .stat-head,
+.in-control-center.cc-span-1x2 .stat-head,
+.in-control-center[data-span="1x2"] .stat-head {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+  font-size: 10px !important;
+}
+
+:host([data-span="1x2"]) .stat-head span,
+.in-control-center.cc-span-1x2 .stat-head span,
+.in-control-center[data-span="1x2"] .stat-head span {
+  font-size: 9px !important;
+  opacity: 0.75 !important;
+}
+
+:host([data-span="1x2"]) .stat-head strong,
+.in-control-center.cc-span-1x2 .stat-head strong,
+.in-control-center[data-span="1x2"] .stat-head strong {
+  font-size: 10.5px !important;
+  font-weight: 600 !important;
+}
+
+:host([data-span="1x2"]) .bar-track,
+.in-control-center.cc-span-1x2 .bar-track,
+.in-control-center[data-span="1x2"] .bar-track {
+  width: 100% !important;
+  height: 4px !important;
+  max-height: 4px !important;
+  border-radius: 2px !important;
+}
+
+/* 4x1 / 3x1 Horizontal Strip */
+:host([data-span="4x1"]) .sys-pill,
+.in-control-center.cc-span-4x1 .sys-pill,
+.in-control-center[data-span="4x1"] .sys-pill,
+:host([data-span="3x1"]) .sys-pill,
+.in-control-center.cc-span-3x1 .sys-pill,
+.in-control-center[data-span="3x1"] .sys-pill {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  height: 100% !important;
+  width: 100% !important;
+  gap: 16px !important;
+  padding: 8px 16px !important;
+  box-sizing: border-box !important;
+}
+
+:host([data-span="4x1"]) .stat-col,
+.in-control-center.cc-span-4x1 .stat-col,
+.in-control-center[data-span="4x1"] .stat-col,
+:host([data-span="3x1"]) .stat-col,
+.in-control-center.cc-span-3x1 .stat-col,
+.in-control-center[data-span="3x1"] .stat-col {
+  flex: 1 1 0 !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
 }

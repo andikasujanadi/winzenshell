@@ -164,11 +164,11 @@ function initControlCenter() {
     const norm = normalizeSpan(widgetId, currentSpan);
     const isSlider = widgetId.includes('volume') || widgetId.includes('brightness');
     if (isSlider) {
-      const sliderCycle = ['4x1', '2x1', '1x1'];
+      const sliderCycle = ['4x1', '2x1', '1x2', '1x1'];
       const idx = sliderCycle.indexOf(norm);
       return sliderCycle[(idx + 1) % sliderCycle.length];
     }
-    const generalCycle = ['2x2', '2x1', '1x1', '4x1', '3x1'];
+    const generalCycle = ['2x2', '2x1', '1x2', '1x1', '4x1', '3x1'];
     const idx = generalCycle.indexOf(norm);
     if (idx === -1) return '2x2';
     return generalCycle[(idx + 1) % generalCycle.length];
@@ -606,7 +606,7 @@ function initControlCenter() {
           cursor: pointer;
         }
 
-        /* Clock styling */
+        /* Clock styling - ensure date is visible across ALL sizes in Control Center */
         .clock-pill {
           display: flex;
           flex-direction: column;
@@ -618,30 +618,109 @@ function initControlCenter() {
           background: transparent;
           border: none;
         }
+        .clock-pill .date {
+          display: block !important;
+        }
+        :host([data-span="1x1"]) .clock-pill,
+        [data-span="1x1"] .clock-pill {
+          flex-direction: column !important;
+          align-items: center !important;
+          justify-content: center !important;
+          gap: 2px !important;
+          padding: 4px 2px !important;
+        }
         :host([data-span="1x1"]) .clock-pill .time,
         [data-span="1x1"] .clock-pill .time {
-          font-size: 18px !important;
+          font-size: 15px !important;
+          font-weight: 700 !important;
+          line-height: 1.1 !important;
         }
         :host([data-span="1x1"]) .clock-pill .date,
         [data-span="1x1"] .clock-pill .date {
-          display: none !important;
+          display: block !important;
+          font-size: 9.5px !important;
+          font-weight: 500 !important;
+          opacity: 0.8 !important;
+          white-space: nowrap !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+          max-width: 68px !important;
+          line-height: 1.1 !important;
         }
         :host([data-span="2x1"]) .clock-pill,
         [data-span="2x1"] .clock-pill {
-          flex-direction: row !important;
-          gap: 8px !important;
+          flex-direction: column !important;
+          align-items: center !important;
+          justify-content: center !important;
+          gap: 4px !important;
+          padding: 6px !important;
         }
         :host([data-span="2x1"]) .clock-pill .time,
         [data-span="2x1"] .clock-pill .time {
-          font-size: 18px !important;
+          font-size: 22px !important;
+          font-weight: 700 !important;
+          line-height: 1.1 !important;
+        }
+        :host([data-span="2x1"]) .clock-pill .date,
+        [data-span="2x1"] .clock-pill .date {
+          display: block !important;
+          font-size: 11.5px !important;
+          font-weight: 500 !important;
+          opacity: 0.8 !important;
+          line-height: 1.1 !important;
+        }
+        :host([data-span="1x2"]) .clock-pill,
+        [data-span="1x2"] .clock-pill {
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: center !important;
+          justify-content: center !important;
+          gap: 10px !important;
+          width: 100% !important;
+          height: 100% !important;
+          padding: 8px 4px !important;
+          box-sizing: border-box !important;
+        }
+        :host([data-span="1x2"]) .clock-pill .time,
+        [data-span="1x2"] .clock-pill .time {
+          font-size: 22px !important;
+          font-weight: 700 !important;
+          line-height: 1.1 !important;
+        }
+        :host([data-span="1x2"]) .clock-pill .date,
+        [data-span="1x2"] .clock-pill .date {
+          display: block !important;
+          font-size: 11px !important;
+          font-weight: 500 !important;
+          opacity: 0.75 !important;
+          text-align: center !important;
+          line-height: 1.3 !important;
+          max-width: 64px !important;
+        }
+        :host([data-span="2x2"]) .clock-pill,
+        [data-span="2x2"] .clock-pill {
+          flex-direction: column !important;
+          align-items: center !important;
+          justify-content: center !important;
+          gap: 8px !important;
+          padding: 12px !important;
         }
         :host([data-span="2x2"]) .clock-pill .time,
         [data-span="2x2"] .clock-pill .time {
-          font-size: 26px !important;
-          font-weight: 600 !important;
+          font-size: 32px !important;
+          font-weight: 700 !important;
+          line-height: 1.1 !important;
+        }
+        :host([data-span="2x2"]) .clock-pill .date,
+        [data-span="2x2"] .clock-pill .date {
+          display: block !important;
+          font-size: 13.5px !important;
+          font-weight: 500 !important;
+          opacity: 0.8 !important;
+          line-height: 1.2 !important;
         }
 
-        /* Telemetry styling */
+        /* Telemetry styling (CPU, RAM, GPU) */
         .telemetry-card {
           display: flex;
           flex-direction: column;
@@ -649,17 +728,147 @@ function initControlCenter() {
           width: 100%;
           justify-content: center;
         }
+        .stat-col {
+          min-width: 0 !important;
+        }
         :host([data-span="1x1"]) .sys-pill,
         [data-span="1x1"] .sys-pill {
           flex-direction: column !important;
-          gap: 4px !important;
-          padding: 2px !important;
-          align-items: center !important;
-          justify-content: center !important;
+          align-items: stretch !important;
+          justify-content: space-evenly !important;
+          gap: 3px !important;
+          padding: 4px 6px !important;
+          box-sizing: border-box !important;
         }
         :host([data-span="1x1"]) .stat-head,
         [data-span="1x1"] .stat-head {
+          font-size: 9px !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: space-between !important;
+        }
+        :host([data-span="1x1"]) .stat-head strong,
+        [data-span="1x1"] .stat-head strong {
+          font-size: 10px !important;
+        }
+        :host([data-span="1x1"]) .bar-track,
+        [data-span="1x1"] .bar-track {
+          height: 3px !important;
+        }
+        :host([data-span="2x1"]) .sys-pill,
+        [data-span="2x1"] .sys-pill {
+          flex-direction: row !important;
+          align-items: center !important;
+          justify-content: space-between !important;
+          gap: 8px !important;
+          padding: 6px 8px !important;
+          box-sizing: border-box !important;
+        }
+        :host([data-span="2x1"]) .stat-col,
+        [data-span="2x1"] .stat-col {
+          flex: 1 1 0 !important;
+          width: 0 !important;
+          min-width: 0 !important;
+          display: flex !important;
+          flex-direction: column !important;
+          gap: 3px !important;
+        }
+        :host([data-span="2x1"]) .stat-head,
+        [data-span="2x1"] .stat-head {
           font-size: 9.5px !important;
+          display: flex !important;
+          justify-content: space-between !important;
+        }
+        :host([data-span="2x1"]) .stat-head strong,
+        [data-span="2x1"] .stat-head strong {
+          font-size: 11px !important;
+        }
+        :host([data-span="2x1"]) .bar-track,
+        [data-span="2x1"] .bar-track {
+          height: 4px !important;
+        }
+        :host([data-span="2x2"]) .sys-pill,
+        [data-span="2x2"] .sys-pill {
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: stretch !important;
+          justify-content: space-evenly !important;
+          gap: 12px !important;
+          padding: 12px !important;
+          box-sizing: border-box !important;
+        }
+        :host([data-span="2x2"]) .stat-col,
+        [data-span="2x2"] .stat-col {
+          flex: 0 0 auto !important;
+          width: 100% !important;
+          min-width: 0 !important;
+          display: flex !important;
+          flex-direction: column !important;
+          gap: 4px !important;
+        }
+        :host([data-span="2x2"]) .stat-head,
+        [data-span="2x2"] .stat-head {
+          display: flex !important;
+          align-items: center !important;
+          justify-content: space-between !important;
+          font-size: 11px !important;
+        }
+        :host([data-span="2x2"]) .stat-head strong,
+        [data-span="2x2"] .stat-head strong {
+          font-size: 13px !important;
+        }
+        :host([data-span="2x2"]) .bar-track,
+        [data-span="2x2"] .bar-track {
+          height: 5px !important;
+        }
+        :host([data-span="1x2"]) .view-widget,
+        [data-span="1x2"] .view-widget {
+          width: 100% !important;
+          height: 100% !important;
+        }
+        :host([data-span="1x2"]) .sys-pill,
+        [data-span="1x2"] .sys-pill {
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: stretch !important;
+          justify-content: space-evenly !important;
+          height: 100% !important;
+          width: 100% !important;
+          gap: 10px !important;
+          padding: 22px 8px 10px 8px !important;
+          box-sizing: border-box !important;
+        }
+        :host([data-span="1x2"]) .stat-col,
+        [data-span="1x2"] .stat-col {
+          display: flex !important;
+          flex-direction: column !important;
+          gap: 3px !important;
+          width: 100% !important;
+          min-width: 0 !important;
+        }
+        :host([data-span="1x2"]) .stat-head,
+        [data-span="1x2"] .stat-head {
+          display: flex !important;
+          align-items: center !important;
+          justify-content: space-between !important;
+          width: 100% !important;
+          font-size: 10px !important;
+        }
+        :host([data-span="1x2"]) .stat-head span,
+        [data-span="1x2"] .stat-head span {
+          font-size: 9px !important;
+          opacity: 0.75 !important;
+        }
+        :host([data-span="1x2"]) .stat-head strong,
+        [data-span="1x2"] .stat-head strong {
+          font-size: 10.5px !important;
+          font-weight: 600 !important;
+        }
+        :host([data-span="1x2"]) .bar-track,
+        [data-span="1x2"] .bar-track {
+          width: 100% !important;
+          height: 4px !important;
+          max-height: 4px !important;
         }
 
         /* Network Widget responsive rules */
@@ -681,6 +890,65 @@ function initControlCenter() {
           width: 38px !important;
           height: 38px !important;
           border-radius: 50% !important;
+        }
+        :host([data-span="1x2"]) .network-pill,
+        [data-span="1x2"] .network-pill {
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: center !important;
+          justify-content: center !important;
+          text-align: center !important;
+          width: 100% !important;
+          height: 100% !important;
+          padding: 10px 4px !important;
+          gap: 8px !important;
+          box-sizing: border-box !important;
+        }
+        :host([data-span="1x2"]) .network-icon-wrap,
+        [data-span="1x2"] .network-icon-wrap {
+          width: 44px !important;
+          height: 44px !important;
+          border-radius: 50% !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          flex-shrink: 0 !important;
+        }
+        :host([data-span="1x2"]) .network-icon-wrap .net-icon,
+        [data-span="1x2"] .network-icon-wrap .net-icon {
+          width: 22px !important;
+          height: 22px !important;
+        }
+        :host([data-span="1x2"]) .net-text-col,
+        [data-span="1x2"] .net-text-col {
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: center !important;
+          justify-content: center !important;
+          text-align: center !important;
+          width: 100% !important;
+          gap: 2px !important;
+          overflow: hidden !important;
+        }
+        :host([data-span="1x2"]) .net-label,
+        [data-span="1x2"] .net-label {
+          font-size: 12px !important;
+          font-weight: 600 !important;
+          white-space: nowrap !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+          max-width: 66px !important;
+          display: block !important;
+        }
+        :host([data-span="1x2"]) .net-sublabel,
+        [data-span="1x2"] .net-sublabel {
+          font-size: 10px !important;
+          opacity: 0.75 !important;
+          white-space: nowrap !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+          max-width: 66px !important;
+          display: block !important;
         }
         :host([data-span="2x1"]) .network-pill,
         [data-span="2x1"] .network-pill {
@@ -717,6 +985,83 @@ function initControlCenter() {
           min-width: 0 !important;
           text-align: center !important;
         }
+        :host([data-span="1x2"]) .view-widget,
+        [data-span="1x2"] .view-widget {
+          width: 100% !important;
+          height: 100% !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+        }
+        :host([data-span="1x2"]) .slider-row,
+        [data-span="1x2"] .slider-row {
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: center !important;
+          justify-content: space-between !important;
+          height: 100% !important;
+          width: 100% !important;
+          padding: 8px 4px !important;
+          gap: 4px !important;
+          box-sizing: border-box !important;
+        }
+        :host([data-span="1x2"]) .slider-val,
+        [data-span="1x2"] .slider-val {
+          font-size: 13px !important;
+          font-weight: 600 !important;
+          order: 1 !important;
+          text-align: center !important;
+          min-width: 0 !important;
+        }
+        :host([data-span="1x2"]) input[type="range"],
+        [data-span="1x2"] input[type="range"] {
+          display: block !important;
+          order: 2 !important;
+          -webkit-appearance: none !important;
+          appearance: none !important;
+          width: 82px !important;
+          height: 6px !important;
+          max-height: 6px !important;
+          border-radius: 3px !important;
+          outline: none !important;
+          cursor: pointer !important;
+          margin: 38px 0 !important;
+          transform: rotate(-90deg) !important;
+          touch-action: none !important;
+        }
+        :host([data-span="1x2"]) input[type="range"]::-webkit-slider-runnable-track,
+        [data-span="1x2"] input[type="range"]::-webkit-slider-runnable-track {
+          height: 6px !important;
+          max-height: 6px !important;
+          border-radius: 3px !important;
+          background: transparent !important;
+        }
+        :host([data-span="1x2"]) input[type="range"]::-webkit-slider-thumb,
+        [data-span="1x2"] input[type="range"]::-webkit-slider-thumb {
+          -webkit-appearance: none !important;
+          appearance: none !important;
+          width: 18px !important;
+          height: 18px !important;
+          border-radius: 50% !important;
+          background: var(--winzen-accent, #3684e3) !important;
+          background-clip: padding-box !important;
+          border: 4px solid var(--bright-thumb-outer, #fff) !important;
+          cursor: pointer !important;
+          margin-top: -6px !important;
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4) !important;
+        }
+        :host([data-span="1x2"]) .slider-icon,
+        [data-span="1x2"] .slider-icon,
+        :host([data-span="1x2"]) .slider-mute-btn,
+        [data-span="1x2"] .slider-mute-btn {
+          width: 20px !important;
+          height: 20px !important;
+          order: 3 !important;
+          opacity: 0.85 !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+        }
 
         :host([data-span="2x1"]) .slider-row,
         [data-span="2x1"] .slider-row {
@@ -750,6 +1095,17 @@ function initControlCenter() {
           gap: 4px !important;
           padding: 4px 6px !important;
         }
+        :host([data-span="1x2"]) .tray-cc-grid,
+        [data-span="1x2"] .tray-cc-grid {
+          grid-template-columns: repeat(2, 1fr) !important;
+          grid-auto-rows: 28px !important;
+          gap: 6px !important;
+          padding: 6px 4px !important;
+          width: 100% !important;
+          height: 100% !important;
+          align-content: center !important;
+          justify-content: center !important;
+        }
 
         /* Battery styling */
         .battery-widget {
@@ -758,6 +1114,77 @@ function initControlCenter() {
           justify-content: space-between;
           width: 100%;
           gap: 12px;
+        }
+        :host([data-span="1x2"]) .battery-pill,
+        [data-span="1x2"] .battery-pill {
+          width: 100% !important;
+          height: 100% !important;
+          padding: 8px 4px !important;
+          box-sizing: border-box !important;
+        }
+        :host([data-span="1x2"]) .battery-pill > .battery-pct,
+        [data-span="1x2"] .battery-pill > .battery-pct,
+        :host([data-span="1x2"]) .battery-pill > .battery-icon-wrap,
+        [data-span="1x2"] .battery-pill > .battery-icon-wrap {
+          display: none !important;
+        }
+        :host([data-span="1x2"]) .cc-battery-body,
+        [data-span="1x2"] .cc-battery-body {
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: center !important;
+          justify-content: space-around !important;
+          text-align: center !important;
+          width: 100% !important;
+          height: 100% !important;
+          padding: 8px 2px !important;
+          gap: 6px !important;
+          box-sizing: border-box !important;
+        }
+        :host([data-span="1x2"]) .cc-batt-top,
+        [data-span="1x2"] .cc-batt-top {
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: center !important;
+          justify-content: center !important;
+          gap: 6px !important;
+          padding-right: 0 !important;
+          width: 100% !important;
+        }
+        :host([data-span="1x2"]) .cc-batt-icon-slot,
+        [data-span="1x2"] .cc-batt-icon-slot {
+          transform: scale(1.15) !important;
+        }
+        :host([data-span="1x2"]) .cc-batt-pct,
+        [data-span="1x2"] .cc-batt-pct {
+          font-size: 16px !important;
+          font-weight: 700 !important;
+        }
+        :host([data-span="1x2"]) .cc-batt-status,
+        [data-span="1x2"] .cc-batt-status {
+          font-size: 9.5px !important;
+          white-space: nowrap !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+          max-width: 66px !important;
+          text-align: center !important;
+          opacity: 0.8 !important;
+          display: block !important;
+        }
+        :host([data-span="1x2"]) .cc-batt-track,
+        [data-span="1x2"] .cc-batt-track {
+          flex: none !important;
+          width: 100% !important;
+          max-width: 58px !important;
+          height: 5px !important;
+          max-height: 5px !important;
+          margin: 4px auto !important;
+          border-radius: 3px !important;
+        }
+        :host([data-span="1x2"]) .cc-batt-fill,
+        [data-span="1x2"] .cc-batt-fill {
+          height: 5px !important;
+          max-height: 5px !important;
         }
 
         ${w.cssContent || ''}

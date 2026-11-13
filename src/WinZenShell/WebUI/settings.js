@@ -1232,11 +1232,11 @@ function initSettingsPage() {
     const norm = normalizeSpan(widgetId, currentSpan);
     const isSlider = widgetId.includes('volume') || widgetId.includes('brightness');
     if (isSlider) {
-      const sliderCycle = ['4x1', '2x1', '1x1'];
+      const sliderCycle = ['4x1', '2x1', '1x2', '1x1'];
       const idx = sliderCycle.indexOf(norm);
       return sliderCycle[(idx + 1) % sliderCycle.length];
     }
-    const generalCycle = ['2x2', '2x1', '1x1', '4x1', '3x1'];
+    const generalCycle = ['2x2', '2x1', '1x2', '1x1', '4x1', '3x1'];
     const idx = generalCycle.indexOf(norm);
     if (idx === -1) return '2x2';
     return generalCycle[(idx + 1) % generalCycle.length];

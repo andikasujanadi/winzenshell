@@ -85,6 +85,7 @@ body.theme-light .cc-grid::-webkit-scrollbar-thumb:hover {
 
 /* Card Spans on 4-Column Grid */
 .cc-card[data-span="1x1"] { grid-column: span 1; grid-row: span 1; }
+.cc-card[data-span="1x2"] { grid-column: span 1; grid-row: span 2; }
 .cc-card[data-span="2x1"] { grid-column: span 2; grid-row: span 1; }
 .cc-card[data-span="2x2"] { grid-column: span 2; grid-row: span 2; }
 .cc-card[data-span="3x1"] { grid-column: span 3; grid-row: span 1; }
@@ -226,6 +227,11 @@ body.theme-light .cc-card-badge-resize {
 
 .is-editing .cc-card {
   cursor: grab;
+}
+
+.is-editing .cc-card[data-span="1x1"] .cc-card-content {
+  padding-right: 14px;
+  box-sizing: border-box;
 }
 
 .is-editing .cc-card:active {

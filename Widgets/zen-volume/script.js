@@ -85,6 +85,52 @@ if (slider) {
       window.winzen.send('set_volume', { value: val });
     }
   });
+
+  // Vertical drag support for 1x2 mode
+  let isPointerDragging = false;
+  const handleVerticalPointer = (ev) => {
+    const isVertical = (typeof widgetConfig !== 'undefined' && widgetConfig && (widgetConfig.aspectRatio === '1x2' || (widgetConfig.colSpan === 1 && widgetConfig.rowSpan === 2)));
+    if (!isVertical) return;
+    const rect = slider.getBoundingClientRect();
+    const clampedY = Math.max(rect.top, Math.min(rect.bottom, ev.clientY));
+    const pct = Math.round(((rect.bottom - clampedY) / (rect.height || 1)) * 100);
+    const val = Math.max(0, Math.min(100, pct));
+    slider.value = val;
+    isCurrentlyMuted = false;
+    updateVisuals(val, false);
+    if (window.winzen && window.winzen.volume && typeof window.winzen.volume.set === 'function') {
+      window.winzen.volume.set(val);
+    } else if (window.winzen) {
+      window.winzen.send('set_volume', { value: val });
+    }
+  };
+
+  slider.addEventListener('pointerdown', (ev) => {
+    const isVertical = (typeof widgetConfig !== 'undefined' && widgetConfig && (widgetConfig.aspectRatio === '1x2' || (widgetConfig.colSpan === 1 && widgetConfig.rowSpan === 2)));
+    if (isVertical) {
+      isPointerDragging = true;
+      try { slider.setPointerCapture(ev.pointerId); } catch {}
+      handleVerticalPointer(ev);
+      ev.stopPropagation();
+    }
+  });
+
+  slider.addEventListener('pointermove', (ev) => {
+    if (isPointerDragging) {
+      handleVerticalPointer(ev);
+      ev.stopPropagation();
+    }
+  });
+
+  const stopPointer = (ev) => {
+    if (isPointerDragging) {
+      isPointerDragging = false;
+      try { slider.releasePointerCapture(ev.pointerId); } catch {}
+      ev.stopPropagation();
+    }
+  };
+  slider.addEventListener('pointerup', stopPointer);
+  slider.addEventListener('pointercancel', stopPointer);
 }
 
 if (btnSliderMute) {

@@ -265,3 +265,81 @@ body.theme-light .slider-val {
 .in-control-center[data-aspect-ratio="1:2"] .slider-val {
   font-size: 12px;
 }
+
+/* CONTROL CENTER 1x2 Vertical Capsule */
+.in-control-center.cc-span-1x2 .slider-row,
+.in-control-center[data-aspect-ratio="1x2"] .slider-row,
+.in-control-center[data-span="1x2"] .slider-row {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  height: 100% !important;
+  width: 100% !important;
+  padding: 8px 4px !important;
+  gap: 4px !important;
+  box-sizing: border-box !important;
+}
+
+.in-control-center.cc-span-1x2 .slider-val,
+.in-control-center[data-aspect-ratio="1x2"] .slider-val,
+.in-control-center[data-span="1x2"] .slider-val {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  order: 1 !important;
+  text-align: center !important;
+  min-width: 0 !important;
+}
+
+:host([data-span="1x2"]) .brightness-slider,
+.in-control-center.cc-span-1x2 .brightness-slider,
+.in-control-center[data-aspect-ratio="1x2"] .brightness-slider,
+.in-control-center[data-span="1x2"] .brightness-slider {
+  display: block !important;
+  order: 2 !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  width: 82px !important;
+  height: 6px !important;
+  max-height: 6px !important;
+  border-radius: 3px !important;
+  outline: none !important;
+  cursor: pointer !important;
+  margin: 38px 0 !important;
+  transform: rotate(-90deg) !important;
+  touch-action: none !important;
+}
+
+:host([data-span="1x2"]) .brightness-slider::-webkit-slider-runnable-track,
+.in-control-center.cc-span-1x2 .brightness-slider::-webkit-slider-runnable-track,
+.in-control-center[data-span="1x2"] .brightness-slider::-webkit-slider-runnable-track {
+  height: 6px !important;
+  max-height: 6px !important;
+  border-radius: 3px !important;
+  background: transparent !important;
+}
+
+:host([data-span="1x2"]) .brightness-slider::-webkit-slider-thumb,
+.in-control-center.cc-span-1x2 .brightness-slider::-webkit-slider-thumb,
+.in-control-center[data-span="1x2"] .brightness-slider::-webkit-slider-thumb {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  width: 18px !important;
+  height: 18px !important;
+  border-radius: 50% !important;
+  background: var(--winzen-accent, #3684e3) !important;
+  background-clip: padding-box !important;
+  border: 4px solid var(--bright-thumb-outer, #fff) !important;
+  cursor: pointer !important;
+  margin-top: -6px !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4) !important;
+}
+
+.in-control-center.cc-span-1x2 .slider-icon,
+.in-control-center[data-aspect-ratio="1x2"] .slider-icon,
+.in-control-center[data-span="1x2"] .slider-icon {
+  width: 20px !important;
+  height: 20px !important;
+  order: 3 !important;
+  opacity: 0.85 !important;
+}

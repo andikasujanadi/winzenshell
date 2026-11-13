@@ -103,6 +103,11 @@
   color: var(--batt-charging, #6ccb5f);
 }
 
+:host([data-theme="light"]) .in-control-center .is-charging .cc-batt-status,
+.theme-light .in-control-center .is-charging .cc-batt-status {
+  color: #15803d !important;
+}
+
 .in-control-center .cc-batt-track {
   width: 100%;
   height: 5px;
@@ -157,6 +162,68 @@
 .in-control-center.cc-aspect-1-2 .cc-batt-track,
 .in-control-center[data-aspect-ratio="1:2"] .cc-batt-track {
   flex: 1;
+}
+
+/* CONTROL CENTER 1x2 Vertical Design */
+:host([data-span="1x2"]) .cc-battery-body,
+.in-control-center.cc-span-1x2 .cc-battery-body,
+.in-control-center[data-span="1x2"] .cc-battery-body {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: space-around !important;
+  text-align: center !important;
+  width: 100% !important;
+  height: 100% !important;
+  padding: 8px 2px !important;
+  gap: 6px !important;
+  box-sizing: border-box !important;
+}
+
+:host([data-span="1x2"]) .cc-batt-top,
+.in-control-center.cc-span-1x2 .cc-batt-top,
+.in-control-center[data-span="1x2"] .cc-batt-top {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  padding-right: 0 !important;
+  width: 100% !important;
+}
+
+:host([data-span="1x2"]) .cc-batt-icon-slot,
+.in-control-center.cc-span-1x2 .cc-batt-icon-slot,
+.in-control-center[data-span="1x2"] .cc-batt-icon-slot {
+  transform: scale(1.15) !important;
+}
+
+:host([data-span="1x2"]) .cc-batt-pct,
+.in-control-center.cc-span-1x2 .cc-batt-pct,
+.in-control-center[data-span="1x2"] .cc-batt-pct {
+  font-size: 16px !important;
+  font-weight: 700 !important;
+}
+
+:host([data-span="1x2"]) .cc-batt-status,
+.in-control-center.cc-span-1x2 .cc-batt-status,
+.in-control-center[data-span="1x2"] .cc-batt-status {
+  font-size: 9.5px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  max-width: 66px !important;
+  text-align: center !important;
+  opacity: 0.8 !important;
+  display: block !important;
+}
+
+:host([data-span="1x2"]) .cc-batt-track,
+.in-control-center.cc-span-1x2 .cc-batt-track,
+.in-control-center[data-span="1x2"] .cc-batt-track {
+  width: 100% !important;
+  max-width: 58px !important;
+  height: 4px !important;
 }
 
 .battery-pill:hover {

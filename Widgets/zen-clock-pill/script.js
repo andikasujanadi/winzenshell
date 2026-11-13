@@ -3,14 +3,19 @@ const timeText = doc.getElementById('timeText');
 const dateText = doc.getElementById('dateText');
 const clockBtn = doc.getElementById('clockBtn');
 
+const inControlCenter = typeof widgetConfig !== 'undefined' && widgetConfig && !!widgetConfig.inControlCenter;
+
 let showSeconds = typeof widgetConfig !== 'undefined' && widgetConfig
   ? widgetConfig.showSeconds !== false
   : true;
-let showDate = typeof widgetConfig !== 'undefined' && widgetConfig
-  ? widgetConfig.showDate !== false
-  : true;
+let showDate = inControlCenter
+  ? true
+  : (typeof widgetConfig !== 'undefined' && widgetConfig ? widgetConfig.showDate !== false : true);
 
 function applyClockLayout() {
+  if (inControlCenter) {
+    showDate = true;
+  }
   if (clockBtn) {
     clockBtn.classList.toggle('no-date', !showDate);
   }
@@ -27,7 +32,7 @@ function tickLocalClock() {
       : { hour12: false, hour: '2-digit', minute: '2-digit' };
     timeText.textContent = now.toLocaleTimeString([], opts);
   }
-  if (dateText && showDate) {
+  if (dateText) {
     dateText.textContent = now.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
   }
 }
@@ -39,12 +44,15 @@ setInterval(tickLocalClock, 1000);
 window.addEventListener('winzen:state', (e) => {
   const state = e.detail;
   if (!state) return;
+  if (inControlCenter) {
+    showDate = true;
+    applyClockLayout();
+    tickLocalClock();
+    return;
+  }
   let cfg = null;
   if (Array.isArray(state.widgets)) {
     cfg = state.widgets.find((w) => w.id === 'community.zen-clock-pill' || w.id === 'zen-clock-pill');
-  }
-  if (!cfg && Array.isArray(state.controlCenterWidgets)) {
-    cfg = state.controlCenterWidgets.find((w) => w.id === 'community.zen-clock-pill' || w.id === 'zen-clock-pill');
   }
   if (!cfg) return;
 
