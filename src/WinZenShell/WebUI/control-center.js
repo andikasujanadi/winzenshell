@@ -35,7 +35,7 @@ function initControlCenter() {
       } else {
         for (let i = 0; i < children.length; i++) {
           const ch = children[i];
-          if (!isEditing && ch.classList.contains('cc-slot-placeholder') && ch.dataset.extraRow === 'true') continue;
+          if (!isEditing && ch.classList.contains('cc-slot-placeholder')) continue;
           const bottom = ch.offsetTop + ch.offsetHeight;
           if (bottom > maxBottom) maxBottom = bottom;
         }
@@ -306,19 +306,18 @@ function initControlCenter() {
     const extraRows = isEditing ? 1 : 0;
     const totalRows = Math.max(isEditing ? 4 : 1, maxRow + extraRows);
 
-    // 1. Render empty placeholder slots in EVERY unoccupied cell
-    // This fills internal row gaps (e.g. next to Brightness 2x1) AND trailing rows in edit mode!
-    for (let r = 1; r <= totalRows; r++) {
-      for (let c = 1; c <= 4; c++) {
-        if (!getCell(r, c)) {
-          // If not in edit mode, only fill gaps within active rows up to maxRow
-          if (!isEditing && r > maxRow) continue;
-          const slot = document.createElement('div');
-          slot.className = 'cc-slot-placeholder';
-          slot.style.gridRow = `${r}`;
-          slot.style.gridColumn = `${c}`;
-          if (r > maxRow) slot.dataset.extraRow = 'true';
-          ccGrid.appendChild(slot);
+    // 1. Render empty placeholder slots in edit mode for unoccupied cells
+    if (isEditing) {
+      for (let r = 1; r <= totalRows; r++) {
+        for (let c = 1; c <= 4; c++) {
+          if (!getCell(r, c)) {
+            const slot = document.createElement('div');
+            slot.className = 'cc-slot-placeholder';
+            slot.style.gridRow = `${r}`;
+            slot.style.gridColumn = `${c}`;
+            if (r > maxRow) slot.dataset.extraRow = 'true';
+            ccGrid.appendChild(slot);
+          }
         }
       }
     }

@@ -126,8 +126,12 @@ body.theme-light .cc-card {
   align-items: stretch;
 }
 
-/* Empty Placeholder Slots in 4-Column Grid (as in Picture 2 & 4) */
+/* Empty Placeholder Slots in 4-Column Grid (visible only in Edit Mode) */
 .cc-slot-placeholder {
+  display: none;
+}
+
+.is-editing .cc-slot-placeholder {
   grid-column: span 1;
   grid-row: span 1;
   background: rgba(255, 255, 255, 0.07);
@@ -142,8 +146,8 @@ body.theme-light .cc-card {
   transition: opacity 0.15s ease;
 }
 
-html[data-theme="light"] .cc-slot-placeholder,
-body.theme-light .cc-slot-placeholder {
+html[data-theme="light"] .is-editing .cc-slot-placeholder,
+body.theme-light .is-editing .cc-slot-placeholder {
   background: #e8e8e8;
   border: 1px solid rgba(0, 0, 0, 0.04);
 }
