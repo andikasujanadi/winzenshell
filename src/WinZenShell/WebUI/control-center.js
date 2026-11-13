@@ -1115,6 +1115,132 @@ function initControlCenter() {
           width: 100%;
           gap: 12px;
         }
+        /* Battery 1x1 Compact Layout */
+        :host([data-span="1x1"]) .battery-pill,
+        [data-span="1x1"] .battery-pill {
+          width: 100% !important;
+          height: 100% !important;
+          padding: 4px !important;
+          box-sizing: border-box !important;
+        }
+        :host([data-span="1x1"]) .battery-pill > .battery-pct,
+        [data-span="1x1"] .battery-pct,
+        :host([data-span="1x1"]) .battery-pill > .battery-icon-wrap,
+        [data-span="1x1"] .battery-icon-wrap {
+          display: none !important;
+        }
+        :host([data-span="1x1"]) .cc-battery-body,
+        [data-span="1x1"] .cc-battery-body {
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: center !important;
+          justify-content: center !important;
+          gap: 3px !important;
+          width: 100% !important;
+          height: 100% !important;
+          padding: 2px !important;
+          box-sizing: border-box !important;
+          text-align: center !important;
+        }
+        :host([data-span="1x1"]) .cc-batt-top,
+        [data-span="1x1"] .cc-batt-top {
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: center !important;
+          justify-content: center !important;
+          gap: 3px !important;
+          padding-right: 0 !important;
+          width: 100% !important;
+        }
+        :host([data-span="1x1"]) .cc-batt-icon-slot,
+        [data-span="1x1"] .cc-batt-icon-slot {
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          transform: scale(1.25) !important;
+          transform-origin: center center !important;
+        }
+        :host([data-span="1x1"]) .cc-batt-pct,
+        [data-span="1x1"] .cc-batt-pct {
+          font-size: 15px !important;
+          font-weight: 700 !important;
+          line-height: 1.1 !important;
+          text-align: center !important;
+        }
+        :host([data-span="1x1"]) .cc-batt-status,
+        [data-span="1x1"] .cc-batt-status {
+          display: none !important;
+        }
+        :host([data-span="1x1"]) .cc-batt-track,
+        [data-span="1x1"] .cc-batt-track {
+          flex: none !important;
+          width: 46px !important;
+          max-width: 46px !important;
+          height: 4px !important;
+          max-height: 4px !important;
+          margin: 2px auto 0 auto !important;
+          border-radius: 2px !important;
+        }
+        :host([data-span="1x1"]) .cc-batt-fill,
+        [data-span="1x1"] .cc-batt-fill {
+          height: 4px !important;
+          max-height: 4px !important;
+          border-radius: 2px !important;
+        }
+
+        /* Battery 2x1 Layout */
+        :host([data-span="2x1"]) .cc-batt-top,
+        [data-span="2x1"] .cc-batt-top {
+          display: flex !important;
+          align-items: center !important;
+          justify-content: space-between !important;
+          padding-right: 0 !important;
+        }
+        :host([data-span="2x1"]) .cc-batt-pct,
+        [data-span="2x1"] .cc-batt-pct {
+          font-size: 18px !important;
+        }
+
+        /* Battery 2x2 Layout */
+        :host([data-span="2x2"]) .cc-battery-body,
+        [data-span="2x2"] .cc-battery-body {
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: center !important;
+          justify-content: space-evenly !important;
+          padding: 12px !important;
+          text-align: center !important;
+        }
+        :host([data-span="2x2"]) .cc-batt-top,
+        [data-span="2x2"] .cc-batt-top {
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: center !important;
+          justify-content: center !important;
+          gap: 8px !important;
+          padding-right: 0 !important;
+        }
+        :host([data-span="2x2"]) .cc-batt-icon-slot,
+        [data-span="2x2"] .cc-batt-icon-slot {
+          transform: scale(1.6) !important;
+        }
+        :host([data-span="2x2"]) .cc-batt-pct,
+        [data-span="2x2"] .cc-batt-pct {
+          font-size: 28px !important;
+          font-weight: 700 !important;
+        }
+        :host([data-span="2x2"]) .cc-batt-status,
+        [data-span="2x2"] .cc-batt-status {
+          font-size: 12px !important;
+          display: block !important;
+        }
+        :host([data-span="2x2"]) .cc-batt-track,
+        [data-span="2x2"] .cc-batt-track {
+          width: 100% !important;
+          max-width: 120px !important;
+          height: 6px !important;
+          margin: 0 auto !important;
+        }
         :host([data-span="1x2"]) .battery-pill,
         [data-span="1x2"] .battery-pill {
           width: 100% !important;
