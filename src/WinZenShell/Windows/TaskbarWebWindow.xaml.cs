@@ -2081,30 +2081,63 @@ public partial class TaskbarWebWindow : Window
             {
                 Dispatcher.Invoke(() =>
                 {
-                    var mon = WorkAreaAppBarService.GetPrimaryMonitorInfo().rcMonitor;
+                    double ccLeft = _controlCenterFlyout != null && _controlCenterFlyout.Left > 0 ? _controlCenterFlyout.Left : -1;
+                    double ccTop = _controlCenterFlyout != null && _controlCenterFlyout.Top > 0 ? _controlCenterFlyout.Top : -1;
+                    double ccWidth = _controlCenterFlyout?.Width ?? 368;
                     _networkFlyout ??= new NetworkFlyoutWindow(_networkService);
                     CloseAllFlyouts();
-                    _networkFlyout.ShowAt(mon.Right - 420, 34, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
+                    if (ccLeft > 0 && ccTop > 0)
+                    {
+                        double targetLeft = ccLeft + (ccWidth - _networkFlyout.Width);
+                        _networkFlyout.ShowAtExact(targetLeft, ccTop, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
+                    }
+                    else
+                    {
+                        var mon = WorkAreaAppBarService.GetPrimaryMonitorInfo().rcMonitor;
+                        _networkFlyout.ShowAt(mon.Right - 420, 34, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
+                    }
                 });
             }
             else if (action == "toggle_battery_flyout")
             {
                 Dispatcher.Invoke(() =>
                 {
-                    var mon = WorkAreaAppBarService.GetPrimaryMonitorInfo().rcMonitor;
+                    double ccLeft = _controlCenterFlyout != null && _controlCenterFlyout.Left > 0 ? _controlCenterFlyout.Left : -1;
+                    double ccTop = _controlCenterFlyout != null && _controlCenterFlyout.Top > 0 ? _controlCenterFlyout.Top : -1;
+                    double ccWidth = _controlCenterFlyout?.Width ?? 368;
                     _batteryFlyout ??= new BatteryFlyoutWindow();
                     CloseAllFlyouts();
-                    _batteryFlyout.ShowAt(mon.Right - 220, 48, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
+                    if (ccLeft > 0 && ccTop > 0)
+                    {
+                        double targetLeft = ccLeft + (ccWidth - _batteryFlyout.Width);
+                        _batteryFlyout.ShowAtExact(targetLeft, ccTop, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
+                    }
+                    else
+                    {
+                        var mon = WorkAreaAppBarService.GetPrimaryMonitorInfo().rcMonitor;
+                        _batteryFlyout.ShowAt(mon.Right - 220, 48, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
+                    }
                 });
             }
             else if (action == "toggle_bluetooth_flyout")
             {
                 Dispatcher.Invoke(() =>
                 {
-                    var mon = WorkAreaAppBarService.GetPrimaryMonitorInfo().rcMonitor;
+                    double ccLeft = _controlCenterFlyout != null && _controlCenterFlyout.Left > 0 ? _controlCenterFlyout.Left : -1;
+                    double ccTop = _controlCenterFlyout != null && _controlCenterFlyout.Top > 0 ? _controlCenterFlyout.Top : -1;
+                    double ccWidth = _controlCenterFlyout?.Width ?? 368;
                     _bluetoothFlyout ??= new BluetoothFlyoutWindow(_bluetoothService);
                     CloseAllFlyouts();
-                    _bluetoothFlyout.ShowAt(mon.Right - 420, 34, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
+                    if (ccLeft > 0 && ccTop > 0)
+                    {
+                        double targetLeft = ccLeft + (ccWidth - _bluetoothFlyout.Width);
+                        _bluetoothFlyout.ShowAtExact(targetLeft, ccTop, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
+                    }
+                    else
+                    {
+                        var mon = WorkAreaAppBarService.GetPrimaryMonitorInfo().rcMonitor;
+                        _bluetoothFlyout.ShowAt(mon.Right - 420, 34, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
+                    }
                 });
             }
             else if (action == "toggle_bluetooth")

@@ -145,6 +145,31 @@ public partial class NetworkFlyoutWindow : Window
         FlyoutAnimationHelper.AnimateShow(this, top, dockEdge);
     }
 
+    public void ShowAtExact(double exactLeft, double exactTop, string dockEdge, string theme, string accentColor)
+    {
+        ApplyTheme(theme);
+        ApplyAccentColor(accentColor);
+
+        Left = exactLeft;
+
+        double finalTop = exactTop;
+        if (!string.Equals(dockEdge, "Top", StringComparison.OrdinalIgnoreCase))
+        {
+            double flyoutH = ActualHeight > 50 ? ActualHeight : Height;
+            var mon = WorkAreaAppBarService.GetPrimaryMonitorInfo().rcMonitor;
+            double dpiY = VisualTreeHelper.GetDpi(this).DpiScaleY;
+            if (dpiY <= 0) dpiY = 1.0;
+            double monitorBottom = mon.Bottom / dpiY;
+            finalTop = monitorBottom - flyoutH - 10.0;
+        }
+
+        Top = finalTop;
+        UpdateActiveConnectionDisplay();
+        _ = RefreshNetworksAsync();
+
+        FlyoutAnimationHelper.AnimateShow(this, finalTop, dockEdge);
+    }
+
     public void UpdateActiveConnectionDisplay()
     {
         var status = _networkService.GetNetworkStatus();

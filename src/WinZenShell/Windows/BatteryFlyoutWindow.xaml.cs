@@ -305,6 +305,31 @@ public partial class BatteryFlyoutWindow : Window
         _ = RefreshPowerPlansAsync();
     }
 
+    public void ShowAtExact(double exactLeft, double exactTop, string dockEdge, string? theme = null, string? accent = null)
+    {
+        ApplyAccentColor(accent);
+        ApplyTheme(theme);
+        UpdateStatus();
+        UpdateLayout();
+
+        Left = exactLeft;
+
+        double finalTop = exactTop;
+        if (!string.Equals(dockEdge, "Top", StringComparison.OrdinalIgnoreCase))
+        {
+            double flyoutH = ActualHeight > 10 ? ActualHeight : 320;
+            var mon = WorkAreaAppBarService.GetPrimaryMonitorInfo().rcMonitor;
+            double dpiY = VisualTreeHelper.GetDpi(this).DpiScaleY;
+            if (dpiY <= 0) dpiY = 1.0;
+            double monitorBottom = mon.Bottom / dpiY;
+            finalTop = monitorBottom - flyoutH - 10.0;
+        }
+
+        Top = finalTop;
+        FlyoutAnimationHelper.AnimateShow(this, finalTop, dockEdge);
+        _ = RefreshPowerPlansAsync();
+    }
+
     public void ApplyAccentColor(string? hex)
     {
         if (string.IsNullOrWhiteSpace(hex)) return;
