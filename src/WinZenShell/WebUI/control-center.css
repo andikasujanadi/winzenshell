@@ -547,7 +547,6 @@ body.theme-light .cc-span-tag {
   background: var(--winzen-accent, #3684e3);
   color: #ffffff;
 }
-}
 
 body.winzen-no-anim *,
 body.winzen-no-anim *::before,

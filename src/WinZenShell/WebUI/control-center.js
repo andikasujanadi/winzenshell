@@ -142,7 +142,7 @@ function initControlCenter() {
     ccDrawerList.innerHTML = '';
 
     const currentIds = new Set(currentCcWidgets.map((w) => w.id));
-    const available = availableWidgets.filter((w) => !currentIds.has(w.id) && w.id !== 'zen-control-center');
+    const available = availableWidgets.filter((w) => !currentIds.has(w.id) && !w.id.includes('control-center'));
 
     if (available.length === 0) {
       ccDrawerList.innerHTML = `
@@ -154,19 +154,10 @@ function initControlCenter() {
     }
 
     available.forEach((w) => {
-      const isSlider = w.id.includes('volume') || w.id.includes('brightness') || w.id.includes('battery');
-      const defSpan = isSlider ? '4x1' : '2x2';
-
       const item = document.createElement('div');
       item.className = 'cc-drawer-item';
       item.innerHTML = `
-        <div style="flex: 1; min-width: 0;">
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <span class="cc-drawer-item-title">${escapeHtml(w.name || w.id)}</span>
-            <span class="cc-span-tag">${defSpan}</span>
-          </div>
-          <div class="cc-drawer-item-sub">${escapeHtml(w.description || 'Modular Control Center Widget')}</div>
-        </div>
+        <span class="cc-drawer-item-title">${escapeHtml(w.name || w.id)}</span>
         <button class="cc-drawer-add-pill" type="button">+ Add</button>
       `;
 
