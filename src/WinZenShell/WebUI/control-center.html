@@ -5,33 +5,42 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>WinZen Control Center</title>
   <link rel="stylesheet" href="universal-theme.css" />
-  <link rel="stylesheet" href="control-center.css" />
+  <link rel="stylesheet" href="control-center.css?v=2" />
 </head>
 <body>
   <div class="cc-container" id="ccContainer">
-    <!-- Grid Layout for 4-Column Modular Widgets -->
-    <main class="cc-grid" id="ccGrid">
-      <!-- Widgets mounted here dynamically (1x1, 2x1, 2x2, 3x1, 4x1) -->
-    </main>
+    <!-- Main Control Center Grid View -->
+    <div class="cc-view-main" id="ccMainView">
+      <main class="cc-grid" id="ccGrid">
+        <!-- Widgets mounted here dynamically (1x1, 2x1, 2x2, 3x1, 4x1) -->
+      </main>
 
-    <!-- Bottom Pill Action Bar -->
-    <footer class="cc-bottom-bar" id="ccBottomBar">
-      <button class="cc-pill-btn" id="btnEditControls" type="button">Edit Controls</button>
-      <button class="cc-pill-btn cc-add-btn" id="btnAddWidget" type="button" style="display: none;">+ Add Widget</button>
-      <button class="cc-pill-btn cc-done-btn" id="btnDoneControls" type="button" style="display: none;">Done</button>
-    </footer>
+      <!-- Bottom Pill Action Bar -->
+      <footer class="cc-bottom-bar" id="ccBottomBar">
+        <button class="cc-pill-btn" id="btnEditControls" type="button">Edit Controls</button>
+        <button class="cc-pill-btn cc-add-btn" id="btnAddWidget" type="button" style="display: none;">+ Add Widget</button>
+        <button class="cc-pill-btn cc-done-btn" id="btnDoneControls" type="button" style="display: none;">Done</button>
+      </footer>
+    </div>
 
-    <!-- Add Widget Drawer (shows available widgets not yet in Control Center) -->
-    <div class="cc-add-drawer" id="ccAddDrawer" style="display: none;">
-      <div class="cc-drawer-header">
-        <span class="cc-drawer-title">Add Widget</span>
-        <button class="cc-drawer-close" id="btnCcCloseDrawer" type="button" aria-label="Close">✕</button>
+    <!-- Full-View Add Widget Page (Separate full-height view) -->
+    <div class="cc-view-add" id="ccAddView" style="display: none;">
+      <div class="cc-add-header">
+        <div class="cc-add-header-left">
+          <button class="cc-back-btn" id="btnCcBack" type="button" aria-label="Back">
+            <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
+              <path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/>
+            </svg>
+          </button>
+          <span class="cc-add-title">Add Widget</span>
+        </div>
+        <button class="cc-pill-btn cc-add-done-btn" id="btnCcAddDone" type="button">Done</button>
       </div>
-      <div class="cc-drawer-list" id="ccDrawerList"></div>
+      <div class="cc-add-list" id="ccDrawerList"></div>
     </div>
   </div>
 
   <script src="bridge.js"></script>
-  <script src="control-center.js"></script>
+  <script src="control-center.js?v=2"></script>
 </body>
 </html>

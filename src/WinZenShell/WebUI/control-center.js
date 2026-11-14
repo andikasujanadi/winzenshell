@@ -1,18 +1,21 @@
 function initControlCenter() {
   const ccContainer = document.getElementById('ccContainer');
+  const ccMainView = document.getElementById('ccMainView');
+  const ccAddView = document.getElementById('ccAddView');
   const ccGrid = document.getElementById('ccGrid');
   const btnEditControls = document.getElementById('btnEditControls');
   const btnAddWidget = document.getElementById('btnAddWidget');
   const btnDoneControls = document.getElementById('btnDoneControls');
-  const ccAddDrawer = document.getElementById('ccAddDrawer');
   const ccDrawerList = document.getElementById('ccDrawerList');
-  const btnCcCloseDrawer = document.getElementById('btnCcCloseDrawer');
+  const btnCcBack = document.getElementById('btnCcBack');
+  const btnCcAddDone = document.getElementById('btnCcAddDone');
 
   let isEditing = false;
   let currentCcWidgets = [];
   let availableWidgets = [];
   let draggedCardId = null;
   let lastSentHeight = 0;
+  let selectedTargetSlot = null;
 
   let currentTheme = 'dark';
   let currentAccent = '#3684E3';
@@ -25,6 +28,8 @@ function initControlCenter() {
   function scheduleResize() {
     const measureAndSend = () => {
       if (!ccGrid || !window.winzen || typeof window.winzen.send !== 'function') return;
+      if (ccAddView && ccAddView.style.display !== 'none') return;
+
       const bottomBar = document.getElementById('ccBottomBar');
       const bottomBarH = bottomBar ? bottomBar.offsetHeight : 52;
 
@@ -61,16 +66,17 @@ function initControlCenter() {
     btnEditControls.addEventListener('click', () => toggleEditMode(true));
   }
   if (btnAddWidget) {
-    btnAddWidget.addEventListener('click', () => openAddDrawer());
+    btnAddWidget.addEventListener('click', () => openAddView());
   }
   if (btnDoneControls) {
     btnDoneControls.addEventListener('click', () => toggleEditMode(false));
   }
 
-  if (btnCcCloseDrawer && ccAddDrawer) {
-    btnCcCloseDrawer.addEventListener('click', () => {
-      ccAddDrawer.style.display = 'none';
-    });
+  if (btnCcBack) {
+    btnCcBack.addEventListener('click', () => closeAddView());
+  }
+  if (btnCcAddDone) {
+    btnCcAddDone.addEventListener('click', () => closeAddView());
   }
 
   function toggleEditMode(enable) {
@@ -85,70 +91,136 @@ function initControlCenter() {
       if (btnEditControls) btnEditControls.style.display = 'inline-flex';
       if (btnAddWidget) btnAddWidget.style.display = 'none';
       if (btnDoneControls) btnDoneControls.style.display = 'none';
-      if (ccAddDrawer) ccAddDrawer.style.display = 'none';
+      if (ccAddView && ccAddView.style.display !== 'none') {
+        closeAddView();
+        return;
+      }
     }
     renderControlCenter(currentCcWidgets);
     scheduleResize();
   }
 
   window.exitEditMode = () => {
+    if (ccAddView && ccAddView.style.display !== 'none') {
+      closeAddView();
+    }
     if (isEditing) toggleEditMode(false);
   };
   window.addEventListener('blur', () => {
     if (isEditing) toggleEditMode(false);
   });
 
-  function openAddDrawer() {
-    if (!ccAddDrawer || !ccDrawerList) return;
+  function openAddView(targetRow, targetCol) {
+    if (!ccAddView || !ccDrawerList) return;
+    selectedTargetSlot = (typeof targetRow === 'number' && typeof targetCol === 'number')
+      ? { row: targetRow, col: targetCol }
+      : null;
+
+    if (ccMainView) ccMainView.style.display = 'none';
+    ccAddView.style.display = 'flex';
+
+    // Expand flyout window to full comfortable height (520px) while browsing/adding
+    if (window.winzen && typeof window.winzen.send === 'function') {
+      window.winzen.send('resize_control_center', { height: 520 });
+    }
+
+    renderAddWidgetList();
+  }
+
+  function closeAddView() {
+    if (!ccAddView) return;
+    selectedTargetSlot = null;
+    ccAddView.style.display = 'none';
+    if (ccMainView) ccMainView.style.display = 'flex';
+
+    renderControlCenter(currentCcWidgets);
+    scheduleResize();
+  }
+
+  function renderAddWidgetList() {
+    if (!ccDrawerList) return;
     ccDrawerList.innerHTML = '';
 
     const currentIds = new Set(currentCcWidgets.map((w) => w.id));
     const available = availableWidgets.filter((w) => !currentIds.has(w.id) && w.id !== 'zen-control-center');
 
     if (available.length === 0) {
-      ccDrawerList.innerHTML = '<div style="padding:16px;text-align:center;color:#888;font-size:12px;">All available widgets are already in Control Center.</div>';
-    } else {
-      available.forEach((w) => {
-        const item = document.createElement('div');
-        item.className = 'cc-drawer-item';
-        item.innerHTML = `
-          <div>
-            <div class="cc-drawer-item-title">${escapeHtml(w.name || w.id)}</div>
-            <div class="cc-drawer-item-sub">${escapeHtml(w.description || 'Widget')}</div>
-          </div>
-          <span class="cc-drawer-add-pill">+ Add</span>
-        `;
-        item.addEventListener('click', () => {
-          addWidgetToCc(w.id);
-          ccAddDrawer.style.display = 'none';
-        });
-        ccDrawerList.appendChild(item);
-      });
+      ccDrawerList.innerHTML = `
+        <div style="padding: 36px 16px; text-align: center; color: #888; font-size: 13px;">
+          All available widgets are already in Control Center.
+        </div>
+      `;
+      return;
     }
 
-    ccAddDrawer.style.display = 'flex';
+    available.forEach((w) => {
+      const isSlider = w.id.includes('volume') || w.id.includes('brightness') || w.id.includes('battery');
+      const defSpan = isSlider ? '4x1' : '2x2';
+
+      const item = document.createElement('div');
+      item.className = 'cc-drawer-item';
+      item.innerHTML = `
+        <div style="flex: 1; min-width: 0;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="cc-drawer-item-title">${escapeHtml(w.name || w.id)}</span>
+            <span class="cc-span-tag">${defSpan}</span>
+          </div>
+          <div class="cc-drawer-item-sub">${escapeHtml(w.description || 'Modular Control Center Widget')}</div>
+        </div>
+        <button class="cc-drawer-add-pill" type="button">+ Add</button>
+      `;
+
+      const addBtn = item.querySelector('.cc-drawer-add-pill');
+      addBtn.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        addWidgetToCc(w.id, selectedTargetSlot);
+        selectedTargetSlot = null;
+        addBtn.textContent = '✓ Added';
+        addBtn.style.background = 'rgba(74, 222, 128, 0.2)';
+        addBtn.style.color = '#4ade80';
+        addBtn.disabled = true;
+        setTimeout(() => {
+          renderAddWidgetList();
+        }, 300);
+      });
+
+      item.addEventListener('click', () => {
+        addBtn.click();
+      });
+
+      ccDrawerList.appendChild(item);
+    });
   }
 
-  function addWidgetToCc(widgetId) {
+  function addWidgetToCc(widgetId, targetSlot) {
     const isSlider = widgetId.includes('volume') || widgetId.includes('brightness') || widgetId.includes('battery');
     const defaultSpan = isSlider ? '4x1' : '2x2';
-    const newOrder = (currentCcWidgets.length + 1) * 10;
+    const parts = defaultSpan.split('x');
+    const colSpan = parseInt(parts[0], 10) || 2;
+    const rowSpan = parseInt(parts[1], 10) || 1;
 
-    const updated = currentCcWidgets.map((w, idx) => ({
-      id: w.id,
-      order: (idx + 1) * 10,
-      aspectRatio: normalizeSpan(w.id, w.aspectRatio),
-      enabled: w.enabled !== false
-    }));
+    let targetRow = null;
+    let targetCol = null;
 
-    updated.push({
+    if (targetSlot && typeof targetSlot.row === 'number' && typeof targetSlot.col === 'number') {
+      targetRow = targetSlot.row;
+      targetCol = Math.min(targetSlot.col, 5 - colSpan);
+      if (targetCol < 1) targetCol = 1;
+    }
+
+    const newWidget = {
       id: widgetId,
-      order: newOrder,
+      order: (currentCcWidgets.length + 1) * 10,
       aspectRatio: defaultSpan,
+      colSpan,
+      rowSpan,
+      row: targetRow,
+      col: targetCol,
       enabled: true
-    });
+    };
 
-    window.winzen.send('update_control_center_widgets', { items: updated });
+    currentCcWidgets.push(newWidget);
+    commitWidgetPositions();
   }
 
   function normalizeSpan(widgetId, span) {
@@ -183,6 +255,8 @@ function initControlCenter() {
         id: w.id,
         order: w.order ?? 10,
         aspectRatio: normalizeSpan(w.id, w.aspectRatio),
+        row: w.row,
+        col: w.col,
         enabled: w.enabled !== false,
         batteryIconStyle: w.batteryIconStyle || 'win11',
         batteryPercentMode: w.batteryPercentMode || 'outside-right',
@@ -216,7 +290,33 @@ function initControlCenter() {
 
     availableWidgets = (state.widgets || []).slice();
     const ccList = state.controlCenterWidgets || [];
-    currentCcWidgets = ccList.slice().sort((a, b) => (a.order ?? 10) - (b.order ?? 10));
+    currentCcWidgets = ccList.slice().map((w, idx) => ({
+      id: w.id,
+      order: w.order ?? ((idx + 1) * 10),
+      aspectRatio: normalizeSpan(w.id, w.aspectRatio),
+      colSpan: w.colSpan || 2,
+      rowSpan: w.rowSpan || 1,
+      row: typeof w.row === 'number' && w.row >= 1 ? w.row : null,
+      col: typeof w.col === 'number' && w.col >= 1 && w.col <= 4 ? w.col : null,
+      enabled: w.enabled !== false,
+      name: w.name || w.id,
+      htmlContent: w.htmlContent,
+      cssContent: w.cssContent,
+      jsContent: w.jsContent,
+      batteryIconStyle: w.batteryIconStyle,
+      batteryPercentMode: w.batteryPercentMode,
+      startIcon: w.startIcon,
+      startIconColorMode: w.startIconColorMode,
+      showSeconds: w.showSeconds,
+      showDate: w.showDate,
+      showCpu: w.showCpu,
+      showRam: w.showRam,
+      showGpu: w.showGpu
+    })).sort((a, b) => {
+      if (a.row && b.row && a.row !== b.row) return a.row - b.row;
+      if (a.row && b.row) return (a.col || 1) - (b.col || 1);
+      return (a.order ?? 10) - (b.order ?? 10);
+    });
 
     const sig = buildCcSignature(currentCcWidgets, state.settings);
     if (sig !== lastCcRenderSig) {
@@ -230,6 +330,81 @@ function initControlCenter() {
   window.addEventListener('winzen:state', (e) => {
     applyStateUpdate(e.detail);
   });
+
+  function commitWidgetPositions() {
+    currentCcWidgets.sort((a, b) => {
+      const rA = a.row || 1, rB = b.row || 1;
+      if (rA !== rB) return rA - rB;
+      return (a.col || 1) - (b.col || 1);
+    });
+
+    const payload = currentCcWidgets.map((item, idx) => ({
+      id: item.id,
+      order: (idx + 1) * 10,
+      aspectRatio: normalizeSpan(item.id, item.aspectRatio),
+      colSpan: item.colSpan || 2,
+      rowSpan: item.rowSpan || 1,
+      row: item.row || 1,
+      col: item.col || 1,
+      enabled: item.enabled !== false
+    }));
+
+    window.winzen.send('update_control_center_widgets', { items: payload });
+  }
+
+  function moveWidgetToPosition(widgetId, targetRow, targetCol) {
+    const moved = currentCcWidgets.find((w) => w.id === widgetId);
+    if (!moved) return;
+
+    const span = normalizeSpan(moved.id, moved.aspectRatio);
+    const parts = span.split('x');
+    const colSpan = Math.max(1, Math.min(4, parseInt(parts[0], 10) || 2));
+    const rowSpan = Math.max(1, Math.min(2, parseInt(parts[1], 10) || 1));
+
+    let finalCol = Math.min(targetCol, 5 - colSpan);
+    if (finalCol < 1) finalCol = 1;
+    let finalRow = Math.max(1, targetRow);
+
+    const oldRow = moved.row || 1;
+    const oldCol = moved.col || 1;
+
+    // Check if target area overlaps any other widgets
+    const overlapping = [];
+    currentCcWidgets.forEach((w) => {
+      if (w.id === widgetId) return;
+      const wSpan = normalizeSpan(w.id, w.aspectRatio).split('x');
+      const wCols = Math.max(1, Math.min(4, parseInt(wSpan[0], 10) || 2));
+      const wRows = Math.max(1, Math.min(2, parseInt(wSpan[1], 10) || 1));
+      const wRow = w.row || 1;
+      const wCol = w.col || 1;
+
+      const colOverlap = Math.max(finalCol, wCol) <= Math.min(finalCol + colSpan - 1, wCol + wCols - 1);
+      const rowOverlap = Math.max(finalRow, wRow) <= Math.min(finalRow + rowSpan - 1, wRow + wRows - 1);
+      if (colOverlap && rowOverlap) {
+        overlapping.push(w);
+      }
+    });
+
+    if (overlapping.length === 0) {
+      moved.row = finalRow;
+      moved.col = finalCol;
+    } else if (overlapping.length === 1 && (overlapping[0].colSpan || 1) === colSpan && (overlapping[0].rowSpan || 1) === rowSpan) {
+      const other = overlapping[0];
+      other.row = oldRow;
+      other.col = oldCol;
+      moved.row = finalRow;
+      moved.col = finalCol;
+    } else {
+      moved.row = finalRow;
+      moved.col = finalCol;
+      overlapping.forEach((other) => {
+        other.row = oldRow;
+        other.col = Math.min(oldCol, 5 - (other.colSpan || 1));
+      });
+    }
+
+    commitWidgetPositions();
+  }
 
   function renderControlCenter(widgets) {
     ccGrid.innerHTML = '';
@@ -252,14 +427,56 @@ function initControlCenter() {
       gridMap[r][c] = val;
     };
 
+    // First pass: widgets with explicit (row, col)
     const placedList = [];
+    const unplacedWidgets = [];
+
     widgets.forEach((w) => {
       const span = normalizeSpan(w.id, w.aspectRatio);
       const parts = span.split('x');
       const colSpan = Math.max(1, Math.min(4, parseInt(parts[0], 10) || 2));
       const rowSpan = Math.max(1, Math.min(2, parseInt(parts[1], 10) || 1));
 
-      // Standard CSS grid auto-placement search (no dense packing, respects order)
+      const hasPos = typeof w.row === 'number' && w.row >= 1 &&
+                     typeof w.col === 'number' && w.col >= 1 && (w.col + colSpan - 1) <= 4;
+
+      if (hasPos) {
+        let canFit = true;
+        for (let dr = 0; dr < rowSpan; dr++) {
+          for (let dc = 0; dc < colSpan; dc++) {
+            if (getCell(w.row + dr, w.col + dc)) {
+              canFit = false;
+              break;
+            }
+          }
+          if (!canFit) break;
+        }
+        if (canFit) {
+          for (let dr = 0; dr < rowSpan; dr++) {
+            for (let dc = 0; dc < colSpan; dc++) {
+              setCell(w.row + dr, w.col + dc, w.id);
+            }
+          }
+          placedList.push({
+            widget: w,
+            span,
+            colSpan,
+            rowSpan,
+            row: w.row,
+            col: w.col
+          });
+          return;
+        }
+      }
+      unplacedWidgets.push({ widget: w, span, colSpan, rowSpan });
+    });
+
+    // Second pass: unplaced widgets find first free space
+    unplacedWidgets.forEach((item) => {
+      const w = item.widget;
+      const colSpan = item.colSpan;
+      const rowSpan = item.rowSpan;
+
       let r = 1;
       let placed = false;
       while (!placed) {
@@ -277,12 +494,14 @@ function initControlCenter() {
           if (canFit) {
             for (let dr = 0; dr < rowSpan; dr++) {
               for (let dc = 0; dc < colSpan; dc++) {
-                setCell(r + dr, c + dc, true);
+                setCell(r + dr, c + dc, w.id);
               }
             }
+            w.row = r;
+            w.col = c;
             placedList.push({
               widget: w,
-              span,
+              span: item.span,
               colSpan,
               rowSpan,
               row: r,
@@ -302,11 +521,11 @@ function initControlCenter() {
       if (endRow > maxRow) maxRow = endRow;
     });
 
-    // In edit mode, add at least 1 extra empty row of placeholders at the bottom (as in Picture 2 & 4)
+    // In edit mode, add extra empty rows at the bottom (minimum 4 rows)
     const extraRows = isEditing ? 1 : 0;
     const totalRows = Math.max(isEditing ? 4 : 1, maxRow + extraRows);
 
-    // 1. Render empty placeholder slots in edit mode for unoccupied cells
+    // 1. Render interactive empty placeholder slots in edit mode
     if (isEditing) {
       for (let r = 1; r <= totalRows; r++) {
         for (let c = 1; c <= 4; c++) {
@@ -315,7 +534,34 @@ function initControlCenter() {
             slot.className = 'cc-slot-placeholder';
             slot.style.gridRow = `${r}`;
             slot.style.gridColumn = `${c}`;
+            slot.dataset.row = `${r}`;
+            slot.dataset.col = `${c}`;
             if (r > maxRow) slot.dataset.extraRow = 'true';
+            slot.innerHTML = '<span class="cc-slot-plus">+</span>';
+            slot.title = 'Click to add widget or drop here';
+
+            slot.addEventListener('click', () => {
+              openAddView(r, c);
+            });
+
+            slot.addEventListener('dragover', (ev) => {
+              if (!isEditing || !draggedCardId) return;
+              ev.preventDefault();
+              slot.classList.add('drag-over');
+            });
+
+            slot.addEventListener('dragleave', () => {
+              slot.classList.remove('drag-over');
+            });
+
+            slot.addEventListener('drop', (ev) => {
+              if (!isEditing || !draggedCardId) return;
+              ev.preventDefault();
+              slot.classList.remove('drag-over');
+              moveWidgetToPosition(draggedCardId, r, c);
+              draggedCardId = null;
+            });
+
             ccGrid.appendChild(slot);
           }
         }
@@ -338,7 +584,7 @@ function initControlCenter() {
       card.style.gridRow = `${pw.row} / span ${rows}`;
       card.draggable = isEditing;
 
-      // Badges for edit mode (Picture 4)
+      // Badges for edit mode
       const btnRemove = document.createElement('button');
       btnRemove.className = 'cc-card-badge-remove';
       btnRemove.title = 'Remove widget';
@@ -346,14 +592,8 @@ function initControlCenter() {
       btnRemove.innerHTML = SVG_MINUS;
       btnRemove.addEventListener('click', (ev) => {
         ev.stopPropagation();
-        const filtered = currentCcWidgets.filter((item) => item.id !== w.id);
-        const payload = filtered.map((item, idx) => ({
-          id: item.id,
-          order: (idx + 1) * 10,
-          aspectRatio: normalizeSpan(item.id, item.aspectRatio),
-          enabled: item.enabled !== false
-        }));
-        window.winzen.send('update_control_center_widgets', { items: payload });
+        currentCcWidgets = currentCcWidgets.filter((item) => item.id !== w.id);
+        commitWidgetPositions();
       });
       card.appendChild(btnRemove);
 
@@ -421,23 +661,26 @@ function initControlCenter() {
         if (!hasMoved) {
           // Clicked without dragging: cycle span
           const nextSpan = getNextSpan(w.id, span);
-          const payload = currentCcWidgets.map((item) => ({
-            id: item.id,
-            order: item.order,
-            aspectRatio: item.id === w.id ? nextSpan : normalizeSpan(item.id, item.aspectRatio),
-            enabled: item.enabled !== false
-          }));
-          window.winzen.send('update_control_center_widgets', { items: payload });
+          const nParts = nextSpan.split('x');
+          const nCols = parseInt(nParts[0], 10) || 2;
+          const nRows = parseInt(nParts[1], 10) || 1;
+          w.aspectRatio = nextSpan;
+          w.colSpan = nCols;
+          w.rowSpan = nRows;
+          if ((w.col || 1) + nCols - 1 > 4) {
+            w.col = Math.max(1, 5 - nCols);
+          }
+          commitWidgetPositions();
         } else {
           // Dragged: commit new size
           const finalSpan = `${curCols}x${curRows}`;
-          const payload = currentCcWidgets.map((item) => ({
-            id: item.id,
-            order: item.order,
-            aspectRatio: item.id === w.id ? finalSpan : normalizeSpan(item.id, item.aspectRatio),
-            enabled: item.enabled !== false
-          }));
-          window.winzen.send('update_control_center_widgets', { items: payload });
+          w.aspectRatio = finalSpan;
+          w.colSpan = curCols;
+          w.rowSpan = curRows;
+          if ((w.col || 1) + curCols - 1 > 4) {
+            w.col = Math.max(1, 5 - curCols);
+          }
+          commitWidgetPositions();
         }
       };
 
@@ -462,6 +705,7 @@ function initControlCenter() {
       card.addEventListener('dragend', () => {
         card.classList.remove('dragging');
         document.querySelectorAll('.cc-card').forEach((c) => c.classList.remove('drag-over'));
+        document.querySelectorAll('.cc-slot-placeholder').forEach((s) => s.classList.remove('drag-over'));
       });
 
       card.addEventListener('dragover', (ev) => {
@@ -478,23 +722,7 @@ function initControlCenter() {
         if (!isEditing || !draggedCardId || draggedCardId === w.id) return;
         ev.preventDefault();
         card.classList.remove('drag-over');
-
-        const fromIdx = currentCcWidgets.findIndex((item) => item.id === draggedCardId);
-        const toIdx = currentCcWidgets.findIndex((item) => item.id === w.id);
-        if (fromIdx !== -1 && toIdx !== -1) {
-          const reordered = currentCcWidgets.slice();
-          const [moved] = reordered.splice(fromIdx, 1);
-          reordered.splice(toIdx, 0, moved);
-
-          const payload = reordered.map((item, idx) => ({
-            id: item.id,
-            order: (idx + 1) * 10,
-            aspectRatio: normalizeSpan(item.id, item.aspectRatio),
-            enabled: item.enabled !== false
-          }));
-
-          window.winzen.send('update_control_center_widgets', { items: payload });
-        }
+        moveWidgetToPosition(draggedCardId, pw.row, pw.col);
         draggedCardId = null;
       });
 

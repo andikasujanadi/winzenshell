@@ -25,6 +25,12 @@ public class ControlCenterItemConfig
     [JsonPropertyName("rowSpan")]
     public int RowSpan { get; set; } = 1;
 
+    [JsonPropertyName("row")]
+    public int? Row { get; set; }
+
+    [JsonPropertyName("col")]
+    public int? Col { get; set; }
+
     [JsonPropertyName("enabled")]
     public bool Enabled { get; set; } = true;
 }
@@ -48,6 +54,12 @@ public class ControlCenterItemPayload
 
     [JsonPropertyName("rowSpan")]
     public int RowSpan { get; set; } = 1;
+
+    [JsonPropertyName("row")]
+    public int? Row { get; set; }
+
+    [JsonPropertyName("col")]
+    public int? Col { get; set; }
 
     [JsonPropertyName("enabled")]
     public bool Enabled { get; set; } = true;
@@ -712,6 +724,8 @@ public class ShellStateService
                     AspectRatio = finalRatio,
                     ColSpan = colSpan,
                     RowSpan = rowSpan,
+                    Row = cc.Row,
+                    Col = cc.Col,
                     Enabled = cc.Enabled,
                     HtmlContent = match.HtmlContent,
                     CssContent = match.CssContent,
