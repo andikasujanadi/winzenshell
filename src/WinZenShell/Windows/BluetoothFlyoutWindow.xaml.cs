@@ -157,18 +157,18 @@ public partial class BluetoothFlyoutWindow : Window
             };
 
             var grid = new Grid();
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(28) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-            // Device Icon
+            // Device Icon (Centered in fixed 28px column keeps all device names 100% aligned)
             var iconPath = new Path
             {
                 Width = 16,
                 Height = 16,
                 Stretch = Stretch.Uniform,
-                VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(0, 0, 12, 0)
+                HorizontalAlignment = WpfHorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
             };
 
             if (dev.DeviceType == "audio" || dev.DeviceType == "phone" || dev.DeviceType == "computer" || dev.DeviceType == "peripheral")
@@ -199,7 +199,11 @@ public partial class BluetoothFlyoutWindow : Window
             grid.Children.Add(iconPath);
 
             // Names & Details
-            var textStack = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+            var textStack = new StackPanel
+            {
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(6, 0, 8, 0)
+            };
             var nameTxt = new TextBlock
             {
                 Text = dev.Name,
