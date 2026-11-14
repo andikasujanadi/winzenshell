@@ -26,9 +26,6 @@
       quit() {
         postToNative({ action: 'quit_app' });
       },
-      restart() {
-        postToNative({ action: 'restart_app' });
-      },
       setTheme(theme) {
         postToNative({ action: 'set_theme', theme: String(theme || 'dark') });
       },
@@ -250,6 +247,36 @@
           height: Number(height || 34)
         });
       }
+    },
+    media: {
+      get() {
+        return (window.winzen.metrics && window.winzen.metrics.media) || {
+          hasMedia: false,
+          isPlaying: false,
+          title: 'No Media is Playing',
+          artist: '',
+          albumTitle: '',
+          thumbnailBase64: ''
+        };
+      },
+      play() {
+        postToNative({ action: 'media_play' });
+      },
+      pause() {
+        postToNative({ action: 'media_pause' });
+      },
+      togglePlayPause() {
+        postToNative({ action: 'media_play_pause' });
+      },
+      next() {
+        postToNative({ action: 'media_next' });
+      },
+      previous() {
+        postToNative({ action: 'media_previous' });
+      },
+      seek(positionSeconds) {
+        postToNative({ action: 'media_seek', position: Number(positionSeconds) });
+      }
     }
   };
 
@@ -258,11 +285,7 @@
     if (msg.type === 'state_update' && msg.payload) {
       window.winzen.state = msg.payload;
       const theme = (msg.payload.settings && msg.payload.settings.theme) || 'dark';
-      const accent = (msg.payload.settings && msg.payload.settings.accentColor) || '#3684E3';
       document.documentElement.setAttribute('data-theme', theme);
-      document.documentElement.style.setProperty('--winzen-accent', accent);
-      document.documentElement.style.setProperty('--winzen-border-accent', accent);
-      document.documentElement.style.setProperty('--win11-accent', accent);
       if (document.body) {
         if (theme === 'light') {
           document.body.classList.add('theme-light');
@@ -273,7 +296,7 @@
         }
       }
       window.dispatchEvent(new CustomEvent('winzen:state', { detail: msg.payload }));
-      window.dispatchEvent(new CustomEvent('winzen:theme', { detail: { theme, accentColor: accent } }));
+      window.dispatchEvent(new CustomEvent('winzen:theme', { detail: { theme } }));
     } else if (msg.type === 'metrics_update' && msg.payload) {
       window.winzen.metrics = msg.payload;
       window.dispatchEvent(new CustomEvent('winzen:metrics', { detail: msg.payload }));

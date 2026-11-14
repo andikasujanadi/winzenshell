@@ -247,6 +247,36 @@
           height: Number(height || 34)
         });
       }
+    },
+    media: {
+      get() {
+        return (window.winzen.metrics && window.winzen.metrics.media) || {
+          hasMedia: false,
+          isPlaying: false,
+          title: 'No Media is Playing',
+          artist: '',
+          albumTitle: '',
+          thumbnailBase64: ''
+        };
+      },
+      play() {
+        postToNative({ action: 'media_play' });
+      },
+      pause() {
+        postToNative({ action: 'media_pause' });
+      },
+      togglePlayPause() {
+        postToNative({ action: 'media_play_pause' });
+      },
+      next() {
+        postToNative({ action: 'media_next' });
+      },
+      previous() {
+        postToNative({ action: 'media_previous' });
+      },
+      seek(positionSeconds) {
+        postToNative({ action: 'media_seek', position: Number(positionSeconds) });
+      }
     }
   };
 

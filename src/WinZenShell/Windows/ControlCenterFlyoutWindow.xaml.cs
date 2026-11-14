@@ -288,6 +288,12 @@ public partial class ControlCenterFlyoutWindow : Window
                 case "toggle_bluetooth":
                 case "toggle_bluetooth_flyout":
                 case "open_bluetooth_settings":
+                case "media_play":
+                case "media_pause":
+                case "media_play_pause":
+                case "media_next":
+                case "media_previous":
+                case "media_seek":
                     _forwardActionCallback?.Invoke(action, e.WebMessageAsJson);
                     break;
             }

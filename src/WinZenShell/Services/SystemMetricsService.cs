@@ -67,12 +67,14 @@ public class SystemMetricsSnapshot
     public string BluetoothDeviceName { get; set; } = "";
     public string BluetoothStatusText { get; set; } = "Off";
     public List<TrayIconItem> TrayIcons { get; set; } = new();
+    public MediaPlaybackSnapshot Media { get; set; } = new();
 }
 
 public class SystemMetricsService
 {
     public BrightnessService? Brightness { get; set; }
     public AudioService? Audio { get; set; }
+    public MediaService? Media { get; set; }
     public VirtualDesktopService? VirtualDesktops { get; set; }
     public NetworkService? Network { get; set; }
     public BluetoothService? Bluetooth { get; set; }
@@ -245,7 +247,8 @@ public class SystemMetricsService
             BluetoothConnected = btConnected,
             BluetoothDeviceName = btDeviceName,
             BluetoothStatusText = btStatus,
-            TrayIcons = TrayIcons?.GetActiveTrayIcons() ?? new()
+            TrayIcons = TrayIcons?.GetActiveTrayIcons() ?? new(),
+            Media = Media?.CurrentSnapshot ?? new()
         };
     }
 

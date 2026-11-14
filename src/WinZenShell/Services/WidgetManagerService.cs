@@ -86,6 +86,9 @@ public class WidgetManifest
     [JsonPropertyName("showGpu")]
     public bool ShowGpu { get; set; } = true;
 
+    [JsonPropertyName("showThumbnail")]
+    public bool ShowThumbnail { get; set; } = true;
+
     [JsonPropertyName("displayMode")]
     public string DisplayMode { get; set; } = "widget"; // "icon" or "widget"
 
@@ -230,6 +233,7 @@ public class WidgetManagerService
                     manifest.ShowCpu = ov.ShowCpu;
                     manifest.ShowRam = ov.ShowRam;
                     manifest.ShowGpu = ov.ShowGpu;
+                    manifest.ShowThumbnail = ov.ShowThumbnail;
                 }
 
                 result.Add(manifest);
@@ -420,6 +424,7 @@ public class WidgetStateOverride
     public bool ShowCpu { get; set; } = true;
     public bool ShowRam { get; set; } = true;
     public bool ShowGpu { get; set; } = true;
+    public bool ShowThumbnail { get; set; } = true;
 }
 
 public class WidgetOrderUpdate

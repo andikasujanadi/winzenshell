@@ -40,6 +40,7 @@ public partial class TaskbarWebWindow : Window
     private readonly NetworkService _networkService;
     private readonly BluetoothService _bluetoothService;
     private readonly TrayIconService _trayIconService;
+    private readonly MediaService _mediaService;
     private readonly WallpaperBackdropService _wallpaperBackdrop = new();
     private FileSystemWatcher? _triggerWatcher;
     private Forms.ContextMenuStrip? _activeNativeMenu;
@@ -69,11 +70,13 @@ public partial class TaskbarWebWindow : Window
         _networkService = new NetworkService();
         _bluetoothService = new BluetoothService();
         _trayIconService = new TrayIconService();
+        _mediaService = new MediaService();
         _metricsService.Audio = _audioService;
         _metricsService.VirtualDesktops = _virtualDesktopService;
         _metricsService.Network = _networkService;
         _metricsService.Bluetooth = _bluetoothService;
         _metricsService.TrayIcons = _trayIconService;
+        _metricsService.Media = _mediaService;
         _appLauncherService = appLauncherService;
         _openSettingsCallback = openSettingsCallback;
 
@@ -82,6 +85,8 @@ public partial class TaskbarWebWindow : Window
         _shellState.TaskbarBoundsUpdated += OnTaskbarBoundsUpdated;
         _networkService.NetworkChanged += (_, _) => Dispatcher.Invoke(BroadcastMetrics);
         _bluetoothService.BluetoothChanged += (_, _) => Dispatcher.Invoke(BroadcastMetrics);
+        _mediaService.MediaChanged += _ => Dispatcher.Invoke(BroadcastMetrics);
+        _ = _mediaService.InitializeAsync();
         _brightnessService.BrightnessChanged += val => Dispatcher.Invoke(() =>
         {
             if (_brightnessFlyout != null && _brightnessFlyout.IsVisible)
@@ -1000,6 +1005,33 @@ public partial class TaskbarWebWindow : Window
 
                 case "open_settings":
                     _openSettingsCallback.Invoke();
+                    break;
+
+                case "media_play":
+                    _ = _mediaService.TryPlayAsync();
+                    break;
+
+                case "media_pause":
+                    _ = _mediaService.TryPauseAsync();
+                    break;
+
+                case "media_play_pause":
+                    _ = _mediaService.TryTogglePlayPauseAsync();
+                    break;
+
+                case "media_next":
+                    _ = _mediaService.TrySkipNextAsync();
+                    break;
+
+                case "media_previous":
+                    _ = _mediaService.TrySkipPreviousAsync();
+                    break;
+
+                case "media_seek":
+                    if (root.TryGetProperty("position", out var posProp) && posProp.TryGetDouble(out double posVal))
+                    {
+                        _ = _mediaService.TryChangePlaybackPositionAsync(posVal);
+                    }
                     break;
 
                 case "open_start_menu":
@@ -2147,6 +2179,33 @@ public partial class TaskbarWebWindow : Window
             else if (action == "open_bluetooth_settings")
             {
                 BluetoothService.OpenWindowsBluetoothSettings();
+            }
+            else if (action == "media_play")
+            {
+                _ = _mediaService.TryPlayAsync();
+            }
+            else if (action == "media_pause")
+            {
+                _ = _mediaService.TryPauseAsync();
+            }
+            else if (action == "media_play_pause")
+            {
+                _ = _mediaService.TryTogglePlayPauseAsync();
+            }
+            else if (action == "media_next")
+            {
+                _ = _mediaService.TrySkipNextAsync();
+            }
+            else if (action == "media_previous")
+            {
+                _ = _mediaService.TrySkipPreviousAsync();
+            }
+            else if (action == "media_seek")
+            {
+                if (root.TryGetProperty("position", out var posProp) && posProp.TryGetDouble(out double posVal))
+                {
+                    _ = _mediaService.TryChangePlaybackPositionAsync(posVal);
+                }
             }
         }
         catch { }

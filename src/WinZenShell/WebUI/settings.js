@@ -633,6 +633,7 @@ function initSettingsPage() {
       const isBattery = w.id === 'community.zen-battery';
       const isClock = w.id === 'community.zen-clock-pill';
       const isSystemMonitor = w.id === 'community.zen-system-monitor';
+      const isMedia = w.id.includes('media-player');
 
       const isExpanded = expandedWidgetIds.has(w.id);
 
@@ -757,6 +758,15 @@ function initSettingsPage() {
             </label>
           </div>
         `;
+      } else if (isMedia) {
+        specializedOptionsHtml = `
+          <div class="tc-opt-checks">
+            <label class="inline-check">
+              <input type="checkbox" class="w-showthumbnail" ${w.showThumbnail !== false ? 'checked' : ''} />
+              <span>Show album thumbnail in taskbar</span>
+            </label>
+          </div>
+        `;
       }
 
       const hasMultipleModes = !w.supportedModes || w.supportedModes.length > 1;
@@ -843,6 +853,7 @@ function initSettingsPage() {
       const showCpuInput = chip.querySelector('.w-showcpu');
       const showRamInput = chip.querySelector('.w-showram');
       const showGpuInput = chip.querySelector('.w-showgpu');
+      const showThumbnailInput = chip.querySelector('.w-showthumbnail');
 
       const pushUpdate = () => {
         let targetSlot = chip.dataset.region || regionKey;
@@ -887,6 +898,7 @@ function initSettingsPage() {
           showCpu: showCpuInput ? showCpuInput.checked : (w.showCpu !== false),
           showRam: showRamInput ? showRamInput.checked : (w.showRam !== false),
           showGpu: showGpuInput ? showGpuInput.checked : (w.showGpu !== false),
+          showThumbnail: showThumbnailInput ? showThumbnailInput.checked : (w.showThumbnail !== false),
           displayMode: displayModeSelect ? displayModeSelect.value : (w.displayMode || (w.supportedModes && w.supportedModes[0] ? w.supportedModes[0] : 'widget')),
           aspectRatio: w.aspectRatio || '1:1'
         });
@@ -910,6 +922,7 @@ function initSettingsPage() {
       if (showCpuInput) showCpuInput.addEventListener('change', pushUpdate);
       if (showRamInput) showRamInput.addEventListener('change', pushUpdate);
       if (showGpuInput) showGpuInput.addEventListener('change', pushUpdate);
+      if (showThumbnailInput) showThumbnailInput.addEventListener('change', pushUpdate);
 
       const collapseBtn = chip.querySelector('.tc-collapse-btn');
       const toggleCollapse = () => {

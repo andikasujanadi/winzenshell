@@ -1,6 +1,6 @@
 # WinZenShell — Antigravity Session Handoff & Architecture Guide
 
-> **Current State**: `v0.2.1`  
+> **Current State**: `v0.2.2`  
 > **Platform**: Windows 11 (64-bit)  
 > **Framework**: .NET 10 (WPF) + Microsoft.Web.WebView2 + Native Win32 APIs  
 > **Frontend**: Vanilla Web Components (Custom Elements v1, Shadow DOM, CSS Custom Properties)
@@ -35,6 +35,7 @@ This document serves as the complete handoff for another Antigravity AI pair pro
 │  • BrightnessService: WmiMonitorBrightness / DDC/CI controls           │
 │  • VirtualDesktopService: IVirtualDesktopManager virtual desktop APIs  │
 │  • AppLauncherService: Start Menu & shell app indexer + search engine  │
+│  • MediaService: Windows.Media.Control GSMTC session manager & controls│
 │  • ShellStateService: Unified JSON settings persistence & state events │
 │  • WidgetManagerService: Manifest discovery, packaging & hot-reload   │
 └─────────────────────────────────┬──────────────────────────────────────┘
@@ -106,6 +107,8 @@ This document serves as the complete handoff for another Antigravity AI pair pro
 | `zen-battery` | `right` | W11, W10, M27 (iOS 27) battery styles & charging states | Power & Sleep settings shortcut |
 | `zen-system-monitor` | `right` | Real-time CPU & RAM usage | `SystemMonitorFlyoutWindow` |
 | `zen-control-center` | `right` | Authentic 2-switch toggle icon (SF Symbols `switch.2`) | `ControlCenterFlyoutWindow` (modular grid) |
+| `zen-bluetooth` | `right` | Fluent 2 Bluetooth device manager & radio toggle | `BluetoothFlyoutWindow` |
+| `zen-media-player` | `right/center` | Windows GSMTC media playback, album art, seekbar & controls | Multi-layout Control Center card (`1x1` to `4x1`) |
 
 ### 3.5 Battery & Power Studio (`zen-battery`)
 - **Precision Vector SVG Geometry**:
@@ -149,6 +152,19 @@ This document serves as the complete handoff for another Antigravity AI pair pro
   - `zen-volume` and `zen-brightness` vertical `1x2` slider orientation with high values at top and icon anchored at bottom.
   - `zen-clock-pill` date enforced across all spans in Control Center.
 
+### 3.8 Media Player Studio (`zen-media-player`) (v0.2.2)
+- **Windows GSMTC Integration**:
+  - `MediaService.cs` subscribes to `GlobalSystemMediaTransportControlsSessionManager` events: `CurrentSessionChanged`, `MediaPropertiesChanged`, `PlaybackInfoChanged`, and `TimelinePropertiesChanged`.
+  - Album art thumbnails are converted asynchronously from `IRandomAccessStreamWithContentType` into PNG/JPEG base64 data URIs.
+  - Interactive playback timeline scrubbing with bi-directional IPC (`seekMedia` -> `TryChangePlaybackPositionAsync`).
+- **Responsive Multi-Aspect Ratio Control Center Layouts**:
+  - `1x1`, `2x1`, `2x2`, `3x1`, `4x1`, and `1x2` layouts dynamically reflow based on card container width.
+  - Consistent seekbar heights and scrub thumb positioning across all horizontal and 2x2 spans.
+  - Inactive state with "No Media is Playing" messaging and disabled controls.
+- **Taskbar Customization**:
+  - Show/hide album art thumbnail toggle in Settings (`zen-media-player` configuration section).
+  - Compact 28px album thumbnail with 4px vertical margins perfectly matching 36px dock aesthetics.
+
 ---
 
 ## 4. Repository Structure
@@ -159,9 +175,13 @@ winzenshell/
 │   ├── bridge.js                           # Standard host bridge for standalone testing
 │   ├── universal-theme.css                 # Universal Fluent 2 design tokens
 │   ├── zen-active-windows/                 # Task switcher widget
+│   ├── zen-battery/                        # Battery & power indicator widget
+│   ├── zen-bluetooth/                      # Bluetooth device toggle widget
 │   ├── zen-brightness/                     # Brightness widget
 │   ├── zen-clock-pill/                     # Clock & date widget
 │   ├── zen-control-center/                 # Control center button widget
+│   ├── zen-media-player/                   # GSMTC media player widget
+│   ├── zen-network/                        # Network & Wi-Fi widget
 │   ├── zen-start-button/                   # Start launcher widget
 │   ├── zen-system-monitor/                 # CPU/RAM telemetry widget
 │   ├── zen-virtual-desktops/               # Windows 11 virtual desktop switcher
@@ -169,13 +189,16 @@ winzenshell/
 │
 ├── src/WinZenShell/                        # .NET 10 WPF Application
 │   ├── App.xaml / App.xaml.cs              # Entry point, single-instance mutex, failsafe hotkeys
-│   ├── WinZenShell.csproj                  # Project config (net10.0-windows, v0.2.1)
+│   ├── WinZenShell.csproj                  # Project config (net10.0-windows, v0.2.2)
 │   ├── Native/
 │   │   └── Win32Api.cs                     # P/Invoke definitions (User32, Shell32, DwmApi, Ole32)
 │   ├── Services/
 │   │   ├── AppLauncherService.cs           # Start Menu app scanner & icon extractor
 │   │   ├── AudioService.cs                 # CoreAudio endpoint volume & mute
+│   │   ├── BluetoothService.cs             # bthprops.cpl Bluetooth radio & device status
 │   │   ├── BrightnessService.cs            # WMI monitor brightness
+│   │   ├── MediaService.cs                 # Windows GSMTC session manager & transport controls
+│   │   ├── NetworkService.cs               # WLAN API Wi-Fi scanning & NetworkInformation
 │   │   ├── ShellStateService.cs            # State persistence (settings.json)
 │   │   ├── SystemMetricsService.cs         # Performance counters & window enumeration
 │   │   ├── VirtualDesktopService.cs        # IVirtualDesktopManager interop
@@ -192,8 +215,10 @@ winzenshell/
 │       ├── TaskbarWebWindow.xaml[.cs]      # Main custom taskbar window
 │       ├── SettingsWebWindow.xaml[.cs]     # Settings window
 │       ├── AppLauncherFlyoutWindow.xaml[.cs]
+│       ├── BluetoothFlyoutWindow.xaml[.cs]
 │       ├── ControlCenterFlyoutWindow.xaml[.cs]
 │       ├── ClockFlyoutWindow.xaml[.cs]
+│       ├── NetworkFlyoutWindow.xaml[.cs]
 │       ├── SystemMonitorFlyoutWindow.xaml[.cs]
 │       ├── VolumeFlyoutWindow.xaml[.cs]
 │       └── BrightnessFlyoutWindow.xaml[.cs]

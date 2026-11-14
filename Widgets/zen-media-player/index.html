@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- 1. Icon Mode View (for Taskbar Icon mode or small icon placement) -->
+  <div class="view-icon" id="viewIcon">
+    <button class="media-icon-btn" id="btnMediaIcon" aria-label="Media Player" title="No Media is Playing">
+      <svg class="media-disc-svg" viewBox="0 0 16 16" fill="currentColor">
+        <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+        <path d="M8 6.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM8 5a3 3 0 1 1 0 6 3 3 0 0 1 0-6z"/>
+      </svg>
+      <span class="media-playing-dot" id="iconPlayingDot"></span>
+    </button>
+  </div>
+
+  <!-- 2. Widget Mode View (for Taskbar dock & Control Center grid) -->
+  <div class="view-widget no-media" id="viewWidget">
+    <div class="media-container" id="mediaContainer">
+      <!-- Album Artwork -->
+      <div class="media-art-wrap" id="mediaArtWrap">
+        <img class="media-art-img" id="mediaArtImg" alt="Album Cover" src="" />
+        <div class="media-art-placeholder" id="mediaArtPlaceholder">
+          <svg class="placeholder-svg" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M6 13c0 1.105-1.12 2-2.5 2S1 14.105 1 13s1.12-2 2.5-2 2.5.895 2.5 2zm9-2c0 1.105-1.12 2-2.5 2s-2.5-.895-2.5-2 1.12-2 2.5-2 2.5.895 2.5 2z"/>
+            <path fill-rule="evenodd" d="M14 11V2h1v9h-1zM6 3v10H5V3h1z"/>
+            <path d="M5 2.905a1 1 0 0 1 .9-.995l8-.8a1 1 0 0 1 1.1.995V3L5 4V2.905z"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Track Details -->
+      <div class="media-details">
+        <div class="media-title" id="mediaTitle">No Media is Playing</div>
+        <div class="media-artist" id="mediaArtist"></div>
+        <div class="media-progress-wrap" id="mediaProgressWrap">
+          <div class="media-progress-bar" id="mediaProgressBar" title="Seek position">
+            <div class="media-progress-fill" id="mediaProgressFill"></div>
+            <div class="media-progress-thumb" id="mediaProgressThumb"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controls Row -->
+      <div class="media-controls" id="mediaControls">
+        <button class="media-btn btn-prev" id="btnPrev" aria-label="Previous Track" title="Previous" disabled>
+          <svg viewBox="0 0 16 16" fill="currentColor">
+            <path d="M4 4a.5.5 0 0 1 1 0v3.248l6.267-3.636c.54-.313 1.232.077 1.232.696v7.384c0 .619-.691 1.01-1.232.696L5 8.752V12a.5.5 0 0 1-1 0V4z"/>
+          </svg>
+        </button>
+
+        <button class="media-btn btn-play-pause" id="btnPlayPause" aria-label="Play / Pause" title="Play / Pause" disabled>
+          <!-- Play Icon -->
+          <svg class="icon-play" id="iconPlay" viewBox="0 0 16 16" fill="currentColor">
+            <path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z"/>
+          </svg>
+          <!-- Pause Icon -->
+          <svg class="icon-pause" id="iconPause" viewBox="0 0 16 16" fill="currentColor" style="display: none;">
+            <path d="M5.5 3.5A1.5 1.5 0 0 1 7 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5zm5 0A1.5 1.5 0 0 1 12 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5z"/>
+          </svg>
+        </button>
+
+        <button class="media-btn btn-next" id="btnNext" aria-label="Next Track" title="Next" disabled>
+          <svg viewBox="0 0 16 16" fill="currentColor">
+            <path d="M12.5 4a.5.5 0 0 0-1 0v3.248L5.233 3.612C4.693 3.3 4 3.69 4 4.31v7.384c0 .619.692 1.01 1.233.697L11.5 8.752V12a.5.5 0 0 0 1 0V4z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

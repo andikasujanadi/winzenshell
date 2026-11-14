@@ -5,7 +5,7 @@
 [![Platform: Windows 11](https://img.shields.io/badge/Platform-Windows%2011%20(64--bit)-0078D4?logo=windows11&logoColor=white)](https://microsoft.com/windows)
 [![Runtime: .NET 10](https://img.shields.io/badge/Runtime-.NET%2010%20(WPF)-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 [![Frontend: WebView2](https://img.shields.io/badge/Frontend-WebView2%20%7C%20Web%20Components-008080?logo=microsoftedge&logoColor=white)](https://developer.microsoft.com/microsoft-edge/webview2/)
-[![Release: v0.2.1](https://img.shields.io/badge/Release-v0.2.1-0078D4)](README.md#changelog)
+[![Release: v0.2.2](https://img.shields.io/badge/Release-v0.2.2-0078D4)](README.md#changelog)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 **WinZenShell** is a modular, high-performance Windows 11 custom taskbar and community widget studio.  
@@ -16,8 +16,8 @@ It combines a **100% Web Frontend** (HTML5, Modern CSS, Web Components, Shadow D
 ---
 
 > [!IMPORTANT]
-> **Release Notice (`v0.2.1`)**:  
-> WinZenShell v0.2.1 introduces a modular 4-column Control Center grid studio with responsive widget layouts (`1x1`, `2x1`, `2x2`, `1x2`, `3x1`, `4x1`), real-time GPU telemetry, redesigned battery banners, slider ergonomic improvements, and synchronized layout editing.
+> **Release Notice (`v0.2.2`)**:  
+> WinZenShell v0.2.2 introduces the official **Media Player Widget (`zen-media-player`)** powered by Windows Global System Media Transport Controls (GSMTC), full-page Control Center widget picker, multi-aspect ratio Control Center playback cards (`1x1`, `2x1`, `2x2`, `3x1`, `4x1`, `1x2`) with interactive seekbars, customizable taskbar album thumbnails, and 2D free-placement grid with empty slot spacing.
 
 ---
 
@@ -69,6 +69,13 @@ It combines a **100% Web Frontend** (HTML5, Modern CSS, Web Components, Shadow D
     * Native Fluent 2 flyout: Quick Radio On/Off switch, live paired devices list categorized with dedicated hardware icons (audio, phone, pc, peripheral), one-click Connect/Disconnect actions, and shortcuts to "+ Add device" and Windows Bluetooth Settings.
 11. **Battery Indicator & Flyout (`zen-battery`)**:
     * Real-time percentage, charging state, estimated battery runtime, and responsive multi-column layouts (`1x1`, `2x1`, `3x1`, `4x1`).
+12. **Media Player Widget (`zen-media-player`)**:
+    * Integrated with Windows Global System Media Transport Controls (GSMTC) session manager.
+    * Live track metadata: title, artist, album art thumbnail with base64 streaming, track duration, and timeline position.
+    * Play/Pause, Next, Previous, and smooth interactive scrubbing / seeking via `MediaService`.
+    * Graceful "No Media is Playing" fallback with deactivated controls when no audio/video source is active.
+    * Multi-aspect ratio support in Control Center (`1x1`, `2x1`, `2x2`, `3x1`, `4x1`, `1x2`) with consistent responsive seekbars.
+    * Compact taskbar pill with customizable album art thumbnail toggle in Settings.
 
 ### ⚡ Flyout UX Enhancements
 * **Single-Click Switching**: Seamlessly click from Volume to Brightness to Clock without Windows discarding clicks (`WM_MOUSEACTIVATE -> MA_ACTIVATE`).
@@ -82,6 +89,7 @@ It combines a **100% Web Frontend** (HTML5, Modern CSS, Web Components, Shadow D
 WinZenShell (Host)
   ├── WorkAreaAppBarService    -> SHAppBarMessage + SPI_SETWORKAREA
   ├── SystemMetricsService     -> CPU, RAM, Battery, GPU & Window enumeration
+  ├── MediaService             -> Windows.Media.Control GSMTC session & timeline
   ├── AudioService             -> CoreAudio IAudioEndpointVolume
   ├── BrightnessService        -> WmiMonitorBrightness / DDC-CI
   ├── NetworkService           -> WLAN API Wi-Fi scanning & NetworkInformation
@@ -189,6 +197,26 @@ window.winzen.shell.onMetricsUpdate((metrics) => {
 ---
 
 ## Changelog
+
+### v0.2.2 (2026-11-14)
+* **Official Media Player Widget (`community.zen-media-player`)**:
+  * Seamless integration with Windows 10/11 **Global System Media Transport Controls (GSMTC)** via `Windows.Media.Control` and `MediaService.cs`.
+  * Real-time metadata tracking: song title, artist, album art streaming (extracted via `IRandomAccessStreamWithContentType` to base64 data URIs), timeline playback position, and track duration.
+  * Native media controls: Play, Pause, Previous, Next, and interactive timeline seeking/scrubbing (`TryChangePlaybackPositionAsync`).
+  * "No Media is Playing" inactive state: buttons visible and styled but safely disabled and non-clickable when no media session is active.
+  * Comprehensive Control Center layout options:
+    * `1x1`: Compact square card with thumbnail, track info, and playback toggle.
+    * `2x1` & `3x1`: Horizontal media banners with thumbnail, scrolling track metadata, responsive controls, and interactive seekbar.
+    * `2x2`: Spacious album artwork card with full track typography, large playback controls, and interactive seekbar.
+    * `1x2`: Vertical media card with top album art, vertical typography stack, and bottom media controls.
+    * `4x1`: Full-width banner spanning the entire 4-column Control Center width.
+  * Taskbar thumbnail customization:
+    * Option in Settings to show or hide the album thumbnail inside the taskbar media pill.
+    * Ergonomic thumbnail padding inside the taskbar dock (28px height, 4px vertical margin).
+* **Control Center Enhancements**:
+  * Full-page **Add Widget** drawer view replacing height-constrained popovers.
+  * 2D free-placement grid: items can be moved across empty slots without collapsing or pushing sibling widgets into unwanted columns.
+  * Cleaned up Add Widget item labels by removing redundant grid span tags and descriptions for a minimalist Fluent 2 look.
 
 ### v0.2.1 (2026-11-13)
 * **Modular Control Center Grid System & Custom Sizing**:

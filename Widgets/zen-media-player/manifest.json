@@ -1,0 +1,18 @@
+{
+  "id": "community.zen-media-player",
+  "name": "Media Player",
+  "version": "1.0.0",
+  "author": "Official",
+  "description": "Adaptive media player with album art, live track info, playback controls, and multi-aspect ratio Control Center support.",
+  "slot": "right",
+  "order": 6,
+  "entry": "index.html",
+  "width": 180,
+  "autoWidth": true,
+  "displayMode": "widget",
+  "aspectRatio": "2x1",
+  "showThumbnail": true,
+  "supportedModes": ["icon", "widget"],
+  "supportedAspectRatios": ["1x1", "2x1", "2x2", "3x1", "4x1", "1x2"],
+  "enabled": true
+}
