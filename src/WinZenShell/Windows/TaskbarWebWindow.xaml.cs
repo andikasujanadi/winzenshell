@@ -723,7 +723,7 @@ public partial class TaskbarWebWindow : Window
         int margin = _shellState.Settings.FloatingMarginPx;
         int radius = _shellState.Settings.TaskbarCornerRadiusPx;
         bool isLight = string.Equals(_shellState.Settings.Theme, "light", StringComparison.OrdinalIgnoreCase);
-        int opacity = Math.Clamp(_shellState.Settings.BackgroundOpacity, 20, 100);
+        int opacity = Math.Clamp(_shellState.Settings.BackgroundOpacity, 0, 100);
         bool isOpaque = opacity >= 100;
         bool isFloatingRounded = margin > 0 && radius > 0;
 
@@ -780,7 +780,7 @@ public partial class TaskbarWebWindow : Window
         if (_hwnd == IntPtr.Zero) return;
 
         bool isLight = string.Equals(_shellState.Settings.Theme, "light", StringComparison.OrdinalIgnoreCase);
-        int opacity = Math.Clamp(_shellState.Settings.BackgroundOpacity, 20, 100);
+        int opacity = Math.Clamp(_shellState.Settings.BackgroundOpacity, 0, 100);
         bool isOpaque = opacity >= 100;
         bool isFloatingRounded = _shellState.Settings.FloatingMarginPx > 0 && _shellState.Settings.TaskbarCornerRadiusPx > 0;
         bool glassNeeded = !isOpaque || isFloatingRounded;

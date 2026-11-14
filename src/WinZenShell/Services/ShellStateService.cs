@@ -294,7 +294,7 @@ public class ShellStateService
         if (cornerRadiusPx.HasValue)
             _settings.TaskbarCornerRadiusPx = Math.Clamp(cornerRadiusPx.Value, 0, 120);
         if (backgroundOpacity.HasValue)
-            _settings.BackgroundOpacity = Math.Clamp(backgroundOpacity.Value, 20, 100);
+            _settings.BackgroundOpacity = Math.Clamp(backgroundOpacity.Value, 0, 100);
         if (backgroundBlurStrength.HasValue)
             _settings.BackgroundBlurStrength = Math.Clamp(backgroundBlurStrength.Value, 0, 100);
         if (!string.IsNullOrWhiteSpace(accentColor))

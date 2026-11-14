@@ -37,7 +37,7 @@ function initTaskbar() {
 
     const isFloating = (settings.floatingMarginPx || 0) > 0;
     const isFloatingRounded = isFloating && currentRadius > 0;
-    const bgOpacityPct = Math.max(20, Math.min(100, settings.backgroundOpacity ?? 100));
+    const bgOpacityPct = Math.max(0, Math.min(100, settings.backgroundOpacity ?? 100));
     const bgBlurPct = Math.max(0, Math.min(100, settings.backgroundBlurStrength ?? 60));
     const bgAlpha = (bgOpacityPct / 100).toFixed(2);
     const isLightTheme = currentTheme === 'light';
