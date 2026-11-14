@@ -202,6 +202,7 @@ public partial class BluetoothFlyoutWindow : Window
             var textStack = new StackPanel
             {
                 VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = WpfHorizontalAlignment.Left,
                 Margin = new Thickness(6, 0, 8, 0)
             };
             var nameTxt = new TextBlock
@@ -210,6 +211,7 @@ public partial class BluetoothFlyoutWindow : Window
                 Foreground = primaryText,
                 FontSize = 12,
                 FontWeight = FontWeights.SemiBold,
+                HorizontalAlignment = WpfHorizontalAlignment.Left,
                 TextTrimming = TextTrimming.CharacterEllipsis,
                 MaxWidth = 180
             };
@@ -218,6 +220,7 @@ public partial class BluetoothFlyoutWindow : Window
                 Text = dev.IsConnected ? "Connected" : "Paired",
                 Foreground = dev.IsConnected ? _accentBrush : secondaryText,
                 FontSize = 10.5,
+                HorizontalAlignment = WpfHorizontalAlignment.Left,
                 Margin = new Thickness(0, 2, 0, 0)
             };
             textStack.Children.Add(nameTxt);
