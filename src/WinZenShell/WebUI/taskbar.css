@@ -25,7 +25,10 @@ body {
   height: 100vh;
   max-height: 100vh;
   background: transparent;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--taskbar-border-top, rgba(255, 255, 255, 0.08));
+  border-bottom: none;
+  border-left: none;
+  border-right: none;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
@@ -66,12 +69,12 @@ body {
 
 .taskbar-bar.dock-top {
   border-top: none;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--taskbar-border-bottom, rgba(255, 255, 255, 0.08));
 }
 
 .taskbar-bar.floating {
   border-radius: var(--taskbar-radius, 12px);
-  border: none;
+  border: none !important;
   box-shadow: none;
 }
 
@@ -172,19 +175,20 @@ body.theme-light {
 html[data-theme="light"] .taskbar-bar,
 body.theme-light .taskbar-bar {
   background: transparent;
-  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  border-top: 1px solid var(--taskbar-border-top, rgba(0, 0, 0, 0.08));
+  border-bottom: none;
   box-shadow: none;
 }
 
 html[data-theme="light"] .taskbar-bar.dock-top,
 body.theme-light .taskbar-bar.dock-top {
   border-top: none;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  border-bottom: 1px solid var(--taskbar-border-bottom, rgba(0, 0, 0, 0.08));
 }
 
 html[data-theme="light"] .taskbar-bar.floating,
 body.theme-light .taskbar-bar.floating {
-  border: none;
+  border: none !important;
   box-shadow: none;
 }
 

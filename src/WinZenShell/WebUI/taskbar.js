@@ -46,6 +46,16 @@ function initTaskbar() {
     document.documentElement.style.setProperty('--taskbar-surface-bg', surfaceBg);
     document.documentElement.style.setProperty('--taskbar-html-bg', htmlBg);
 
+    const borderAlpha = bgOpacityPct === 0 ? 0 : +(0.08 * (bgOpacityPct / 100)).toFixed(4);
+    const borderTopColor = borderAlpha <= 0.0001
+      ? 'transparent'
+      : (isLightTheme ? `rgba(0, 0, 0, ${borderAlpha})` : `rgba(255, 255, 255, ${borderAlpha})`);
+    const borderBottomColor = borderAlpha <= 0.0001
+      ? 'transparent'
+      : (isLightTheme ? `rgba(0, 0, 0, ${borderAlpha})` : `rgba(255, 255, 255, ${borderAlpha})`);
+    document.documentElement.style.setProperty('--taskbar-border-top', borderTopColor);
+    document.documentElement.style.setProperty('--taskbar-border-bottom', borderBottomColor);
+
     const isTransparentWithBlur = bgOpacityPct < 100 && bgBlurPct > 0;
     const backdropUrl = state.backdropImageUrl || '';
     if (taskbarWallpaperLayer) {
@@ -73,6 +83,13 @@ function initTaskbar() {
       taskbarBar.classList.toggle('floating', isFloating);
       taskbarBar.classList.toggle('dock-top', isTop);
       taskbarBar.style.setProperty('--taskbar-radius', `${isFloating ? currentRadius : 0}px`);
+      if (bgOpacityPct === 0) {
+        taskbarBar.style.borderTopColor = 'transparent';
+        taskbarBar.style.borderBottomColor = 'transparent';
+      } else {
+        taskbarBar.style.borderTopColor = '';
+        taskbarBar.style.borderBottomColor = '';
+      }
     }
 
     // Update accent, dock edge, and animations flag on existing widget hosts
