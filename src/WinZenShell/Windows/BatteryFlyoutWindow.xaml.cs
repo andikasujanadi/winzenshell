@@ -71,7 +71,7 @@ public partial class BatteryFlyoutWindow : Window
         int pct = noBattery ? 100 : Math.Clamp((int)sps.BatteryLifePercent, 0, 100);
         TxtPercent.Text = noBattery ? "AC" : $"{pct}%";
 
-        const double barMaxWidth = 248.0;
+        double barMaxWidth = BatteryCard.ActualWidth > 50 ? (BatteryCard.ActualWidth - 28.0) : 300.0;
         BarBattery.Width = noBattery ? barMaxWidth : Math.Round((pct / 100.0) * barMaxWidth);
 
         EnergySaverBadge.Visibility = isEnergySaver ? Visibility.Visible : Visibility.Collapsed;
