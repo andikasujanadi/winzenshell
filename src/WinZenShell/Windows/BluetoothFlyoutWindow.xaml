@@ -1,0 +1,284 @@
+<Window x:Class="WinZenShell.Windows.BluetoothFlyoutWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="WinZen Bluetooth"
+        Width="360"
+        SizeToContent="Height"
+        MaxHeight="540"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ResizeMode="NoResize"
+        SnapsToDevicePixels="True"
+        UseLayoutRounding="True">
+
+    <Window.Resources>
+        <SolidColorBrush x:Key="AccentBrush" Color="#3684E3"/>
+        <SolidColorBrush x:Key="CardBg" Color="#252525"/>
+        <SolidColorBrush x:Key="CardBorder" Color="#383838"/>
+        <SolidColorBrush x:Key="BtnBg" Color="#262626"/>
+        <SolidColorBrush x:Key="BtnBorder" Color="#383838"/>
+        <SolidColorBrush x:Key="BtnFg" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="BtnHover" Color="#333333"/>
+        <SolidColorBrush x:Key="MutedFg" Color="#A0A0A0"/>
+
+        <!-- Custom Fluent ScrollBar -->
+        <SolidColorBrush x:Key="ScrollBarThumbBrush" Color="#4AFFFFFF"/>
+        <SolidColorBrush x:Key="ScrollBarThumbHoverBrush" Color="#7AFFFFFF"/>
+
+        <Style x:Key="ScrollBarPageButton" TargetType="{x:Type RepeatButton}">
+            <Setter Property="OverridesDefaultStyle" Value="True"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="IsTabStop" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type RepeatButton}">
+                        <Rectangle Fill="Transparent" Width="{TemplateBinding Width}" Height="{TemplateBinding Height}"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="FluentScrollBarThumb" TargetType="{x:Type Thumb}">
+            <Setter Property="OverridesDefaultStyle" Value="True"/>
+            <Setter Property="IsTabStop" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Thumb}">
+                        <Border x:Name="ThumbBorder"
+                                Background="{DynamicResource ScrollBarThumbBrush}"
+                                CornerRadius="3"
+                                Width="5"
+                                HorizontalAlignment="Center"
+                                SnapsToDevicePixels="True"/>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ThumbBorder" Property="Background" Value="{DynamicResource ScrollBarThumbHoverBrush}"/>
+                                <Setter TargetName="ThumbBorder" Property="Width" Value="6"/>
+                            </Trigger>
+                            <Trigger Property="IsDragging" Value="True">
+                                <Setter TargetName="ThumbBorder" Property="Background" Value="{DynamicResource AccentBrush}"/>
+                                <Setter TargetName="ThumbBorder" Property="Width" Value="6"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="{x:Type ScrollBar}">
+            <Setter Property="OverridesDefaultStyle" Value="True"/>
+            <Setter Property="Width" Value="6"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ScrollBar}">
+                        <Grid Background="Transparent" SnapsToDevicePixels="True">
+                            <Track x:Name="PART_Track" IsDirectionReversed="true">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Style="{StaticResource ScrollBarPageButton}" Command="{x:Static ScrollBar.PageUpCommand}" />
+                                </Track.DecreaseRepeatButton>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Style="{StaticResource ScrollBarPageButton}" Command="{x:Static ScrollBar.PageDownCommand}" />
+                                </Track.IncreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb Style="{StaticResource FluentScrollBarThumb}" />
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Border x:Name="OuterBorder"
+            Background="#1E1E1E"
+            BorderBrush="#3E3E3E"
+            BorderThickness="1"
+            CornerRadius="14"
+            Padding="18,16,18,16">
+        <StackPanel>
+            <!-- Header -->
+            <DockPanel Margin="0,0,0,12" LastChildFill="False">
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center">
+                    <Path x:Name="HeaderIcon"
+                          Data="M12 2a.75.75 0 0 1 .75.75v7.44l4.22-4.22a.75.75 0 1 1 1.06 1.06L13.81 11.25l4.22 4.22a.75.75 0 0 1-1.06 1.06L12.75 12.31v7.44a.75.75 0 0 1-1.28.53l-5.5-5.5a.75.75 0 0 1 1.06-1.06l4.22 4.22V12.75l-4.22-4.22a.75.75 0 0 1 1.06-1.06l4.22 4.22V2.75A.75.75 0 0 1 12 2zm1.25 9.19 2.69-2.69-2.69-2.69v5.38zm0 1.62v5.38l2.69-2.69-2.69-2.69z"
+                          Fill="{DynamicResource AccentBrush}"
+                          Width="16" Height="16"
+                          Stretch="Uniform"
+                          Margin="0,0,8,0"/>
+                    <TextBlock x:Name="TxtHeaderTitle"
+                               Text="Bluetooth &amp; Devices"
+                               Foreground="#FFFFFF"
+                               FontSize="12.5"
+                               FontWeight="SemiBold"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <Button x:Name="BtnClose"
+                        DockPanel.Dock="Right"
+                        Width="24" Height="24"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Foreground="#9E9E9E"
+                        Cursor="Hand"
+                        Click="OnCloseClicked">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Border" Background="{TemplateBinding Background}" CornerRadius="4">
+                                <Path Data="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+                                      Fill="{TemplateBinding Foreground}"
+                                      Width="10" Height="10"
+                                      Stretch="Uniform"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Border" Property="Background" Value="#1AFFFFFF"/>
+                                    <Setter Property="Foreground" Value="#FFFFFF"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+            </DockPanel>
+
+            <!-- Status Card & Toggle -->
+            <Border x:Name="StatusCard"
+                    Background="{DynamicResource CardBg}"
+                    BorderBrush="{DynamicResource CardBorder}"
+                    BorderThickness="1"
+                    CornerRadius="10"
+                    Padding="12,10"
+                    Margin="0,0,0,12">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border x:Name="IconBadge"
+                            Grid.Column="0"
+                            Width="36" Height="36"
+                            CornerRadius="8"
+                            Background="#183684E3"
+                            VerticalAlignment="Center"
+                            Margin="0,0,12,0">
+                        <Path x:Name="BadgeIcon"
+                              Data="M12 2a.75.75 0 0 1 .75.75v7.44l4.22-4.22a.75.75 0 1 1 1.06 1.06L13.81 11.25l4.22 4.22a.75.75 0 0 1-1.06 1.06L12.75 12.31v7.44a.75.75 0 0 1-1.28.53l-5.5-5.5a.75.75 0 0 1 1.06-1.06l4.22 4.22V12.75l-4.22-4.22a.75.75 0 0 1 1.06-1.06l4.22 4.22V2.75A.75.75 0 0 1 12 2zm1.25 9.19 2.69-2.69-2.69-2.69v5.38zm0 1.62v5.38l2.69-2.69-2.69-2.69z"
+                              Fill="{DynamicResource AccentBrush}"
+                              Width="18" Height="18"
+                              Stretch="Uniform"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center"/>
+                    </Border>
+
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock x:Name="TxtStatusTitle"
+                                   Text="Bluetooth"
+                                   Foreground="#FFFFFF"
+                                   FontSize="13"
+                                   FontWeight="SemiBold"/>
+                        <TextBlock x:Name="TxtStatusDetail"
+                                   Text="On • Discoverable"
+                                   Foreground="{DynamicResource MutedFg}"
+                                   FontSize="11"
+                                   Margin="0,2,0,0"/>
+                    </StackPanel>
+
+                    <!-- Toggle Button -->
+                    <Button x:Name="BtnToggleRadio"
+                            Grid.Column="2"
+                            VerticalAlignment="Center"
+                            Padding="12,5"
+                            Cursor="Hand"
+                            Click="OnToggleRadioClicked">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="TglBorder"
+                                        Background="{DynamicResource AccentBrush}"
+                                        CornerRadius="12"
+                                        Padding="{TemplateBinding Padding}">
+                                    <TextBlock x:Name="TxtToggleState"
+                                               Text="On"
+                                               Foreground="#FFFFFF"
+                                               FontSize="11.5"
+                                               FontWeight="SemiBold"/>
+                                </Border>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                </Grid>
+            </Border>
+
+            <!-- Paired Devices Header -->
+            <DockPanel Margin="2,0,2,8">
+                <TextBlock x:Name="TxtDevicesHeader"
+                           Text="Paired Devices"
+                           Foreground="{DynamicResource MutedFg}"
+                           FontSize="11.5"
+                           FontWeight="SemiBold"
+                           DockPanel.Dock="Left"/>
+                <TextBlock x:Name="TxtDeviceCount"
+                           Text="3 devices"
+                           Foreground="{DynamicResource MutedFg}"
+                           FontSize="11"
+                           Opacity="0.75"
+                           DockPanel.Dock="Right"/>
+            </DockPanel>
+
+            <!-- Devices List -->
+            <ScrollViewer MaxHeight="220"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          Margin="0,0,0,10">
+                <StackPanel x:Name="DevicesContainer"/>
+            </ScrollViewer>
+
+            <!-- Bottom Actions -->
+            <Border BorderBrush="{DynamicResource CardBorder}"
+                    BorderThickness="0,1,0,0"
+                    Padding="0,10,0,0"
+                    Margin="0,4,0,0">
+                <DockPanel LastChildFill="False">
+                    <Button x:Name="BtnAddDevice"
+                            DockPanel.Dock="Left"
+                            Content="+ Add device"
+                            FontSize="11.5"
+                            FontWeight="SemiBold"
+                            Cursor="Hand"
+                            Padding="10,5"
+                            Click="OnAddDeviceClicked">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border Background="{DynamicResource BtnBg}"
+                                        BorderBrush="{DynamicResource BtnBorder}"
+                                        BorderThickness="1"
+                                        CornerRadius="6"
+                                        Padding="{TemplateBinding Padding}">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+
+                    <Button x:Name="BtnMoreSettings"
+                            DockPanel.Dock="Right"
+                            Content="More settings"
+                            FontSize="11"
+                            Foreground="{DynamicResource AccentBrush}"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Cursor="Hand"
+                            VerticalAlignment="Center"
+                            Click="OnMoreSettingsClicked"/>
+                </DockPanel>
+            </Border>
+        </StackPanel>
+    </Border>
+</Window>

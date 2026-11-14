@@ -51,6 +51,8 @@ This document serves as the complete handoff for another Antigravity AI pair pro
 │     - SystemMonitorFlyoutWindow (Telemetry meters & Task Manager)      │
 │     - VolumeFlyoutWindow (Audio slider, mute & instant 0% snap)        │
 │     - BrightnessFlyoutWindow (Display slider & instant 0% snap)        │
+│     - NetworkFlyoutWindow (WLAN Wi-Fi scanner & network status)        │
+│     - BluetoothFlyoutWindow (Fluent 2 device manager & radio toggle)   │
 │                                                                        │
 │  * Universal Theme Engine (universal-theme.css with Fluent 2 tokens)   │
 │  * Shadow DOM isolated widgets with injected theme custom properties   │

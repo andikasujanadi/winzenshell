@@ -70,3 +70,5 @@
     - `2x1`: Horizontal 2-column card with left icon wrap (34px × 34px) and right text column (bold 13px label and 11px muted sublabel).
     - `1x2`: Vertical centered capsule with 44px circular icon badge, bold 12px label, and 10px truncated status sublabel.
     - `3x1`, `4x1`, `2x2`: Expanded cards showing connected device details, signal/status badge, and quick action affordances.
+    - **Bluetooth Flyout**: Dedicated Fluent 2 floating window (360px width, 14px radius, Acrylic/Solid surface) featuring Radio On/Off toggle switch, live paired devices list categorized with dedicated SVG hardware glyphs (audio headphones, phone, PC, mouse/keyboard), one-click Connect/Disconnect actions, and system settings navigation.
+    - **Vector Icon Geometry**: Crisp vector stroke path (`m7 7 10 10-5 5V2l5 5L7 17` with `fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;`) ensuring clean rendering at all sizes without fill inversion bugs.

@@ -34,6 +34,7 @@ public partial class TaskbarWebWindow : Window
     private SystemMonitorFlyoutWindow? _systemMonitorFlyout;
     private WindowSelectorFlyoutWindow? _windowSelectorFlyout;
     private NetworkFlyoutWindow? _networkFlyout;
+    private BluetoothFlyoutWindow? _bluetoothFlyout;
     private BatteryFlyoutWindow? _batteryFlyout;
     private TrayOverflowFlyoutWindow? _trayOverflowFlyout;
     private readonly NetworkService _networkService;
@@ -1306,6 +1307,25 @@ public partial class TaskbarWebWindow : Window
                     _ = _bluetoothService.ToggleBluetoothAsync();
                     break;
 
+                case "toggle_bluetooth_flyout":
+                    double btX = root.TryGetProperty("x", out var btXProp) && btXProp.TryGetDouble(out double btXd) ? btXd : 0;
+                    double btW = root.TryGetProperty("width", out var btWProp) && btWProp.TryGetDouble(out double btWd) ? btWd : 34;
+
+                    Dispatcher.Invoke(() =>
+                    {
+                        _bluetoothFlyout ??= new BluetoothFlyoutWindow(_bluetoothService);
+                        bool wasJustOpen = _bluetoothFlyout.IsVisible ||
+                            (DateTime.UtcNow - _bluetoothFlyout.LastDeactivatedTime).TotalMilliseconds < 350;
+
+                        CloseAllFlyouts();
+
+                        if (!wasJustOpen)
+                        {
+                            _bluetoothFlyout.ShowAt(Left + btX, btW, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
+                        }
+                    });
+                    break;
+
                 case "open_bluetooth_settings":
                     BluetoothService.OpenWindowsBluetoothSettings();
                     break;
@@ -2077,6 +2097,16 @@ public partial class TaskbarWebWindow : Window
                     _batteryFlyout.ShowAt(mon.Right - 220, 48, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
                 });
             }
+            else if (action == "toggle_bluetooth_flyout")
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    var mon = WorkAreaAppBarService.GetPrimaryMonitorInfo().rcMonitor;
+                    _bluetoothFlyout ??= new BluetoothFlyoutWindow(_bluetoothService);
+                    CloseAllFlyouts();
+                    _bluetoothFlyout.ShowAt(mon.Right - 420, 34, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
+                });
+            }
             else if (action == "toggle_bluetooth")
             {
                 _ = _bluetoothService.ToggleBluetoothAsync();
@@ -2105,6 +2135,8 @@ public partial class TaskbarWebWindow : Window
             FlyoutAnimationHelper.AnimateHide(_appLauncherFlyout);
         if (_networkFlyout != null && _networkFlyout != except && _networkFlyout.IsVisible)
             FlyoutAnimationHelper.AnimateHide(_networkFlyout);
+        if (_bluetoothFlyout != null && _bluetoothFlyout != except && _bluetoothFlyout.IsVisible)
+            FlyoutAnimationHelper.AnimateHide(_bluetoothFlyout);
         if (_batteryFlyout != null && _batteryFlyout != except && _batteryFlyout.IsVisible)
             FlyoutAnimationHelper.AnimateHide(_batteryFlyout);
         if (_trayOverflowFlyout != null && _trayOverflowFlyout != except && _trayOverflowFlyout.IsVisible)

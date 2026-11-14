@@ -24,13 +24,12 @@ function updateBluetoothVisuals(m) {
   const isEnabled = !!(m && m.bluetoothEnabled);
   const isConnected = !!(m && m.bluetoothConnected);
   const deviceName = (m && m.bluetoothDeviceName) || '';
-  const statusText = (m && m.bluetoothStatusText) || (isEnabled ? 'On' : 'Off');
 
   btnBluetooth.classList.remove('state-connected', 'state-on', 'state-off');
 
   if (isConnected) {
     btnBluetooth.classList.add('state-connected');
-    if (btLabel) btLabel.textContent = inControlCenter ? (deviceName || 'Bluetooth') : (deviceName || 'Bluetooth');
+    if (btLabel) btLabel.textContent = deviceName || 'Bluetooth';
     if (btSubLabel) btSubLabel.textContent = 'Connected';
     btnBluetooth.setAttribute('title', deviceName ? `Bluetooth: Connected to ${deviceName}` : 'Bluetooth: Connected');
   } else if (isEnabled) {
@@ -59,7 +58,7 @@ if (textCol && inControlCenter) {
   textCol.addEventListener('click', (ev) => {
     ev.stopPropagation();
     if (window.winzen && typeof window.winzen.send === 'function') {
-      window.winzen.send('open_bluetooth_settings', {});
+      window.winzen.send('toggle_bluetooth_flyout', {});
     }
   });
 }
@@ -67,12 +66,14 @@ if (textCol && inControlCenter) {
 if (btnBluetooth) {
   btnBluetooth.addEventListener('click', (ev) => {
     ev.stopPropagation();
+    const rect = btnBluetooth.getBoundingClientRect();
     if (window.winzen && typeof window.winzen.send === 'function') {
-      if (inControlCenter) {
-        window.winzen.send('toggle_bluetooth', {});
-      } else {
-        window.winzen.send('open_bluetooth_settings', {});
-      }
+      window.winzen.send('toggle_bluetooth_flyout', {
+        x: rect.left,
+        y: rect.top,
+        width: rect.width,
+        height: rect.height
+      });
     }
   });
 

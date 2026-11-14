@@ -55,21 +55,27 @@
 .bt-icon {
   width: 18px;
   height: 18px;
-  fill: currentColor;
-  transition: fill 0.2s ease;
+  display: block;
+  fill: none !important;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: stroke 0.2s ease, opacity 0.2s ease;
 }
 
+/* In Dark Taskbar */
 .state-connected .bt-icon {
-  fill: var(--winzen-accent, #60cdff);
+  stroke: var(--winzen-accent, #60cdff) !important;
 }
 
 .state-on .bt-icon {
-  fill: #ffffff;
+  stroke: var(--winzen-text, #ffffff) !important;
 }
 
 .state-off .bt-icon {
-  fill: #888888;
-  opacity: 0.6;
+  stroke: #888888 !important;
+  opacity: 0.65;
 }
 
 .bt-text-col {
@@ -127,7 +133,16 @@
 
 .in-control-center .state-connected .bt-icon,
 .in-control-center .state-on .bt-icon {
-  fill: var(--winzen-accent, #60cdff);
+  stroke: var(--winzen-accent, #60cdff) !important;
+}
+
+.in-control-center .state-off .bluetooth-icon-wrap {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.in-control-center .state-off .bt-icon {
+  stroke: #888888 !important;
+  opacity: 0.7;
 }
 
 .in-control-center .bt-text-col {
@@ -170,9 +185,9 @@
 :host([data-span="1x1"]) .bluetooth-icon-wrap,
 .in-control-center.cc-span-1x1 .bluetooth-icon-wrap,
 .in-control-center[data-span="1x1"] .bluetooth-icon-wrap {
-  width: 36px !important;
-  height: 36px !important;
-  border-radius: 8px !important;
+  width: 38px !important;
+  height: 38px !important;
+  border-radius: 50% !important;
 }
 
 :host([data-span="1x1"]) .bt-text-col,
@@ -207,6 +222,13 @@
   align-items: center !important;
   justify-content: center !important;
   flex-shrink: 0 !important;
+}
+
+:host([data-span="1x2"]) .bluetooth-icon-wrap .bt-icon,
+.in-control-center.cc-span-1x2 .bluetooth-icon-wrap .bt-icon,
+.in-control-center[data-span="1x2"] .bluetooth-icon-wrap .bt-icon {
+  width: 22px !important;
+  height: 22px !important;
 }
 
 :host([data-span="1x2"]) .bt-text-col,
@@ -278,9 +300,29 @@ body.theme-light .bluetooth-pill:hover {
   border-color: rgba(0, 0, 0, 0.08);
 }
 
-:host([data-theme="light"]) .bluetooth-pill .bt-icon,
-:host(.theme-light) .bluetooth-pill .bt-icon {
-  fill: #1b1b1b;
+:host([data-theme="light"]) .state-on .bt-icon,
+:host(.theme-light) .state-on .bt-icon,
+[data-theme="light"] .state-on .bt-icon,
+.theme-light .state-on .bt-icon,
+body.theme-light .state-on .bt-icon {
+  stroke: #1b1b1b !important;
+}
+
+:host([data-theme="light"]) .state-connected .bt-icon,
+:host(.theme-light) .state-connected .bt-icon,
+[data-theme="light"] .state-connected .bt-icon,
+.theme-light .state-connected .bt-icon,
+body.theme-light .state-connected .bt-icon {
+  stroke: var(--winzen-accent, #3684e3) !important;
+}
+
+:host([data-theme="light"]) .state-off .bt-icon,
+:host(.theme-light) .state-off .bt-icon,
+[data-theme="light"] .state-off .bt-icon,
+.theme-light .state-off .bt-icon,
+body.theme-light .state-off .bt-icon {
+  stroke: #888888 !important;
+  opacity: 0.65;
 }
 
 :host([data-theme="light"]) .in-control-center .bluetooth-icon-wrap,
@@ -299,7 +341,12 @@ body.theme-light .bluetooth-pill:hover {
 :host(.theme-light) .in-control-center .state-connected .bt-icon,
 :host([data-theme="light"]) .in-control-center .state-on .bt-icon,
 :host(.theme-light) .in-control-center .state-on .bt-icon {
-  fill: var(--winzen-accent, #3684e3);
+  stroke: var(--winzen-accent, #3684e3) !important;
+}
+
+:host([data-theme="light"]) .in-control-center .state-off .bluetooth-icon-wrap,
+.theme-light .in-control-center .state-off .bluetooth-icon-wrap {
+  background: rgba(0, 0, 0, 0.06);
 }
 
 :host([data-theme="light"]) .bt-label,
@@ -313,12 +360,4 @@ body.theme-light .bt-label {
 :host([data-theme="light"]) .in-control-center .bt-sublabel,
 .theme-light .in-control-center .bt-sublabel {
   color: #5c5c5c;
-}
-
-:host([data-theme="light"]) .state-off .bt-icon,
-:host(.theme-light) .state-off .bt-icon,
-[data-theme="light"] .state-off .bt-icon,
-.theme-light .state-off .bt-icon,
-body.theme-light .state-off .bt-icon {
-  fill: #777777;
 }

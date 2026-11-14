@@ -7,6 +7,16 @@ using Microsoft.Win32;
 
 namespace WinZenShell.Services;
 
+public class BluetoothDeviceItem
+{
+    public string Name { get; set; } = "";
+    public ulong Address { get; set; } = 0;
+    public bool IsConnected { get; set; } = false;
+    public bool IsRemembered { get; set; } = false;
+    public uint ClassOfDevice { get; set; } = 0;
+    public string DeviceType { get; set; } = "device"; // "audio", "phone", "computer", "peripheral", "device"
+}
+
 public class BluetoothStatusInfo
 {
     public bool IsAvailable { get; set; } = false;
@@ -14,8 +24,10 @@ public class BluetoothStatusInfo
     public bool IsConnected { get; set; } = false;
     public string ConnectedDeviceName { get; set; } = "";
     public string StatusText { get; set; } = "Off";
+    public string ComputerName { get; set; } = Environment.MachineName;
     public List<string> ConnectedDevices { get; set; } = new();
     public List<string> PairedDevices { get; set; } = new();
+    public List<BluetoothDeviceItem> DeviceItems { get; set; } = new();
 }
 
 public class BluetoothService
@@ -91,6 +103,9 @@ public class BluetoothService
     private static extern bool CloseHandle(IntPtr hObject);
 
     [DllImport("bthprops.cpl", SetLastError = true)]
+    private static extern uint BluetoothGetRadioInfo(IntPtr hRadio, ref BLUETOOTH_RADIO_INFO pRadioInfo);
+
+    [DllImport("bthprops.cpl", SetLastError = true)]
     private static extern IntPtr BluetoothFindFirstDevice(ref BLUETOOTH_DEVICE_SEARCH_PARAMS pbtsp, ref BLUETOOTH_DEVICE_INFO pbtdi);
 
     [DllImport("bthprops.cpl", SetLastError = true)]
@@ -127,6 +142,13 @@ public class BluetoothService
 
                     try
                     {
+                        var radioInfo = new BLUETOOTH_RADIO_INFO();
+                        radioInfo.dwSize = (uint)Marshal.SizeOf(radioInfo);
+                        if (BluetoothGetRadioInfo(hRadio, ref radioInfo) == 0 && !string.IsNullOrWhiteSpace(radioInfo.szName))
+                        {
+                            info.ComputerName = radioInfo.szName;
+                        }
+
                         var searchParams = new BLUETOOTH_DEVICE_SEARCH_PARAMS();
                         searchParams.dwSize = (uint)Marshal.SizeOf(searchParams);
                         searchParams.fReturnAuthenticated = true;
@@ -150,7 +172,30 @@ public class BluetoothService
                                     string name = devInfo.szName?.Trim() ?? "";
                                     if (!string.IsNullOrEmpty(name))
                                     {
+                                        uint majorClass = (devInfo.ulClassofDevice & 0x1F00);
+                                        string devType = majorClass switch
+                                        {
+                                            0x0400 => "audio",
+                                            0x0200 => "phone",
+                                            0x0100 => "computer",
+                                            0x0500 => "peripheral",
+                                            0x0600 => "imaging",
+                                            0x0700 => "wearable",
+                                            _ => "device"
+                                        };
+
+                                        var item = new BluetoothDeviceItem
+                                        {
+                                            Name = name,
+                                            Address = devInfo.Address,
+                                            IsConnected = devInfo.fConnected,
+                                            IsRemembered = devInfo.fRemembered,
+                                            ClassOfDevice = devInfo.ulClassofDevice,
+                                            DeviceType = devType
+                                        };
+                                        info.DeviceItems.Add(item);
                                         info.PairedDevices.Add(name);
+
                                         if (devInfo.fConnected)
                                         {
                                             info.IsConnected = true;
@@ -241,9 +286,18 @@ public class BluetoothService
         catch { }
     }
 
-    public async Task ToggleBluetoothAsync()
+    public static void ConnectDevice(string name)
     {
-        await Task.Run(() =>
+        try
+        {
+            Process.Start(new ProcessStartInfo("ms-settings:bluetooth") { UseShellExecute = true });
+        }
+        catch { }
+    }
+
+    public async Task<bool> ToggleBluetoothAsync()
+    {
+        return await Task.Run(() =>
         {
             try
             {
@@ -280,6 +334,7 @@ try {
             }
 
             BluetoothChanged?.Invoke(this, EventArgs.Empty);
+            return GetBluetoothStatus().IsEnabled;
         });
     }
 }

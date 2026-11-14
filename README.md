@@ -62,6 +62,13 @@ It combines a **100% Web Frontend** (HTML5, Modern CSS, Web Components, Shadow D
    * WMI-powered brightness slider with mouse wheel scrolling and instant 0% snap.
 8. **Control Center (`zen-control-center`)**:
    * Unified quick-settings card grid containing brightness, volume, telemetry, and settings launcher.
+9. **Network & Wi-Fi Flyout (`zen-network`)**:
+   * Instant Wi-Fi scanning with signal strength bars, security status, and adapter switcher.
+10. **Bluetooth & Devices Flyout (`zen-bluetooth`)**:
+    * Clean vector stroke Lucide Bluetooth icon with crisp multi-scale rendering across Light and Dark themes.
+    * Native Fluent 2 flyout: Quick Radio On/Off switch, live paired devices list categorized with dedicated hardware icons (audio, phone, pc, peripheral), one-click Connect/Disconnect actions, and shortcuts to "+ Add device" and Windows Bluetooth Settings.
+11. **Battery Indicator & Flyout (`zen-battery`)**:
+    * Real-time percentage, charging state, estimated battery runtime, and responsive multi-column layouts (`1x1`, `2x1`, `3x1`, `4x1`).
 
 ### ⚡ Flyout UX Enhancements
 * **Single-Click Switching**: Seamlessly click from Volume to Brightness to Clock without Windows discarding clicks (`WM_MOUSEACTIVATE -> MA_ACTIVATE`).
@@ -202,9 +209,10 @@ window.winzen.shell.onMetricsUpdate((metrics) => {
   * **Volume & Brightness (`zen-volume`, `zen-brightness`)**:
     * Ergonomic vertical slider layout for `1x2` vertical slots with slider orientation flipped (high values at top, low values at bottom, icon anchored at bottom).
     * Synchronized slider handle positions across both orientation states.
-  * **Bluetooth (`zen-bluetooth`)**:
+  * **Bluetooth & Devices (`zen-bluetooth`)**:
     * Official Bluetooth widget powered by native `bthprops.cpl` Win32 APIs for instantaneous radio & paired/connected device detection.
-    * Interactive controls: click icon wrap to toggle radio state, click text or right-click to open Windows Bluetooth Settings (`ms-settings:bluetooth`).
+    * Replaced distorted fill path with pixel-perfect vector Lucide stroke icon rendered crisply across Light and Dark themes.
+    * Native Fluent 2 **Bluetooth Flyout Window** with live Radio On/Off switch, categorized paired devices list (audio headphones, smartphones, tablets, computers, input peripherals) with individual Connect/Disconnect actions, "+ Add device", and direct Windows Settings links.
     * Full responsive layout support for `1x1`, `2x1`, `3x1`, `4x1`, `1x2`, and `2x2` in Control Center and Taskbar icon/widget modes.
 
 ### v0.2.0 (2026-11-13)
