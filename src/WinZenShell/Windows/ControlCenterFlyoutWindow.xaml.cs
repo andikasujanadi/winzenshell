@@ -63,6 +63,10 @@ public partial class ControlCenterFlyoutWindow : Window
         Loaded += OnLoaded;
 
         _shellState.StateChanged += OnShellStateChanged;
+        _brightnessService.BrightnessChanged += _ => Dispatcher.Invoke(() =>
+        {
+            if (IsVisible) BroadcastMetrics();
+        });
     }
 
     protected override void OnSourceInitialized(EventArgs e)

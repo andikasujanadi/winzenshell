@@ -2239,3 +2239,75 @@ body.winzen-no-anim *::after {
 body.winzen-no-anim *:active {
   transform: none !important;
 }
+
+/* Dynamic Island Settings Preview */
+.di-preview-banner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: var(--win11-bg-card, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--win11-stroke-card, rgba(255, 255, 255, 0.08));
+  border-radius: 10px;
+  padding: 24px 16px;
+  margin-bottom: 16px;
+}
+
+.di-preview-capsule.pitch-black {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #000000 !important; /* Strictly pitch black */
+  color: #ffffff !important;
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: none !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  user-select: none;
+  transition: transform 0.2s ease;
+}
+
+.di-preview-capsule.pitch-black:hover {
+  transform: scale(1.02);
+  box-shadow: none !important;
+}
+
+.di-preview-time {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.3px;
+  font-variant-numeric: tabular-nums;
+}
+
+.di-preview-seconds {
+  font-size: 11px;
+  font-weight: 600;
+  color: #a1a1aa;
+  margin-left: -3px;
+  font-variant-numeric: tabular-nums;
+}
+
+.di-preview-sep {
+  width: 3.5px;
+  height: 3.5px;
+  background: #71717a;
+  border-radius: 50%;
+  margin: 0 1px;
+}
+
+.di-preview-date {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #a1a1aa;
+}
+
+.di-preview-caption {
+  font-size: 12px;
+  color: var(--win11-text-secondary, #a1a1aa);
+}
+

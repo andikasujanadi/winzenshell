@@ -119,6 +119,30 @@ public class PinnedAppEntry
     public string IconDataUrl { get; set; } = "";
 }
 
+public class DynamicIslandConfig
+{
+    [JsonPropertyName("enabled")]
+    public bool Enabled { get; set; } = false;
+
+    [JsonPropertyName("placement")]
+    public string Placement { get; set; } = "taskbar"; // "taskbar" or "top-center"
+
+    [JsonPropertyName("taskbarSlot")]
+    public string TaskbarSlot { get; set; } = "center"; // "center", "left", "right"
+
+    [JsonPropertyName("timeFormat")]
+    public string TimeFormat { get; set; } = "24h"; // "24h" or "12h"
+
+    [JsonPropertyName("showSeconds")]
+    public bool ShowSeconds { get; set; } = false;
+
+    [JsonPropertyName("showDate")]
+    public bool ShowDate { get; set; } = true;
+
+    [JsonPropertyName("enableAnimation")]
+    public bool EnableAnimation { get; set; } = true;
+}
+
 public class ShellSettings
 {
     public bool HideNativeTaskbar { get; set; } = false;
@@ -136,6 +160,7 @@ public class ShellSettings
     public Dictionary<string, WidgetStateOverride> WidgetOverrides { get; set; } = new();
     public List<ControlCenterItemConfig> ControlCenterWidgets { get; set; } = new();
     public List<PinnedAppEntry> PinnedApps { get; set; } = new();
+    public DynamicIslandConfig DynamicIsland { get; set; } = new();
 }
 
 public class ShellFullStatePayload
@@ -165,6 +190,7 @@ public class ShellStateService
     public event Action<ShellFullStatePayload>? StateChanged;
     public event Action<bool>? TaskbarVisibilityRequested;
     public event Action<Win32Api.RECT>? TaskbarBoundsUpdated;
+    public event Action? DynamicIslandVisibilityChanged;
 
     public Func<IntPtr>? GetTaskbarHwnd { get; set; }
 
@@ -223,6 +249,15 @@ public class ShellStateService
                 new() { Id = "community.zen-system-monitor", Order = 30, AspectRatio = "1:1", Enabled = true },
                 new() { Id = "community.zen-bluetooth", Order = 40, AspectRatio = "2x1", Enabled = true }
             };
+        }
+
+        if (_settings.DynamicIsland == null)
+        {
+            _settings.DynamicIsland = new();
+        }
+        if (string.Equals(_settings.DockEdge, "Top", StringComparison.OrdinalIgnoreCase) && _settings.DynamicIsland.Placement == "top-center")
+        {
+            _settings.DynamicIsland.Placement = "taskbar";
         }
 
         FlyoutAnimationHelper.AnimationsEnabled = _settings.EnableAnimations;
@@ -301,6 +336,10 @@ public class ShellStateService
         _settings.RespectDesktopWorkArea = respectWorkArea;
         if (!string.IsNullOrWhiteSpace(dockEdge))
             _settings.DockEdge = dockEdge;
+        if (string.Equals(_settings.DockEdge, "Top", StringComparison.OrdinalIgnoreCase) && _settings.DynamicIsland.Placement == "top-center")
+        {
+            _settings.DynamicIsland.Placement = "taskbar";
+        }
         _settings.TaskbarHeightPx = Math.Clamp(heightPx, 32, 96);
         _settings.FloatingMarginPx = Math.Clamp(marginPx, 0, 24);
         if (cornerRadiusPx.HasValue)
@@ -628,9 +667,37 @@ public class ShellStateService
         BroadcastState();
     }
 
+    public void UpdateDynamicIslandConfig(bool enabled, string placement, string slot, string timeFormat, bool showSeconds, bool showDate, bool enableAnimation = true)
+    {
+        if (string.Equals(_settings.DockEdge, "Top", StringComparison.OrdinalIgnoreCase) && placement == "top-center")
+        {
+            placement = "taskbar";
+        }
+
+        _settings.DynamicIsland.Enabled = enabled;
+        _settings.DynamicIsland.Placement = placement;
+        _settings.DynamicIsland.TaskbarSlot = slot;
+        _settings.DynamicIsland.TimeFormat = timeFormat;
+        _settings.DynamicIsland.ShowSeconds = showSeconds;
+        _settings.DynamicIsland.ShowDate = showDate;
+        _settings.DynamicIsland.EnableAnimation = enableAnimation;
+
+        SaveSettings();
+        SyncTaskbarAndWorkArea();
+        _statusBanner = enabled ? $"Dynamic Island ({placement}) enabled" : "Dynamic Island disabled";
+        BroadcastState();
+        DynamicIslandVisibilityChanged?.Invoke();
+    }
+
     public void SyncTaskbarAndWorkArea()
     {
         IntPtr taskbarHwnd = GetTaskbarHwnd?.Invoke() ?? IntPtr.Zero;
+        int topReservedWorkAreaPx = (_settings.DynamicIsland.Enabled &&
+                                     string.Equals(_settings.DynamicIsland.Placement, "top-center", StringComparison.OrdinalIgnoreCase) &&
+                                     !string.Equals(_settings.DockEdge, "Top", StringComparison.OrdinalIgnoreCase))
+            ? 44
+            : 0;
+
         var rect = _workAreaService.ApplyTaskbarBoundsAndWorkArea(
             taskbarHwnd,
             _settings.EnableWinZenTaskbar,
@@ -638,8 +705,10 @@ public class ShellStateService
             _settings.DockEdge,
             _settings.TaskbarHeightPx,
             _settings.FloatingMarginPx,
-            _settings.HideNativeTaskbar);
+            _settings.HideNativeTaskbar,
+            topReservedWorkAreaPx);
         TaskbarBoundsUpdated?.Invoke(rect);
+        DynamicIslandVisibilityChanged?.Invoke();
     }
 
     public void EmergencyRestoreAll()

@@ -78,6 +78,8 @@ if (slider) {
   slider.addEventListener('input', (ev) => {
     ev.stopPropagation();
     const val = Number(slider.value);
+    currentVolume = val;
+    isCurrentlyMuted = false;
     updateVisuals(val, false);
     if (window.winzen && window.winzen.volume && typeof window.winzen.volume.set === 'function') {
       window.winzen.volume.set(val);
@@ -85,6 +87,15 @@ if (slider) {
       window.winzen.send('set_volume', { value: val });
     }
   });
+
+  slider.addEventListener('change', (ev) => {
+    ev.stopPropagation();
+    isPointerDragging = false;
+  });
+
+  slider.addEventListener('pointerdown', () => { isPointerDragging = true; });
+  window.addEventListener('pointerup', () => { isPointerDragging = false; });
+  window.addEventListener('pointercancel', () => { isPointerDragging = false; });
 
   // Vertical drag support for 1x2 mode
   let isPointerDragging = false;
@@ -166,7 +177,9 @@ window.addEventListener('winzen:metrics', (e) => {
   if (!m || typeof m.volumePercent !== 'number') return;
   const current = m.volumePercent;
   const muted = !!m.isMuted;
-  if (document.activeElement !== slider) {
+  if (!isPointerDragging) {
+    currentVolume = current;
+    isCurrentlyMuted = muted;
     updateVisuals(current, muted);
   }
 });

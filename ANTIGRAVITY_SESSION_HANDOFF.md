@@ -1,6 +1,6 @@
 # WinZenShell — Antigravity Session Handoff & Architecture Guide
 
-> **Current State**: `v0.2.2`  
+> **Current State**: `v0.3.0`  
 > **Platform**: Windows 11 (64-bit)  
 > **Framework**: .NET 10 (WPF) + Microsoft.Web.WebView2 + Native Win32 APIs  
 > **Frontend**: Vanilla Web Components (Custom Elements v1, Shadow DOM, CSS Custom Properties)
@@ -189,7 +189,7 @@ winzenshell/
 │
 ├── src/WinZenShell/                        # .NET 10 WPF Application
 │   ├── App.xaml / App.xaml.cs              # Entry point, single-instance mutex, failsafe hotkeys
-│   ├── WinZenShell.csproj                  # Project config (net10.0-windows, v0.2.2)
+│   ├── WinZenShell.csproj                  # Project config (net10.0-windows, v0.3.0)
 │   ├── Native/
 │   │   └── Win32Api.cs                     # P/Invoke definitions (User32, Shell32, DwmApi, Ole32)
 │   ├── Services/

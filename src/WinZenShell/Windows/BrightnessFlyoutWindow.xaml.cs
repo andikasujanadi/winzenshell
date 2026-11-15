@@ -166,6 +166,11 @@ public partial class BrightnessFlyoutWindow : Window
             double ratio = Math.Clamp((pt.X - thumbOffset) / trackWidth, 0.0, 1.0);
             int val = (int)Math.Round(slider.Minimum + (ratio * (slider.Maximum - slider.Minimum)));
             slider.Value = val;
+            if (PercentLabel != null)
+            {
+                PercentLabel.Text = $"{val}%";
+            }
+            _brightnessService.SetBrightness(val);
         }
     }
 

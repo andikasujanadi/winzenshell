@@ -466,6 +466,11 @@ public static class Win32Api
     {
         try
         {
+            if (Environment.CommandLine.Contains("--desktop-spawned"))
+            {
+                return true;
+            }
+
             IntPtr hDesk = GetThreadDesktop(GetCurrentThreadId());
             if (hDesk != IntPtr.Zero)
             {
@@ -486,8 +491,8 @@ public static class Win32Api
                             };
                             const uint CREATE_BREAKAWAY_FROM_JOB = 0x01000000;
                             PROCESS_INFORMATION pi;
-                            if (CreateProcess(exePath, $"\"{exePath}\"", IntPtr.Zero, IntPtr.Zero, false, CREATE_BREAKAWAY_FROM_JOB, IntPtr.Zero, AppDomain.CurrentDomain.BaseDirectory, ref si, out pi) ||
-                                CreateProcess(exePath, $"\"{exePath}\"", IntPtr.Zero, IntPtr.Zero, false, 0, IntPtr.Zero, AppDomain.CurrentDomain.BaseDirectory, ref si, out pi))
+                            if (CreateProcess(exePath, $"\"{exePath}\" --desktop-spawned", IntPtr.Zero, IntPtr.Zero, false, CREATE_BREAKAWAY_FROM_JOB, IntPtr.Zero, AppDomain.CurrentDomain.BaseDirectory, ref si, out pi) ||
+                                CreateProcess(exePath, $"\"{exePath}\" --desktop-spawned", IntPtr.Zero, IntPtr.Zero, false, 0, IntPtr.Zero, AppDomain.CurrentDomain.BaseDirectory, ref si, out pi))
                             {
                                 if (pi.hProcess != IntPtr.Zero) CloseHandle(pi.hProcess);
                                 if (pi.hThread != IntPtr.Zero) CloseHandle(pi.hThread);

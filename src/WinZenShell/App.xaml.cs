@@ -21,6 +21,7 @@ public partial class App : System.Windows.Application
 
     private TaskbarWebWindow? _taskbarWindow;
     private SettingsWebWindow? _settingsWindow;
+    private DynamicIslandWindow? _dynamicIslandWindow;
     private Forms.NotifyIcon? _trayIcon;
     private static System.Threading.Mutex? _singleInstanceMutex;
 
@@ -28,13 +29,18 @@ public partial class App : System.Windows.Application
     {
         try
         {
+            string configDir = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WinZenShell");
+            System.IO.Directory.CreateDirectory(configDir);
+            string logPath = System.IO.Path.Combine(configDir, "startup.log");
+            System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] Starting PID {Environment.ProcessId}\n");
             if (!Win32Api.EnsureInteractiveDefaultDesktop())
             {
+                System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] EnsureInteractiveDefaultDesktop returned false, exiting initial process\n");
                 Environment.Exit(0);
                 return;
             }
+            System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] EnsureInteractiveDefaultDesktop returned true\n");
 
-            // Automatically terminate any previous instance of WinZenShell so the newest launch always takes over cleanly
             try
             {
                 int currentPid = Environment.ProcessId;
@@ -53,6 +59,7 @@ public partial class App : System.Windows.Application
                 }
             }
             catch { }
+            System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] Kill previous instances complete\n");
 
             try
             {
@@ -61,6 +68,7 @@ public partial class App : System.Windows.Application
             catch { }
 
             base.OnStartup(e);
+            System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] base.OnStartup complete\n");
 
             ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
@@ -68,8 +76,8 @@ public partial class App : System.Windows.Application
         {
             try
             {
-                string logPath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WinZenShell", "crash.log");
-                System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] AppDomain Exception: {eArgs.ExceptionObject}\n");
+                string cLog = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WinZenShell", "crash.log");
+                System.IO.File.AppendAllText(cLog, $"[{DateTime.Now}] AppDomain Exception: {eArgs.ExceptionObject}\n");
             }
             catch { }
             SafeCleanupAndRestore();
@@ -78,14 +86,15 @@ public partial class App : System.Windows.Application
         {
             try
             {
-                string logPath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WinZenShell", "crash.log");
-                System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] Dispatcher Exception: {args.Exception}\n");
+                string cLog = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WinZenShell", "crash.log");
+                System.IO.File.AppendAllText(cLog, $"[{DateTime.Now}] Dispatcher Exception: {args.Exception}\n");
             }
             catch { }
             SafeCleanupAndRestore();
             args.Handled = true;
         };
 
+            System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] Creating services...\n");
             _nativeTaskbarService = new NativeTaskbarService();
             _workAreaService = new WorkAreaAppBarService();
             _widgetManagerService = new WidgetManagerService();
@@ -99,6 +108,7 @@ public partial class App : System.Windows.Application
                 _widgetManagerService,
                 _systemMetricsService);
 
+            System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] Creating TaskbarWebWindow...\n");
             _taskbarWindow = new TaskbarWebWindow(
                 _shellStateService,
                 _systemMetricsService,
@@ -108,25 +118,41 @@ public partial class App : System.Windows.Application
 
             _shellStateService.GetTaskbarHwnd = () => _taskbarWindow.Handle;
 
+            System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] Creating SettingsWebWindow...\n");
             _settingsWindow = new SettingsWebWindow(_shellStateService, QuitApplication, RestartApplication);
             MainWindow = _settingsWindow;
 
             InitializeSystemTray();
+            System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] InitializeSystemTray complete\n");
 
             if (_shellStateService.Settings.EnableWinZenTaskbar)
             {
                 _taskbarWindow.Show();
+                System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] _taskbarWindow.Show() complete\n");
             }
 
-            _settingsWindow.Show();
+            try
+            {
+                _settingsWindow.Show();
+                System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] _settingsWindow.Show() complete\n");
+            }
+            catch (Exception ex)
+            {
+                System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] _settingsWindow.Show() exception: {ex}\n");
+            }
+            _shellStateService.DynamicIslandVisibilityChanged += UpdateDynamicIslandVisibility;
             _shellStateService.SyncTaskbarAndWorkArea();
+            UpdateDynamicIslandVisibility();
+            System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] Shell started successfully!\n");
         }
         catch (Exception ex)
         {
             try
             {
-                string logPath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WinZenShell", "crash.log");
+                string logPath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WinZenShell", "startup.log");
                 System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] OnStartup Exception: {ex}\n");
+                string cLog = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WinZenShell", "crash.log");
+                System.IO.File.AppendAllText(cLog, $"[{DateTime.Now}] OnStartup Exception: {ex}\n");
             }
             catch { }
             SafeCleanupAndRestore();
@@ -341,7 +367,7 @@ public partial class App : System.Windows.Application
     {
         try
         {
-            string logPath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WinZenShell", "crash.log");
+            string logPath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WinZenShell", "startup.log");
             System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] OnExit called: ExitCode={e.ApplicationExitCode}\n{Environment.StackTrace}\n");
         }
         catch { }
@@ -363,10 +389,51 @@ public partial class App : System.Windows.Application
         base.OnExit(e);
     }
 
+    private void UpdateDynamicIslandVisibility()
+    {
+        if (_shellStateService == null) return;
+        Dispatcher.Invoke(() =>
+        {
+            var di = _shellStateService.Settings.DynamicIsland;
+            bool isDiEnabled = di != null && di.Enabled;
+            bool shouldShowStandalone = isDiEnabled && di != null &&
+                string.Equals(di.Placement, "top-center", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(_shellStateService.Settings.DockEdge, "Top", StringComparison.OrdinalIgnoreCase);
+
+            if (isDiEnabled)
+            {
+                _dynamicIslandWindow ??= new DynamicIslandWindow(_shellStateService);
+                if (_taskbarWindow != null)
+                {
+                    _dynamicIslandWindow.Owner = _taskbarWindow;
+                    _taskbarWindow.DynamicIslandOverlayWindow = _dynamicIslandWindow;
+                }
+            }
+
+            if (shouldShowStandalone)
+            {
+                _dynamicIslandWindow?.UpdatePosition();
+                _dynamicIslandWindow?.Show();
+            }
+            else
+            {
+                if (_dynamicIslandWindow != null && !_dynamicIslandWindow.IsOverlayOpen)
+                {
+                    _dynamicIslandWindow.Hide();
+                }
+            }
+        });
+    }
+
     private void SafeCleanupAndRestore()
     {
         try
         {
+            if (_dynamicIslandWindow != null)
+            {
+                _dynamicIslandWindow.Close();
+                _dynamicIslandWindow = null;
+            }
             if (_taskbarWindow != null && _taskbarWindow.Handle != IntPtr.Zero)
             {
                 _workAreaService?.UnregisterAppBar(_taskbarWindow.Handle);

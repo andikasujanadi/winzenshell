@@ -122,12 +122,14 @@ body.theme-light .slider-icon {
   cursor: pointer;
   margin: 0;
   padding: 0;
+  transition: none !important;
 }
 .brightness-slider::-webkit-slider-runnable-track {
   height: 4px;
   max-height: 4px;
   border-radius: 2px;
   background: transparent;
+  transition: none !important;
 }
 .brightness-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
@@ -141,7 +143,7 @@ body.theme-light .slider-icon {
   cursor: pointer;
   margin-top: -7px;
   box-shadow: 0 0 0 1px var(--bright-thumb-ring), var(--bright-thumb-shadow);
-  transition: border-width 0.12s cubic-bezier(0.1, 0.9, 0.2, 1);
+  transition: none !important;
 }
 .brightness-slider::-webkit-slider-thumb:hover {
   border-width: 3.5px;

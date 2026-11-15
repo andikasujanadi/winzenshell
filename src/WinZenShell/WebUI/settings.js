@@ -5,6 +5,7 @@ function initSettingsPage() {
 
   const tabTitles = {
     'tab-shell': 'Shell',
+    'tab-dynamic-island': 'Dynamic Island',
     'tab-widgets': 'Layouts'
   };
 
@@ -83,6 +84,27 @@ function initSettingsPage() {
   const bgBlurField = document.getElementById('bgBlurField');
   const accentSwatchesContainer = document.getElementById('accentSwatchesContainer');
   let currentAccentColor = '#3684E3';
+
+  // Dynamic Island Elements
+  const toggleDynamicIsland = document.getElementById('toggleDynamicIsland');
+  const stateDynamicIsland = document.getElementById('stateDynamicIsland');
+  const selectDiPlacement = document.getElementById('selectDiPlacement');
+  const rowDiPlacement = document.getElementById('rowDiPlacement');
+  const subtextDiPlacement = document.getElementById('subtextDiPlacement');
+  const rowDiSlot = document.getElementById('rowDiSlot');
+  const selectDiSlot = document.getElementById('selectDiSlot');
+  const selectDiTimeFormat = document.getElementById('selectDiTimeFormat');
+  const toggleDiSeconds = document.getElementById('toggleDiSeconds');
+  const stateDiSeconds = document.getElementById('stateDiSeconds');
+  const toggleDiDate = document.getElementById('toggleDiDate');
+  const stateDiDate = document.getElementById('stateDiDate');
+  const toggleDiAnimation = document.getElementById('toggleDiAnimation');
+  const stateDiAnimation = document.getElementById('stateDiAnimation');
+
+  const diPreviewTime = document.getElementById('diPreviewTime');
+  const diPreviewSeconds = document.getElementById('diPreviewSeconds');
+  const diPreviewSep = document.getElementById('diPreviewSep');
+  const diPreviewDate = document.getElementById('diPreviewDate');
 
   // Native Taskbar Telemetry
   const valTrayHwnd = document.getElementById('valTrayHwnd');
@@ -281,7 +303,103 @@ function initSettingsPage() {
   });
 
   toggleRespectWorkArea.addEventListener('change', sendWorkAreaConfig);
-  selectDockEdge.addEventListener('change', sendWorkAreaConfig);
+  selectDockEdge.addEventListener('change', () => {
+    sendWorkAreaConfig();
+    updateDynamicIslandUIState();
+  });
+
+  function updateDynamicIslandPreview() {
+    if (!diPreviewTime) return;
+    const now = new Date();
+    const is12h = selectDiTimeFormat ? selectDiTimeFormat.value === '12h' : false;
+    let hours = now.getHours();
+    let ampm = '';
+    if (is12h) {
+      ampm = hours >= 12 ? ' PM' : ' AM';
+      hours = hours % 12;
+      if (hours === 0) hours = 12;
+    }
+    const minStr = String(now.getMinutes()).padStart(2, '0');
+    const hrStr = is12h ? String(hours) : String(hours).padStart(2, '0');
+    diPreviewTime.textContent = `${hrStr}:${minStr}${ampm}`;
+
+    const showSec = toggleDiSeconds ? toggleDiSeconds.checked : false;
+    if (diPreviewSeconds) {
+      diPreviewSeconds.style.display = showSec ? 'inline' : 'none';
+      diPreviewSeconds.textContent = `:${String(now.getSeconds()).padStart(2, '0')}`;
+    }
+
+    const showDt = toggleDiDate ? toggleDiDate.checked : true;
+    if (diPreviewDate) {
+      diPreviewDate.style.display = showDt ? 'inline' : 'none';
+      diPreviewDate.textContent = now.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+    }
+    if (diPreviewSep) {
+      diPreviewSep.style.display = showDt ? 'inline-block' : 'none';
+    }
+  }
+
+  function sendDynamicIslandConfig() {
+    if (!toggleDynamicIsland || isUpdatingFromHost) return;
+    const isDockTop = (selectDockEdge ? selectDockEdge.value : 'Bottom').toLowerCase() === 'top';
+    let placement = selectDiPlacement ? selectDiPlacement.value : 'taskbar';
+    if (isDockTop && placement === 'top-center') {
+      placement = 'taskbar';
+      if (selectDiPlacement) selectDiPlacement.value = 'taskbar';
+    }
+
+    const payload = {
+      enabled: toggleDynamicIsland.checked,
+      placement: placement,
+      taskbarSlot: selectDiSlot ? selectDiSlot.value : 'center',
+      timeFormat: selectDiTimeFormat ? selectDiTimeFormat.value : '24h',
+      showSeconds: toggleDiSeconds ? toggleDiSeconds.checked : false,
+      showDate: toggleDiDate ? toggleDiDate.checked : true,
+      enableAnimation: toggleDiAnimation ? toggleDiAnimation.checked : true
+    };
+
+    window.winzen.send('update_dynamic_island', payload);
+    updateDynamicIslandUIState();
+    updateDynamicIslandPreview();
+  }
+
+  function updateDynamicIslandUIState() {
+    const isDockTop = (selectDockEdge ? selectDockEdge.value : 'Bottom').toLowerCase() === 'top';
+    const isEnabled = toggleDynamicIsland ? toggleDynamicIsland.checked : false;
+
+    if (stateDynamicIsland) stateDynamicIsland.textContent = isEnabled ? 'On' : 'Off';
+    if (stateDiSeconds) stateDiSeconds.textContent = toggleDiSeconds && toggleDiSeconds.checked ? 'On' : 'Off';
+    if (stateDiDate) stateDiDate.textContent = toggleDiDate && toggleDiDate.checked ? 'On' : 'Off';
+    if (stateDiAnimation) stateDiAnimation.textContent = toggleDiAnimation && toggleDiAnimation.checked ? 'On' : 'Off';
+
+    if (selectDiPlacement) {
+      const topCenterOpt = selectDiPlacement.querySelector('option[value="top-center"]');
+      if (topCenterOpt) {
+        topCenterOpt.disabled = isDockTop;
+        if (isDockTop && selectDiPlacement.value === 'top-center') {
+          selectDiPlacement.value = 'taskbar';
+        }
+      }
+    }
+    if (subtextDiPlacement) {
+      subtextDiPlacement.textContent = isDockTop
+        ? 'Taskbar is at the top of the screen. Dynamic Island is docked inside the taskbar.'
+        : 'Place inside the taskbar or floating at top center with desktop work area reservation';
+    }
+
+    if (rowDiSlot) {
+      rowDiSlot.style.display = (isEnabled && selectDiPlacement && selectDiPlacement.value === 'taskbar') ? 'flex' : 'none';
+    }
+  }
+
+  if (toggleDynamicIsland) toggleDynamicIsland.addEventListener('change', sendDynamicIslandConfig);
+  if (selectDiPlacement) selectDiPlacement.addEventListener('change', sendDynamicIslandConfig);
+  if (selectDiSlot) selectDiSlot.addEventListener('change', sendDynamicIslandConfig);
+  if (selectDiTimeFormat) selectDiTimeFormat.addEventListener('change', () => { sendDynamicIslandConfig(); updateDynamicIslandPreview(); });
+  if (toggleDiSeconds) toggleDiSeconds.addEventListener('change', () => { sendDynamicIslandConfig(); updateDynamicIslandPreview(); });
+  if (toggleDiDate) toggleDiDate.addEventListener('change', () => { sendDynamicIslandConfig(); updateDynamicIslandPreview(); });
+  if (toggleDiAnimation) toggleDiAnimation.addEventListener('change', sendDynamicIslandConfig);
+  setInterval(updateDynamicIslandPreview, 1000);
 
   function updateSliderTrackFill(sliderEl) {
     if (!sliderEl) return;
@@ -425,6 +543,35 @@ function initSettingsPage() {
       if (s.accentColor) {
         updateAccentColorUI(s.accentColor);
       }
+
+      const di = s.dynamicIsland || s.DynamicIsland || {};
+      if (toggleDynamicIsland) {
+        toggleDynamicIsland.checked = !!di.enabled;
+        if (stateDynamicIsland) stateDynamicIsland.textContent = di.enabled ? 'On' : 'Off';
+      }
+      if (selectDiPlacement) {
+        selectDiPlacement.value = di.placement || 'taskbar';
+      }
+      if (selectDiSlot) {
+        selectDiSlot.value = di.taskbarSlot || 'center';
+      }
+      if (selectDiTimeFormat) {
+        selectDiTimeFormat.value = di.timeFormat || '24h';
+      }
+      if (toggleDiSeconds) {
+        toggleDiSeconds.checked = !!di.showSeconds;
+        if (stateDiSeconds) stateDiSeconds.textContent = di.showSeconds ? 'On' : 'Off';
+      }
+      if (toggleDiDate) {
+        toggleDiDate.checked = di.showDate !== false;
+        if (stateDiDate) stateDiDate.textContent = di.showDate !== false ? 'On' : 'Off';
+      }
+      if (toggleDiAnimation) {
+        toggleDiAnimation.checked = di.enableAnimation !== false;
+        if (stateDiAnimation) stateDiAnimation.textContent = di.enableAnimation !== false ? 'On' : 'Off';
+      }
+      updateDynamicIslandUIState();
+      updateDynamicIslandPreview();
 
       latestWidgets = (data.widgets || []).slice().sort((a, b) => (a.order ?? 10) - (b.order ?? 10));
       const activeWinWidget = latestWidgets.find((w) => w.id === 'community.zen-active-windows');

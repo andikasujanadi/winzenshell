@@ -89,7 +89,8 @@ public class WorkAreaAppBarService
         string dockEdge,
         int taskbarHeightPx,
         int floatingMarginPx,
-        bool nativeTaskbarHidden)
+        bool nativeTaskbarHidden,
+        int topReservedWorkAreaPx = 0)
     {
         var monitorInfo = GetPrimaryMonitorInfo();
         var monRect = monitorInfo.rcMonitor;
@@ -121,10 +122,12 @@ public class WorkAreaAppBarService
                     ? currentWorkArea.Top == targetEdgePos
                     : currentWorkArea.Bottom == targetEdgePos;
 
-                // Preserve opposite monitor edge if another taskbar (e.g. native bottom taskbar) reserves it
-                int preservedTop = !isTop && !nativeTaskbarHidden && currentWorkArea.Top > monRect.Top
-                    ? currentWorkArea.Top
-                    : monRect.Top;
+                // Preserve opposite monitor edge or top reserved work area (e.g. Dynamic Island)
+                int preservedTop = topReservedWorkAreaPx > 0
+                    ? (monRect.Top + topReservedWorkAreaPx)
+                    : (!isTop && !nativeTaskbarHidden && currentWorkArea.Top > monRect.Top
+                        ? currentWorkArea.Top
+                        : monRect.Top);
                 int preservedBottom = isTop && !nativeTaskbarHidden && currentWorkArea.Bottom < monRect.Bottom
                     ? currentWorkArea.Bottom
                     : monRect.Bottom;
@@ -137,8 +140,10 @@ public class WorkAreaAppBarService
                     Bottom = isTop ? preservedBottom : targetEdgePos
                 };
 
+                bool topEdgeMatches = currentWorkArea.Top == desiredWorkArea.Top;
+
                 // Skip redundant AppBar / SPI_SETWORKAREA broadcasts when docked edge already matches
-                if (!_isRegistered || _registeredHwnd != taskbarHwnd || !dockedEdgeMatches)
+                if (!_isRegistered || _registeredHwnd != taskbarHwnd || !dockedEdgeMatches || !topEdgeMatches)
                 {
                     RegisterAppBar(taskbarHwnd);
 
@@ -172,9 +177,9 @@ public class WorkAreaAppBarService
                     bool edgeAfterAppBar = isTop
                         ? currentWorkArea.Top == targetEdgePos
                         : currentWorkArea.Bottom == targetEdgePos;
-                    if (!edgeAfterAppBar)
+                    if (!edgeAfterAppBar || topReservedWorkAreaPx > 0)
                     {
-                        desiredWorkArea.Top = isTop ? targetEdgePos : Math.Max(monRect.Top, currentWorkArea.Top);
+                        desiredWorkArea.Top = isTop ? targetEdgePos : (topReservedWorkAreaPx > 0 ? (monRect.Top + topReservedWorkAreaPx) : Math.Max(monRect.Top, currentWorkArea.Top));
                         desiredWorkArea.Bottom = isTop ? Math.Min(monRect.Bottom, currentWorkArea.Bottom) : targetEdgePos;
                         Win32Api.SystemParametersInfo(
                             Win32Api.SPI_SETWORKAREA,

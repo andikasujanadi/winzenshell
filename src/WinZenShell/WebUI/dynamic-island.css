@@ -1,0 +1,305 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: transparent !important;
+  user-select: none;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+}
+
+:root {
+  --di-collapsed-width: 80px;
+  --di-collapsed-height: 30px;
+  --di-collapsed-radius: 15px;
+  --di-slot-offset: 24px;
+}
+
+.island-container {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding-top: 8px;
+  box-sizing: border-box;
+}
+
+.island-container.dock-bottom {
+  align-items: flex-end;
+  padding-top: 0;
+  padding-bottom: 8px;
+}
+
+.island-container.slot-center {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.island-container.slot-left {
+  justify-content: flex-start;
+  padding-left: var(--di-slot-offset, 24px);
+  padding-right: 0;
+}
+
+.island-container.slot-right {
+  justify-content: flex-end;
+  padding-left: 0;
+  padding-right: var(--di-slot-offset, 24px);
+}
+
+.island-container.slot-center .dynamic-island-capsule {
+  transform-origin: center center;
+}
+
+.island-container.slot-left .dynamic-island-capsule {
+  transform-origin: left center;
+}
+
+.island-container.slot-right .dynamic-island-capsule {
+  transform-origin: right center;
+}
+
+.island-container.dock-bottom.slot-center .dynamic-island-capsule {
+  transform-origin: center center;
+}
+
+.island-container.dock-bottom.slot-left .dynamic-island-capsule {
+  transform-origin: left center;
+}
+
+.island-container.dock-bottom.slot-right .dynamic-island-capsule {
+  transform-origin: right center;
+}
+
+.dynamic-island-capsule.pitch-black {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #000000 !important; /* Pitch black strictly */
+  color: #ffffff;
+  width: var(--di-collapsed-width, 140px);
+  height: var(--di-collapsed-height, 30px);
+  padding: 0;
+  border-radius: var(--di-collapsed-radius, 15px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: none !important;
+  cursor: pointer;
+  /* Collapsing / Shrinking: capsule shrinks at 150ms after large content fades out in 100ms */
+  transition: width 0.26s cubic-bezier(0.16, 1, 0.3, 1) 0.15s,
+              height 0.26s cubic-bezier(0.16, 1, 0.3, 1) 0.15s,
+              border-radius 0.26s cubic-bezier(0.16, 1, 0.3, 1) 0.15s,
+              padding 0.26s cubic-bezier(0.16, 1, 0.3, 1) 0.15s,
+              border-color 0.25s ease 0.15s,
+              transform 0.25s cubic-bezier(0.16, 1, 0.3, 1) 0s;
+  outline: none;
+  overflow: hidden;
+  position: relative;
+  will-change: width, height, border-radius;
+}
+
+.dynamic-island-capsule.no-anim,
+.dynamic-island-capsule.no-anim * {
+  transition: none !important;
+  animation: none !important;
+}
+
+.dynamic-island-capsule.pitch-black:hover:not(.expanded) {
+  transform: scale(1.02);
+  border-color: rgba(255, 255, 255, 0.28);
+  box-shadow: none !important;
+}
+
+.dynamic-island-capsule.pitch-black:active:not(.expanded) {
+  transform: scale(0.98);
+}
+
+/* Expanded state: large active height (170px) and width (400px) like reference */
+.dynamic-island-capsule.expanded {
+  width: 400px !important;
+  height: 170px !important;
+  padding: 0 !important;
+  border-radius: 40px !important;
+  border-color: rgba(255, 255, 255, 0.28);
+  box-shadow: none !important;
+  cursor: pointer;
+  transform: none !important;
+  /* Expanding / Growing: capsule grows at 150ms after small content fades out in 100ms */
+  transition: width 0.28s cubic-bezier(0.16, 1, 0.3, 1) 0.15s,
+              height 0.28s cubic-bezier(0.16, 1, 0.3, 1) 0.15s,
+              border-radius 0.28s cubic-bezier(0.16, 1, 0.3, 1) 0.15s,
+              padding 0.28s cubic-bezier(0.16, 1, 0.3, 1) 0.15s,
+              border-color 0.25s ease 0.15s;
+}
+
+/* Contents choreographed sequence:
+   EXPAND:
+   1. Small elements fade away completely (0.10s duration, 0s delay)
+   2. Capsule grows at 150ms (0.28s duration, 0.15s delay, finishes at 0.43s)
+   3. Large content fades in ONLY AFTER grow is done (0.12s duration, 0.43s delay)
+
+   COLLAPSE / SHRINK:
+   1. Large elements fade away completely (0.10s duration, 0s delay)
+   2. Capsule shrinks at 150ms (0.26s duration, 0.15s delay, finishes at 0.41s)
+   3. Small elements fade in ONLY AFTER shrink is done (0.12s duration, 0.41s delay) */
+.island-collapsed-content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 14px;
+  white-space: nowrap;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  /* When collapsing: small elements fade in in-place ONLY AFTER shrink completes (0.41s delay) */
+  transition: opacity 0.07s ease-out 0.41s,
+              visibility 0s linear 0.41s;
+}
+
+.dynamic-island-capsule.expanded .island-collapsed-content {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  /* When expanding: small elements fade out in-place in 100ms BEFORE capsule grows at 150ms */
+  transition: opacity 0.10s ease-out 0s,
+              visibility 0s linear 0.10s;
+}
+
+.island-expanded-content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 400px;
+  height: 170px;
+  padding: 24px 30px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 14px;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  /* When collapsing: large elements fade out in 100ms BEFORE capsule shrinks at 150ms */
+  transition: opacity 0.10s ease-out 0s,
+              visibility 0s linear 0.10s;
+}
+
+.dynamic-island-capsule.expanded .island-expanded-content {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  /* When expanding: large elements fade in ONLY AFTER capsule grow is 100% finished (0.43s delay) */
+  transition: opacity 0.12s cubic-bezier(0.16, 1, 0.3, 1) 0.43s,
+              visibility 0s linear 0.43s;
+}
+
+.di-time {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.di-seconds {
+  font-size: 11px;
+  font-weight: 600;
+  color: #a1a1aa;
+  margin-left: -3px;
+  font-variant-numeric: tabular-nums;
+}
+
+.di-sep {
+  width: 3.5px;
+  height: 3.5px;
+  background: #71717a;
+  border-radius: 50%;
+  margin: 0 1px;
+}
+
+.di-date {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #a1a1aa;
+  letter-spacing: 0.2px;
+}
+
+/* Expanded View Content: Clean, spacious typography */
+.di-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.di-card-header-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.di-card-badge {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.16);
+  padding: 3px 9px;
+  border-radius: 6px;
+}
+
+.di-card-dot {
+  font-size: 11px;
+  color: #71717a;
+}
+
+.di-card-date-short {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #a1a1aa;
+}
+
+.di-card-clock-area {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-start;
+  padding: 0;
+}
+
+.di-card-clock {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.di-card-time {
+  font-size: 54px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -1px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.di-card-seconds {
+  font-size: 21px;
+  font-weight: 600;
+  color: #a1a1aa;
+  font-variant-numeric: tabular-nums;
+}

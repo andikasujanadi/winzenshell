@@ -12,7 +12,9 @@
   const mediaArtImg = root.getElementById('mediaArtImg');
   const mediaArtPlaceholder = root.getElementById('mediaArtPlaceholder');
   const mediaTitle = root.getElementById('mediaTitle');
+  const mediaTitleInner = root.getElementById('mediaTitleInner') || mediaTitle;
   const mediaArtist = root.getElementById('mediaArtist');
+  const mediaArtistInner = root.getElementById('mediaArtistInner') || mediaArtist;
   const mediaProgressBar = root.getElementById('mediaProgressBar');
   const mediaProgressFill = root.getElementById('mediaProgressFill');
   const mediaProgressThumb = root.getElementById('mediaProgressThumb');
@@ -117,6 +119,114 @@
     });
   }
 
+  // Marquee / Auto-scroll for overflowing text using Web Animations API
+  const activeAnimations = new WeakMap();
+
+  function measureAndApplyMarquee(container, inner) {
+    if (!container || !inner) return;
+
+    const prevAnim = activeAnimations.get(inner);
+    if (prevAnim) {
+      try { prevAnim.cancel(); } catch (_) {}
+      activeAnimations.delete(inner);
+    }
+    inner.style.transform = 'none';
+    container.classList.remove('is-scrolling');
+
+    const containerWidth = container.clientWidth;
+    if (containerWidth <= 0) return;
+
+    // Measure unconstrained text width
+    const textWidth = Math.ceil(Math.max(
+      inner.getBoundingClientRect ? inner.getBoundingClientRect().width : 0,
+      inner.scrollWidth || 0,
+      inner.offsetWidth || 0
+    ));
+    const overflow = textWidth - containerWidth;
+
+    if (overflow > 4) {
+      container.classList.add('is-scrolling');
+      const speed = 22; // px/sec for smooth slow, readable scrolling
+      const travelTime = overflow / speed;
+      const pauseStart = 2.4; // seconds pause at start to read title
+      const pauseEnd = 2.0; // seconds pause at end
+      const totalDurationSec = Math.max(5.0, pauseStart + travelTime + pauseEnd + travelTime);
+      const totalDurationMs = Math.round(totalDurationSec * 1000);
+
+      const offset1 = pauseStart / totalDurationSec;
+      const offset2 = (pauseStart + travelTime) / totalDurationSec;
+      const offset3 = (pauseStart + travelTime + pauseEnd) / totalDurationSec;
+
+      const keyframes = [
+        { transform: 'translateX(0px)', offset: 0 },
+        { transform: 'translateX(0px)', offset: offset1 },
+        { transform: `translateX(-${overflow + 4}px)`, offset: offset2 },
+        { transform: `translateX(-${overflow + 4}px)`, offset: offset3 },
+        { transform: 'translateX(0px)', offset: 1 }
+      ];
+
+      try {
+        const anim = inner.animate(keyframes, {
+          duration: totalDurationMs,
+          iterations: Infinity,
+          easing: 'ease-in-out'
+        });
+        activeAnimations.set(inner, anim);
+
+        if (!container._hasMarqueeListeners) {
+          container._hasMarqueeListeners = true;
+          container.addEventListener('mouseenter', () => {
+            const a = activeAnimations.get(inner);
+            if (a && a.playState === 'running') a.pause();
+          });
+          container.addEventListener('mouseleave', () => {
+            const a = activeAnimations.get(inner);
+            if (a && a.playState === 'paused') a.play();
+          });
+        }
+      } catch (err) {
+        console.warn('Marquee Web Animation error:', err);
+      }
+    } else {
+      container.classList.remove('is-scrolling');
+    }
+  }
+
+  function setMarqueeText(container, inner, text) {
+    if (!container || !inner) return;
+    const newText = (text || '').trim();
+
+    if (inner.textContent === newText && activeAnimations.has(inner)) {
+      return;
+    }
+
+    const prevAnim = activeAnimations.get(inner);
+    if (prevAnim) {
+      try { prevAnim.cancel(); } catch (_) {}
+      activeAnimations.delete(inner);
+    }
+    inner.style.transform = 'none';
+    container.classList.remove('is-scrolling');
+
+    inner.textContent = newText;
+    container.title = newText;
+
+    if (!newText) return;
+
+    requestAnimationFrame(() => {
+      measureAndApplyMarquee(container, inner);
+    });
+  }
+
+  if (typeof ResizeObserver !== 'undefined') {
+    const ro = new ResizeObserver(() => {
+      if (mediaTitle && mediaTitleInner) measureAndApplyMarquee(mediaTitle, mediaTitleInner);
+      if (mediaArtist && mediaArtistInner) measureAndApplyMarquee(mediaArtist, mediaArtistInner);
+    });
+    if (mediaTitle) ro.observe(mediaTitle);
+    if (mediaArtist) ro.observe(mediaArtist);
+  }
+
   // State rendering
   function renderMediaState(metrics) {
     const media = (metrics && (metrics.media || metrics.Media)) || null;
@@ -135,8 +245,8 @@
     if (!hasMedia) {
       // Inactive / No Media state
       if (viewWidget) viewWidget.classList.add('no-media');
-      if (mediaTitle) mediaTitle.textContent = 'No Media is Playing';
-      if (mediaArtist) mediaArtist.textContent = '';
+      setMarqueeText(mediaTitle, mediaTitleInner, 'No Media is Playing');
+      setMarqueeText(mediaArtist, mediaArtistInner, '');
       if (mediaArtImg) {
         mediaArtImg.src = '';
         mediaArtImg.classList.remove('has-img');
@@ -170,8 +280,8 @@
 
     // Active media state
     if (viewWidget) viewWidget.classList.remove('no-media');
-    if (mediaTitle) mediaTitle.textContent = media.title || 'Unknown Title';
-    if (mediaArtist) mediaArtist.textContent = media.artist || (media.albumTitle || '');
+    setMarqueeText(mediaTitle, mediaTitleInner, media.title || 'Unknown Title');
+    setMarqueeText(mediaArtist, mediaArtistInner, media.artist || (media.albumTitle || ''));
 
     if (media.thumbnailBase64 && media.thumbnailBase64.length > 20) {
       if (mediaArtImg) {

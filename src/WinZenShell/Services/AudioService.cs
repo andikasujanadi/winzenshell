@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 
 namespace WinZenShell.Services;
 
@@ -52,26 +53,71 @@ public class AudioService
 {
     private int _cachedVolume = 50;
     private bool _cachedMute = false;
+    private IAudioEndpointVolume? _cachedEndpoint;
+    private readonly object _lock = new();
 
     public event Action<int, bool>? VolumeChanged;
 
+    public AudioService()
+    {
+        GetVolume();
+        StartKeyboardVolumeMonitor();
+    }
+
     private IAudioEndpointVolume? GetEndpointVolume()
     {
-        try
+        lock (_lock)
         {
-            var enumerator = (IMMDeviceEnumerator)new MMDeviceEnumeratorComObject();
-            enumerator.GetDefaultAudioEndpoint(0 /* eRender */, 1 /* eMultimedia */, out var dev);
-            if (dev == null) return null;
+            if (_cachedEndpoint != null) return _cachedEndpoint;
+            try
+            {
+                var enumerator = (IMMDeviceEnumerator)new MMDeviceEnumeratorComObject();
+                enumerator.GetDefaultAudioEndpoint(0 /* eRender */, 1 /* eMultimedia */, out var dev);
+                if (dev == null) return null;
 
-            var iid = typeof(IAudioEndpointVolume).GUID;
-            dev.Activate(ref iid, 1 /* CLSCTX_INPROC_SERVER */, IntPtr.Zero, out var o);
-            return o as IAudioEndpointVolume;
+                var iid = typeof(IAudioEndpointVolume).GUID;
+                dev.Activate(ref iid, 1 /* CLSCTX_INPROC_SERVER */, IntPtr.Zero, out var o);
+                _cachedEndpoint = o as IAudioEndpointVolume;
+                return _cachedEndpoint;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"AudioService GetEndpointVolume failed: {ex.Message}");
+                return null;
+            }
         }
-        catch (Exception ex)
+    }
+
+    private void StartKeyboardVolumeMonitor()
+    {
+        Task.Run(async () =>
         {
-            System.Diagnostics.Debug.WriteLine($"AudioService GetEndpointVolume failed: {ex.Message}");
-            return null;
-        }
+            while (true)
+            {
+                try
+                {
+                    await Task.Delay(150);
+                    var ep = GetEndpointVolume();
+                    if (ep != null)
+                    {
+                        ep.GetMasterVolumeLevelScalar(out float level);
+                        ep.GetMute(out bool mute);
+                        int vol = (int)Math.Clamp(Math.Round(level * 100.0), 0, 100);
+
+                        if (vol != _cachedVolume || mute != _cachedMute)
+                        {
+                            lock (_lock)
+                            {
+                                _cachedVolume = vol;
+                                _cachedMute = mute;
+                            }
+                            VolumeChanged?.Invoke(vol, mute);
+                        }
+                    }
+                }
+                catch { }
+            }
+        });
     }
 
     public int GetVolume()
@@ -82,7 +128,10 @@ public class AudioService
             if (ep != null)
             {
                 ep.GetMasterVolumeLevelScalar(out float level);
-                _cachedVolume = (int)Math.Clamp(Math.Round(level * 100.0), 0, 100);
+                lock (_lock)
+                {
+                    _cachedVolume = (int)Math.Clamp(Math.Round(level * 100.0), 0, 100);
+                }
             }
         }
         catch { }
@@ -97,7 +146,10 @@ public class AudioService
             if (ep != null)
             {
                 ep.GetMute(out bool mute);
-                _cachedMute = mute;
+                lock (_lock)
+                {
+                    _cachedMute = mute;
+                }
             }
         }
         catch { }
@@ -114,19 +166,25 @@ public class AudioService
             {
                 var guid = Guid.Empty;
                 float scalar = volumePercent / 100.0f;
+                // Instantaneous hardware volume write (< 0.1ms) with zero smoothing or delay
                 ep.SetMasterVolumeLevelScalar(scalar, ref guid);
                 if (volumePercent > 0 && _cachedMute)
                 {
                     ep.SetMute(false, ref guid);
                     _cachedMute = false;
                 }
-                _cachedVolume = volumePercent;
+                lock (_lock)
+                {
+                    _cachedVolume = volumePercent;
+                }
                 VolumeChanged?.Invoke(_cachedVolume, _cachedMute);
             }
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"AudioService SetVolume failed: {ex.Message}");
+            // Reset cached endpoint in case default device changed
+            lock (_lock) { _cachedEndpoint = null; }
         }
     }
 
@@ -140,13 +198,17 @@ public class AudioService
                 var guid = Guid.Empty;
                 bool newMute = !_cachedMute;
                 ep.SetMute(newMute, ref guid);
-                _cachedMute = newMute;
+                lock (_lock)
+                {
+                    _cachedMute = newMute;
+                }
                 VolumeChanged?.Invoke(_cachedVolume, _cachedMute);
             }
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"AudioService ToggleMute failed: {ex.Message}");
+            lock (_lock) { _cachedEndpoint = null; }
         }
     }
 
@@ -159,13 +221,17 @@ public class AudioService
             {
                 var guid = Guid.Empty;
                 ep.SetMute(mute, ref guid);
-                _cachedMute = mute;
+                lock (_lock)
+                {
+                    _cachedMute = mute;
+                }
                 VolumeChanged?.Invoke(_cachedVolume, _cachedMute);
             }
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"AudioService SetMute failed: {ex.Message}");
+            lock (_lock) { _cachedEndpoint = null; }
         }
     }
 }

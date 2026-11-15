@@ -300,6 +300,8 @@
     } else if (msg.type === 'metrics_update' && msg.payload) {
       window.winzen.metrics = msg.payload;
       window.dispatchEvent(new CustomEvent('winzen:metrics', { detail: msg.payload }));
+    } else {
+      window.dispatchEvent(new CustomEvent('winzen:message', { detail: msg }));
     }
   }
 

@@ -312,6 +312,17 @@ public partial class SettingsWebWindow : Window
                     }
                     break;
 
+                case "update_dynamic_island":
+                    bool diEnabled = root.TryGetProperty("enabled", out var dieProp) && dieProp.GetBoolean();
+                    string diPlacement = root.TryGetProperty("placement", out var dipProp) ? dipProp.GetString() ?? "taskbar" : "taskbar";
+                    string diSlot = root.TryGetProperty("taskbarSlot", out var disProp) ? disProp.GetString() ?? "center" : "center";
+                    string diTimeFormat = root.TryGetProperty("timeFormat", out var ditfProp) ? ditfProp.GetString() ?? "24h" : "24h";
+                    bool diShowSec = root.TryGetProperty("showSeconds", out var dissProp) && dissProp.GetBoolean();
+                    bool diShowDate = !root.TryGetProperty("showDate", out var disdProp) || disdProp.GetBoolean();
+                    bool diAnim = !root.TryGetProperty("enableAnimation", out var diaProp) || diaProp.GetBoolean();
+                    _shellState.UpdateDynamicIslandConfig(diEnabled, diPlacement, diSlot, diTimeFormat, diShowSec, diShowDate, diAnim);
+                    break;
+
                 case "update_control_center_widgets":
                     if (root.TryGetProperty("items", out var ccItemsProp) && ccItemsProp.ValueKind == JsonValueKind.Array)
                     {

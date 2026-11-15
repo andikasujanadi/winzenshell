@@ -17,6 +17,7 @@ if (inControlCenter || isWidgetMode) {
 }
 
 let currentBrightness = 100;
+let isDragging = false;
 
 function updateVisuals(val) {
   currentBrightness = val;
@@ -27,18 +28,22 @@ function updateVisuals(val) {
   }
 }
 
+function sendBrightness(val) {
+  val = Math.max(0, Math.min(100, Math.round(val)));
+  updateVisuals(val);
+  if (window.winzen && window.winzen.brightness && typeof window.winzen.brightness.set === 'function') {
+    window.winzen.brightness.set(val);
+  } else if (window.winzen && typeof window.winzen.send === 'function') {
+    window.winzen.send('set_brightness', { value: val });
+  }
+}
+
 function onBrightnessWheel(ev) {
   ev.preventDefault();
   ev.stopPropagation();
   const step = ev.deltaY < 0 ? 3 : -3;
   let next = Math.max(0, Math.min(100, currentBrightness + step));
-  currentBrightness = next;
-  updateVisuals(next);
-  if (window.winzen && window.winzen.brightness && typeof window.winzen.brightness.set === 'function') {
-    window.winzen.brightness.set(next);
-  } else if (window.winzen) {
-    window.winzen.send('set_brightness', { value: next });
-  }
+  sendBrightness(next);
 }
 
 if (btn) {
@@ -53,17 +58,16 @@ if (slider) {
 
   slider.addEventListener('input', (ev) => {
     ev.stopPropagation();
-    const val = Number(slider.value);
-    updateVisuals(val);
-    if (window.winzen && window.winzen.brightness && typeof window.winzen.brightness.set === 'function') {
-      window.winzen.brightness.set(val);
-    } else if (window.winzen) {
-      window.winzen.send('set_brightness', { value: val });
-    }
+    sendBrightness(Number(slider.value));
+  });
+
+  slider.addEventListener('change', (ev) => {
+    ev.stopPropagation();
+    isDragging = false;
+    sendBrightness(Number(slider.value));
   });
 
   // Vertical drag support for 1x2 mode
-  let isPointerDragging = false;
   const handleVerticalPointer = (ev) => {
     const isVertical = (typeof widgetConfig !== 'undefined' && widgetConfig && (widgetConfig.aspectRatio === '1x2' || (widgetConfig.colSpan === 1 && widgetConfig.rowSpan === 2)));
     if (!isVertical) return;
@@ -71,19 +75,13 @@ if (slider) {
     const clampedY = Math.max(rect.top, Math.min(rect.bottom, ev.clientY));
     const pct = Math.round(((rect.bottom - clampedY) / (rect.height || 1)) * 100);
     const val = Math.max(0, Math.min(100, pct));
-    slider.value = val;
-    updateVisuals(val);
-    if (window.winzen && window.winzen.brightness && typeof window.winzen.brightness.set === 'function') {
-      window.winzen.brightness.set(val);
-    } else if (window.winzen) {
-      window.winzen.send('set_brightness', { value: val });
-    }
+    sendBrightness(val);
   };
 
   slider.addEventListener('pointerdown', (ev) => {
+    isDragging = true;
     const isVertical = (typeof widgetConfig !== 'undefined' && widgetConfig && (widgetConfig.aspectRatio === '1x2' || (widgetConfig.colSpan === 1 && widgetConfig.rowSpan === 2)));
     if (isVertical) {
-      isPointerDragging = true;
       try { slider.setPointerCapture(ev.pointerId); } catch {}
       handleVerticalPointer(ev);
       ev.stopPropagation();
@@ -91,21 +89,26 @@ if (slider) {
   });
 
   slider.addEventListener('pointermove', (ev) => {
-    if (isPointerDragging) {
-      handleVerticalPointer(ev);
-      ev.stopPropagation();
+    if (isDragging) {
+      const isVertical = (typeof widgetConfig !== 'undefined' && widgetConfig && (widgetConfig.aspectRatio === '1x2' || (widgetConfig.colSpan === 1 && widgetConfig.rowSpan === 2)));
+      if (isVertical) {
+        handleVerticalPointer(ev);
+        ev.stopPropagation();
+      }
     }
   });
 
   const stopPointer = (ev) => {
-    if (isPointerDragging) {
-      isPointerDragging = false;
+    if (isDragging) {
+      isDragging = false;
       try { slider.releasePointerCapture(ev.pointerId); } catch {}
       ev.stopPropagation();
     }
   };
   slider.addEventListener('pointerup', stopPointer);
   slider.addEventListener('pointercancel', stopPointer);
+  window.addEventListener('pointerup', () => { isDragging = false; });
+  window.addEventListener('pointercancel', () => { isDragging = false; });
 }
 
 if (btn) {
@@ -129,7 +132,7 @@ window.addEventListener('winzen:metrics', (e) => {
   const m = e.detail;
   if (!m || typeof m.brightnessPercent !== 'number') return;
   const current = m.brightnessPercent;
-  if (document.activeElement !== slider) {
+  if (!isDragging) {
     updateVisuals(current);
   }
 });

@@ -51,7 +51,8 @@ html, body {
   border-radius: 6px;
   background: transparent;
   border: none;
-  color: var(--winzen-text-secondary, #cccccc);
+  color: var(--winzen-text, #ffffff) !important;
+  opacity: 1 !important;
   cursor: pointer;
   transition: all 0.15s ease;
   flex-shrink: 0;
@@ -59,7 +60,7 @@ html, body {
 
 .vd-btn-taskview:hover {
   background: var(--winzen-surface-hover, rgba(255, 255, 255, 0.1));
-  color: var(--winzen-text, #ffffff);
+  color: var(--winzen-text, #ffffff) !important;
 }
 
 .vd-btn-taskview:active {
@@ -97,20 +98,22 @@ html, body {
   border-radius: 6px;
   background: transparent;
   border: 1px solid transparent;
-  color: var(--winzen-text-secondary, #cccccc);
+  color: var(--winzen-text, #ffffff) !important;
+  opacity: 1 !important;
   font-family: inherit;
   font-size: 11.5px;
   font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
   max-width: 120px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
   transition: all 0.15s ease;
 }
 
 .vd-pill:hover {
   background: var(--winzen-surface-hover, rgba(255, 255, 255, 0.08));
   border-color: var(--winzen-border, rgba(255, 255, 255, 0.06));
-  color: var(--winzen-text, #ffffff);
+  color: var(--winzen-text, #ffffff) !important;
 }
 
 .vd-pill:active {
@@ -120,7 +123,8 @@ html, body {
 .vd-pill-num {
   font-size: 10px;
   font-weight: 700;
-  color: var(--winzen-text-muted, rgba(255, 255, 255, 0.45));
+  color: var(--winzen-text, #ffffff) !important;
+  opacity: 1 !important;
   font-variant-numeric: tabular-nums;
   flex-shrink: 0;
 }
@@ -129,22 +133,26 @@ html, body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: var(--winzen-text, #ffffff) !important;
+  opacity: 1 !important;
 }
 
 .vd-pill.active {
   background: var(--winzen-surface-active, rgba(255, 255, 255, 0.14));
   border-color: var(--winzen-border-accent, rgba(255, 255, 255, 0.18));
-  color: var(--winzen-text, #ffffff);
+  color: var(--winzen-text, #ffffff) !important;
+  opacity: 1 !important;
   font-weight: 600;
 }
 
 .vd-pill.active .vd-pill-num {
-  color: var(--winzen-accent, #60cdff);
+  color: var(--winzen-accent, #60cdff) !important;
+  opacity: 1 !important;
 }
 
 :host([data-theme="light"]) .vd-pill.active .vd-pill-num,
 :host(.theme-light) .vd-pill.active .vd-pill-num {
-  color: var(--winzen-accent, #0067c0);
+  color: var(--winzen-accent, #0067c0) !important;
 }
 
 .vd-pill.active::after {
@@ -172,7 +180,8 @@ html, body {
   border-radius: 6px;
   background: transparent;
   border: 1px solid transparent;
-  color: var(--winzen-text-secondary, #cccccc);
+  color: var(--winzen-text, #ffffff) !important;
+  opacity: 1 !important;
   cursor: pointer;
   transition: all 0.15s ease;
   flex-shrink: 0;
@@ -230,17 +239,19 @@ html, body {
   border-radius: 5px;
   background: transparent;
   border: 1px solid transparent;
-  color: var(--winzen-text-secondary, #cccccc);
+  color: var(--winzen-text, #ffffff) !important;
+  opacity: 1 !important;
   font-family: inherit;
   font-size: 13px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
   transition: all 0.15s ease;
 }
 
 .vd-compact-num:hover {
-  color: var(--winzen-text, #ffffff);
+  color: var(--winzen-text, #ffffff) !important;
   background: var(--winzen-surface-hover, rgba(255, 255, 255, 0.08));
   border-color: var(--winzen-border, rgba(255, 255, 255, 0.06));
 }
@@ -250,7 +261,8 @@ html, body {
 }
 
 .vd-compact-num.active {
-  color: var(--winzen-accent, #60cdff);
+  color: var(--winzen-accent, #60cdff) !important;
+  opacity: 1 !important;
   font-weight: 700;
   background: var(--winzen-surface-active, rgba(255, 255, 255, 0.12));
   border-color: var(--winzen-border-accent, rgba(255, 255, 255, 0.16));
@@ -269,7 +281,7 @@ html, body {
 
 :host([data-theme="light"]) .vd-compact-num.active,
 :host(.theme-light) .vd-compact-num.active {
-  color: var(--winzen-accent, #0067c0);
+  color: var(--winzen-accent, #0067c0) !important;
 }
 
 :host([data-theme="light"]) .vd-compact-num.active::after,
@@ -295,7 +307,8 @@ html, body {
   border-radius: var(--winzen-radius-sm, 8px);
   background: var(--winzen-surface-hover, rgba(255, 255, 255, 0.04));
   border: 1px solid var(--winzen-border, rgba(255, 255, 255, 0.06));
-  color: var(--winzen-text, #ffffff);
+  color: var(--winzen-text, #ffffff) !important;
+  opacity: 1 !important;
   cursor: pointer;
   font-family: inherit;
   font-size: 12px;
@@ -317,6 +330,7 @@ html, body {
   font-size: 11px;
   font-weight: 700;
   color: var(--winzen-accent, #60cdff);
+  opacity: 1 !important;
   background: color-mix(in srgb, var(--winzen-accent, #60cdff) 16%, transparent);
   padding: 1px 6px;
   border-radius: 4px;
@@ -334,5 +348,54 @@ html, body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--winzen-text, #ffffff);
+  color: var(--winzen-text, #ffffff) !important;
+  opacity: 1 !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.vd-pill,
+.vd-pill-num,
+.vd-pill-name,
+.vd-compact-num,
+.vd-icon-btn,
+.vd-icon-label,
+.vd-btn-taskview,
+.vd-btn-add {
+  color: #ffffff !important;
+  opacity: 1 !important;
+}
+
+.vd-compact-num.active,
+.vd-pill.active {
+  color: var(--winzen-accent, #60cdff) !important;
+  opacity: 1 !important;
+}
+
+:host([data-theme="light"]) .vd-pill,
+:host(.theme-light) .vd-pill,
+:host([data-theme="light"]) .vd-pill-num,
+:host(.theme-light) .vd-pill-num,
+:host([data-theme="light"]) .vd-pill-name,
+:host(.theme-light) .vd-pill-name,
+:host([data-theme="light"]) .vd-compact-num,
+:host(.theme-light) .vd-compact-num,
+:host([data-theme="light"]) .vd-icon-btn,
+:host(.theme-light) .vd-icon-btn,
+:host([data-theme="light"]) .vd-icon-label,
+:host(.theme-light) .vd-icon-label,
+:host([data-theme="light"]) .vd-btn-taskview,
+:host(.theme-light) .vd-btn-taskview,
+:host([data-theme="light"]) .vd-btn-add,
+:host(.theme-light) .vd-btn-add {
+  color: #111111 !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+:host([data-theme="light"]) .vd-compact-num.active,
+:host(.theme-light) .vd-compact-num.active,
+:host([data-theme="light"]) .vd-pill.active,
+:host(.theme-light) .vd-pill.active {
+  color: var(--winzen-accent, #0067c0) !important;
+  opacity: 1 !important;
 }

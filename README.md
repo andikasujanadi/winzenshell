@@ -5,7 +5,7 @@
 [![Platform: Windows 11](https://img.shields.io/badge/Platform-Windows%2011%20(64--bit)-0078D4?logo=windows11&logoColor=white)](https://microsoft.com/windows)
 [![Runtime: .NET 10](https://img.shields.io/badge/Runtime-.NET%2010%20(WPF)-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 [![Frontend: WebView2](https://img.shields.io/badge/Frontend-WebView2%20%7C%20Web%20Components-008080?logo=microsoftedge&logoColor=white)](https://developer.microsoft.com/microsoft-edge/webview2/)
-[![Release: v0.2.2](https://img.shields.io/badge/Release-v0.2.2-0078D4)](README.md#changelog)
+[![Release: v0.3.0](https://img.shields.io/badge/Release-v0.3.0-0078D4)](README.md#changelog)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 **WinZenShell** is a modular, high-performance Windows 11 custom taskbar and community widget studio.  
@@ -16,8 +16,8 @@ It combines a **100% Web Frontend** (HTML5, Modern CSS, Web Components, Shadow D
 ---
 
 > [!IMPORTANT]
-> **Release Notice (`v0.2.2`)**:  
-> WinZenShell v0.2.2 introduces the official **Media Player Widget (`zen-media-player`)** powered by Windows Global System Media Transport Controls (GSMTC), full-page Control Center widget picker, multi-aspect ratio Control Center playback cards (`1x1`, `2x1`, `2x2`, `3x1`, `4x1`, `1x2`) with interactive seekbars, customizable taskbar album thumbnails, and 2D free-placement grid with empty slot spacing.
+> **Release Notice (`v0.3.0`)**:  
+> WinZenShell v0.3.0 introduces the **Dynamic Island** system HUD with pitch-black capsule styling, choreographed expansion & collapse transitions, multi-slot taskbar anchoring (left, center, right), smooth overlay handoff, clean zero-shadow aesthetic, instant real-time volume & brightness sliders, and keyboard brightness sync.
 
 ---
 
@@ -197,6 +197,23 @@ window.winzen.shell.onMetricsUpdate((metrics) => {
 ---
 
 ## Changelog
+
+### v0.3.0 (2026-11-15)
+* **Dynamic Island System HUD**:
+  * Pitch-black capsule styling (`#000000 !important`) with clean border and zero-shadow aesthetic.
+  * Choreographed expansion & collapse transitions:
+    * Small elements fade out completely within 100ms before expansion starts at 150ms.
+    * Capsule expands smoothly to 400x170 with a 40px radius.
+    * Large elements fade in only after capsule expansion completes.
+    * Reverse choreography for collapse with seamless, flicker-free handoff to taskbar pill.
+  * Multi-slot anchoring support: seamlessly aligns to `left`, `center`, or `right` slots based on taskbar slot configuration.
+  * Clean typography: bold large clock, weekday badge (`SUNDAY`), and calendar date with zero branding watermark or redundant information.
+* **Real-time Sliders & Hardware Synchronization**:
+  * Zero-delay, zero-smoothing real-time updates for volume and brightness sliders.
+  * Direct WMI brightness control with real-time feedback and keyboard hotkey brightness synchronization.
+* **Settings & Shell Enhancements**:
+  * Dynamic Island tab in Settings with slot and appearance controls.
+  * Automatic synchronization of dynamic island settings with running shell state.
 
 ### v0.2.2 (2026-11-14)
 * **Official Media Player Widget (`community.zen-media-player`)**:

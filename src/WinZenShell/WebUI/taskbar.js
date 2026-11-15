@@ -14,6 +14,225 @@ function initTaskbar() {
   let currentDockEdge = 'bottom';
   let currentAnimations = true;
 
+  let currentDynamicIslandConfig = {
+    enabled: false,
+    placement: 'taskbar',
+    taskbarSlot: 'center',
+    timeFormat: '24h',
+    showSeconds: false,
+    showDate: true,
+    enableAnimation: true
+  };
+  let dynamicIslandEl = null;
+  let dynamicIslandClockTimer = null;
+  let isDynamicIslandExpanded = false;
+
+  function createDynamicIslandElement() {
+    const el = document.createElement('div');
+    el.id = 'shell-dynamic-island';
+    el.className = 'shell-dynamic-island pitch-black';
+    if (currentDynamicIslandConfig.enableAnimation === false) {
+      el.classList.add('no-anim');
+    }
+    el.setAttribute('role', 'button');
+    el.setAttribute('tabindex', '0');
+    el.title = 'Dynamic Island (Click to expand)';
+
+    // 1. Collapsed Content
+    const colDiv = document.createElement('div');
+    colDiv.className = 'di-collapsed-content';
+
+    const timeSpan = document.createElement('span');
+    timeSpan.className = 'di-time';
+    timeSpan.id = 'tbDiTime';
+
+    const secSpan = document.createElement('span');
+    secSpan.className = 'di-seconds';
+    secSpan.id = 'tbDiSeconds';
+
+    const sepSpan = document.createElement('span');
+    sepSpan.className = 'di-sep';
+    sepSpan.id = 'tbDiSep';
+
+    const dateSpan = document.createElement('span');
+    dateSpan.className = 'di-date';
+    dateSpan.id = 'tbDiDate';
+
+    colDiv.appendChild(timeSpan);
+    colDiv.appendChild(secSpan);
+    colDiv.appendChild(sepSpan);
+    colDiv.appendChild(dateSpan);
+
+    // 2. Expanded Content: Clock + Date
+    const expDiv = document.createElement('div');
+    expDiv.className = 'di-expanded-content';
+
+    const timeGrp = document.createElement('div');
+    timeGrp.className = 'di-exp-time-group';
+
+    const expTime = document.createElement('span');
+    expTime.className = 'di-exp-time';
+    expTime.id = 'tbDiExpTime';
+
+    const expSec = document.createElement('span');
+    expSec.className = 'di-exp-seconds';
+    expSec.id = 'tbDiExpSeconds';
+
+    timeGrp.appendChild(expTime);
+    timeGrp.appendChild(expSec);
+
+    const divider = document.createElement('span');
+    divider.className = 'di-exp-divider';
+
+    const dateGrp = document.createElement('div');
+    dateGrp.className = 'di-exp-date-group';
+
+    const expDate = document.createElement('span');
+    expDate.className = 'di-exp-date';
+    expDate.id = 'tbDiExpDate';
+
+    const expBadge = document.createElement('span');
+    expBadge.className = 'di-exp-badge';
+    expBadge.id = 'tbDiExpBadge';
+
+    dateGrp.appendChild(expDate);
+    dateGrp.appendChild(expBadge);
+
+    expDiv.appendChild(timeGrp);
+    expDiv.appendChild(divider);
+    expDiv.appendChild(dateGrp);
+
+    el.appendChild(colDiv);
+    el.appendChild(expDiv);
+
+    el.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      const rect = el.getBoundingClientRect();
+      if (window.winzen && typeof window.winzen.send === 'function') {
+        window.winzen.send('toggle_dynamic_island_expand', {
+          x: rect.left,
+          y: rect.top,
+          width: rect.width,
+          height: rect.height,
+          slot: currentDynamicIslandConfig.taskbarSlot || 'center'
+        });
+      }
+    });
+
+    el.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter' || ev.key === ' ') {
+        ev.preventDefault();
+        ev.stopPropagation();
+        const rect = el.getBoundingClientRect();
+        if (window.winzen && typeof window.winzen.send === 'function') {
+          window.winzen.send('toggle_dynamic_island_expand', {
+            x: rect.left,
+            y: rect.top,
+            width: rect.width,
+            height: rect.height,
+            slot: currentDynamicIslandConfig.taskbarSlot || 'center'
+          });
+        }
+      }
+    });
+
+    return el;
+  }
+
+  function toggleDynamicIslandExpand(force) {
+    if (!dynamicIslandEl) return;
+    const shouldExpand = (typeof force === 'boolean') ? force : !isDynamicIslandExpanded;
+    if (isDynamicIslandExpanded === shouldExpand) return;
+    isDynamicIslandExpanded = shouldExpand;
+
+    if (currentDynamicIslandConfig.enableAnimation === false) {
+      dynamicIslandEl.classList.add('no-anim');
+    } else {
+      dynamicIslandEl.classList.remove('no-anim');
+    }
+
+    if (shouldExpand) {
+      dynamicIslandEl.classList.add('expanded');
+      dynamicIslandEl.title = 'Dynamic Island (Click to collapse)';
+      updateDynamicIslandClock();
+    } else {
+      dynamicIslandEl.classList.remove('expanded');
+      dynamicIslandEl.title = 'Dynamic Island (Click to expand)';
+    }
+  }
+
+  // Collapse overlay on click outside or escape
+  document.addEventListener('click', (ev) => {
+    if (window.winzen && typeof window.winzen.send === 'function') {
+      window.winzen.send('taskbar_clicked_outside');
+    }
+  });
+
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape') {
+      if (window.winzen && typeof window.winzen.send === 'function') {
+        window.winzen.send('taskbar_clicked_outside');
+      }
+    }
+  });
+
+  function updateDynamicIslandClock() {
+    if (!dynamicIslandEl) return;
+    const timeSpan = dynamicIslandEl.querySelector('#tbDiTime');
+    const secSpan = dynamicIslandEl.querySelector('#tbDiSeconds');
+    const sepSpan = dynamicIslandEl.querySelector('#tbDiSep');
+    const dateSpan = dynamicIslandEl.querySelector('#tbDiDate');
+
+    const expTime = dynamicIslandEl.querySelector('#tbDiExpTime');
+    const expSec = dynamicIslandEl.querySelector('#tbDiExpSeconds');
+    const expDate = dynamicIslandEl.querySelector('#tbDiExpDate');
+    const expBadge = dynamicIslandEl.querySelector('#tbDiExpBadge');
+
+    const now = new Date();
+    const is12h = currentDynamicIslandConfig.timeFormat === '12h';
+
+    let hours = now.getHours();
+    let ampm = '';
+    if (is12h) {
+      ampm = hours >= 12 ? ' PM' : ' AM';
+      hours = hours % 12;
+      if (hours === 0) hours = 12;
+    }
+
+    const minStr = String(now.getMinutes()).padStart(2, '0');
+    const hrStr = is12h ? String(hours) : String(hours).padStart(2, '0');
+    const secStr = `:${String(now.getSeconds()).padStart(2, '0')}`;
+
+    // Collapsed view clock
+    if (timeSpan) timeSpan.textContent = `${hrStr}:${minStr}${ampm}`;
+
+    if (secSpan) {
+      if (currentDynamicIslandConfig.showSeconds) {
+        secSpan.style.display = 'inline';
+        secSpan.textContent = secStr;
+      } else {
+        secSpan.style.display = 'none';
+      }
+    }
+
+    if (dateSpan && sepSpan) {
+      if (currentDynamicIslandConfig.showDate) {
+        dateSpan.style.display = 'inline';
+        sepSpan.style.display = 'inline-block';
+        dateSpan.textContent = now.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+      } else {
+        dateSpan.style.display = 'none';
+        sepSpan.style.display = 'none';
+      }
+    }
+
+    // Expanded view clock and date
+    if (expTime) expTime.textContent = `${hrStr}:${minStr}${ampm}`;
+    if (expSec) expSec.textContent = secStr;
+    if (expDate) expDate.textContent = now.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+    if (expBadge) expBadge.textContent = now.toLocaleDateString([], { weekday: 'long' }).toUpperCase();
+  }
+
   if (btnOpenStudio) {
     btnOpenStudio.addEventListener('click', () => {
       window.winzen.shell.openSettings();
@@ -78,6 +297,25 @@ function initTaskbar() {
     const isTop = (settings.dockEdge || 'Bottom').toLowerCase() === 'top';
     currentDockEdge = isTop ? 'top' : 'bottom';
     currentAnimations = settings.enableAnimations !== false;
+
+    const diConfig = settings.dynamicIsland || settings.DynamicIsland || {
+      enabled: false,
+      placement: 'taskbar',
+      taskbarSlot: 'center',
+      timeFormat: '24h',
+      showSeconds: false,
+      showDate: true,
+      enableAnimation: true
+    };
+    currentDynamicIslandConfig = diConfig;
+    if (dynamicIslandEl) {
+      if (currentDynamicIslandConfig.enableAnimation === false) {
+        dynamicIslandEl.classList.add('no-anim');
+      } else {
+        dynamicIslandEl.classList.remove('no-anim');
+      }
+    }
+
     document.body.classList.toggle('winzen-no-anim', !currentAnimations);
     if (taskbarBar) {
       taskbarBar.classList.toggle('floating', isFloating);
@@ -107,6 +345,9 @@ function initTaskbar() {
     const sig = JSON.stringify({
       theme: currentTheme,
       accent: currentAccent,
+      animations: currentAnimations,
+      dock: currentDockEdge,
+      di: currentDynamicIslandConfig,
       widgets: enabledWidgets.map((w) => ({
         id: w.id,
         slot: w.slot,
@@ -143,10 +384,20 @@ function initTaskbar() {
     slotCenter.innerHTML = '';
     slotRight.innerHTML = '';
 
+    const isDiActiveInTaskbar = currentDynamicIslandConfig &&
+      currentDynamicIslandConfig.enabled &&
+      (currentDynamicIslandConfig.placement === 'taskbar' || currentDockEdge === 'top');
+    const diSlot = ((currentDynamicIslandConfig && currentDynamicIslandConfig.taskbarSlot) || 'center').toLowerCase();
+
     widgets.forEach((w) => {
       const slot = (w.slot || 'right').toLowerCase();
       // Skip widgets placed in the control center or not in use from the taskbar zones
       if (slot === 'control-center' || slot === 'unused' || slot === 'disabled') return;
+
+      // RULE 1: If Dynamic Island is active in the center, all widgets on the center become inactive (suppressed from taskbar)!
+      if (isDiActiveInTaskbar && diSlot === 'center' && slot === 'center') {
+        return;
+      }
 
       const isAutoWidth = w.autoWidth !== false;
       const isShrinkableStrip = w.id === 'community.zen-active-windows';
@@ -282,6 +533,34 @@ function initTaskbar() {
         }
       }
     });
+
+    if (isDiActiveInTaskbar) {
+      if (!dynamicIslandEl) {
+        dynamicIslandEl = createDynamicIslandElement();
+      }
+      updateDynamicIslandClock();
+      if (!dynamicIslandClockTimer) {
+        dynamicIslandClockTimer = setInterval(updateDynamicIslandClock, 1000);
+      }
+
+      if (diSlot === 'center') {
+        // Exclusively occupies center
+        slotCenter.innerHTML = '';
+        slotCenter.appendChild(dynamicIslandEl);
+      } else if (diSlot === 'left') {
+        // RULE 2: If on the left, Dynamic Island should be the FIRST item!
+        slotLeft.prepend(dynamicIslandEl);
+      } else if (diSlot === 'right') {
+        // RULE 3: If on the right, Dynamic Island should be the LAST item!
+        slotRight.appendChild(dynamicIslandEl);
+      }
+    } else {
+      if (dynamicIslandClockTimer) {
+        clearInterval(dynamicIslandClockTimer);
+        dynamicIslandClockTimer = null;
+      }
+      dynamicIslandEl = null;
+    }
 
     if (window.winzen.metrics) {
       window.dispatchEvent(new CustomEvent('winzen:metrics', { detail: window.winzen.metrics }));

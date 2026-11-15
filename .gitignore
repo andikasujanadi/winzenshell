@@ -9,3 +9,5 @@ publish/
 *.log
 .vs/
 .vscode/
+
+scratch/

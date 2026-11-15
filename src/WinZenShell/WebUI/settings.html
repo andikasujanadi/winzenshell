@@ -22,7 +22,7 @@
         </div>
         <div class="pane-profile-text">
           <span class="pane-title">WinZenShell</span>
-          <span class="pane-sub">v0.2.2</span>
+          <span class="pane-sub">v0.3.0</span>
         </div>
       </div>
 
@@ -33,6 +33,13 @@
             <path d="M1 3.5A1.5 1.5 0 0 1 2.5 2h11A1.5 1.5 0 0 1 15 3.5v9a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 1 12.5v-9zM2.5 3a.5.5 0 0 0-.5.5V10h12V3.5a.5.5 0 0 0-.5-.5h-11zm12 8H2v1.5a.5.5 0 0 0 .5.5h11a.5.5 0 0 0 .5-.5V11z"/>
           </svg>
           <span>Shell</span>
+        </button>
+        <button class="pane-item" data-tab="tab-dynamic-island">
+          <span class="pane-pill"></span>
+          <svg class="pane-icon" viewBox="0 0 16 16" fill="currentColor">
+            <rect x="2" y="5" width="12" height="6" rx="3"/>
+          </svg>
+          <span>Dynamic Island</span>
         </button>
         <button class="pane-item" data-tab="tab-widgets">
           <span class="pane-pill"></span>
@@ -324,6 +331,131 @@
                   <span>Taskbar mode</span>
                   <strong id="valAppBarStatus">Registered</strong>
                 </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB DYNAMIC ISLAND: CORE SHELL SYSTEM -->
+        <section id="tab-dynamic-island" class="tab-view">
+          <div class="section-label">Dynamic Island</div>
+
+          <div class="di-preview-banner">
+            <div class="di-preview-capsule pitch-black">
+              <span class="di-preview-time" id="diPreviewTime">23:14</span>
+              <span class="di-preview-seconds" id="diPreviewSeconds" style="display: none;">:00</span>
+              <span class="di-preview-sep" id="diPreviewSep"></span>
+              <span class="di-preview-date" id="diPreviewDate">Sat, Nov 14</span>
+            </div>
+            <span class="di-preview-caption">Pitch black HUD capsule &amp; intelligent system island</span>
+          </div>
+
+          <div class="win11-expander">
+            <!-- 1. Master Enable -->
+            <div class="win11-card">
+              <div class="card-left">
+                <svg class="card-icon" viewBox="0 0 16 16" fill="currentColor">
+                  <rect x="2" y="5" width="12" height="6" rx="3"/>
+                </svg>
+                <div class="card-titles">
+                  <label class="card-title" for="toggleDynamicIsland">Enable Dynamic Island</label>
+                  <span class="card-subtitle">Show the pitch black Dynamic Island system HUD</span>
+                </div>
+              </div>
+              <div class="card-right">
+                <span class="toggle-state-text" id="stateDynamicIsland">Off</span>
+                <label class="win11-toggle">
+                  <input type="checkbox" id="toggleDynamicIsland" />
+                  <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                </label>
+              </div>
+            </div>
+
+            <!-- 2. Placement -->
+            <div class="expander-subrow setting-subrow" id="rowDiPlacement">
+              <div class="card-titles">
+                <label class="card-title" for="selectDiPlacement">Island Placement</label>
+                <span class="card-subtitle" id="subtextDiPlacement">Place inside the taskbar or floating at top center</span>
+              </div>
+              <div class="card-right">
+                <select id="selectDiPlacement" class="win11-select">
+                  <option value="taskbar">Inside Taskbar</option>
+                  <option value="top-center">Top Center (Desktop Work Area)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- 3. Taskbar Slot Position -->
+            <div class="expander-subrow setting-subrow" id="rowDiSlot">
+              <div class="card-titles">
+                <label class="card-title" for="selectDiSlot">Position inside Taskbar</label>
+                <span class="card-subtitle" id="subtextDiSlot">Center replaces center widgets; Left pins first; Right pins last</span>
+              </div>
+              <div class="card-right">
+                <select id="selectDiSlot" class="win11-select">
+                  <option value="center">Center (Exclusive — replaces center widgets)</option>
+                  <option value="left">Left (First item before Start)</option>
+                  <option value="right">Right (Last item in system area)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- 4. Clock Time Format -->
+            <div class="expander-subrow setting-subrow">
+              <div class="card-titles">
+                <label class="card-title" for="selectDiTimeFormat">Time Format</label>
+                <span class="card-subtitle">Choose between 24-hour and 12-hour clock display</span>
+              </div>
+              <div class="card-right">
+                <select id="selectDiTimeFormat" class="win11-select">
+                  <option value="24h">24-Hour (23:14)</option>
+                  <option value="12h">12-Hour (11:14 PM)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- 5. Show Seconds -->
+            <div class="expander-subrow setting-subrow">
+              <div class="card-titles">
+                <label class="card-title" for="toggleDiSeconds">Show Seconds</label>
+                <span class="card-subtitle">Display real-time seconds in the clock capsule</span>
+              </div>
+              <div class="card-right">
+                <span class="toggle-state-text" id="stateDiSeconds">Off</span>
+                <label class="win11-toggle">
+                  <input type="checkbox" id="toggleDiSeconds" />
+                  <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                </label>
+              </div>
+            </div>
+
+            <!-- 6. Show Date -->
+            <div class="expander-subrow setting-subrow">
+              <div class="card-titles">
+                <label class="card-title" for="toggleDiDate">Show Date</label>
+                <span class="card-subtitle">Display day of week and date inside the capsule</span>
+              </div>
+              <div class="card-right">
+                <span class="toggle-state-text" id="stateDiDate">On</span>
+                <label class="win11-toggle">
+                  <input type="checkbox" id="toggleDiDate" checked />
+                  <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                </label>
+              </div>
+            </div>
+
+            <!-- 7. Dynamic Island Expand Animation -->
+            <div class="expander-subrow setting-subrow">
+              <div class="card-titles">
+                <label class="card-title" for="toggleDiAnimation">Expand Animation</label>
+                <span class="card-subtitle">Smooth fluid transition when expanding the island to view clock and date</span>
+              </div>
+              <div class="card-right">
+                <span class="toggle-state-text" id="stateDiAnimation">On</span>
+                <label class="win11-toggle">
+                  <input type="checkbox" id="toggleDiAnimation" checked />
+                  <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                </label>
               </div>
             </div>
           </div>

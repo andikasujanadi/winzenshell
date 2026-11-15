@@ -37,6 +37,7 @@ public partial class TaskbarWebWindow : Window
     private BluetoothFlyoutWindow? _bluetoothFlyout;
     private BatteryFlyoutWindow? _batteryFlyout;
     private TrayOverflowFlyoutWindow? _trayOverflowFlyout;
+    public DynamicIslandWindow? DynamicIslandOverlayWindow { get; set; }
     private readonly NetworkService _networkService;
     private readonly BluetoothService _bluetoothService;
     private readonly TrayIconService _trayIconService;
@@ -60,17 +61,27 @@ public partial class TaskbarWebWindow : Window
         AppLauncherService appLauncherService,
         Action openSettingsCallback)
     {
+        string logPath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WinZenShell", "startup.log");
+        System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] TaskbarWebWindow: InitializeComponent...\n");
         InitializeComponent();
+        System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] TaskbarWebWindow: InitializeComponent done\n");
         TaskbarWebView.DefaultBackgroundColor = System.Drawing.Color.FromArgb(255, 28, 28, 28);
         _shellState = shellState;
         _metricsService = metricsService;
         _brightnessService = brightnessService;
+        System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] TaskbarWebWindow: AudioService...\n");
         _audioService = new AudioService();
+        System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] TaskbarWebWindow: VirtualDesktopService...\n");
         _virtualDesktopService = new VirtualDesktopService();
+        System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] TaskbarWebWindow: NetworkService...\n");
         _networkService = new NetworkService();
+        System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] TaskbarWebWindow: BluetoothService...\n");
         _bluetoothService = new BluetoothService();
+        System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] TaskbarWebWindow: TrayIconService...\n");
         _trayIconService = new TrayIconService();
+        System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] TaskbarWebWindow: MediaService...\n");
         _mediaService = new MediaService();
+        System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] TaskbarWebWindow: Wire up metrics...\n");
         _metricsService.Audio = _audioService;
         _metricsService.VirtualDesktops = _virtualDesktopService;
         _metricsService.Network = _networkService;
@@ -86,7 +97,19 @@ public partial class TaskbarWebWindow : Window
         _networkService.NetworkChanged += (_, _) => Dispatcher.Invoke(BroadcastMetrics);
         _bluetoothService.BluetoothChanged += (_, _) => Dispatcher.Invoke(BroadcastMetrics);
         _mediaService.MediaChanged += _ => Dispatcher.Invoke(BroadcastMetrics);
-        _ = _mediaService.InitializeAsync();
+        System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] TaskbarWebWindow: InitializeAsync media...\n");
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await _mediaService.InitializeAsync();
+            }
+            catch (Exception ex)
+            {
+                System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] Media init ex: {ex}\n");
+            }
+        });
+        System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] TaskbarWebWindow: BrightnessChanged...\n");
         _brightnessService.BrightnessChanged += val => Dispatcher.Invoke(() =>
         {
             if (_brightnessFlyout != null && _brightnessFlyout.IsVisible)
@@ -116,6 +139,7 @@ public partial class TaskbarWebWindow : Window
             _metricsTimer.Stop();
             _fullscreenTimer.Stop();
         };
+        System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] TaskbarWebWindow: Constructor finished successfully!\n");
     }
 
     protected override void OnSourceInitialized(EventArgs e)
@@ -182,6 +206,7 @@ public partial class TaskbarWebWindow : Window
                 _metricsTimer.Start();
                 _fullscreenTimer.Start();
                 _trayOverflowFlyout ??= new TrayOverflowFlyoutWindow(_trayIconService, _openSettingsCallback, () => Dispatcher.Invoke(BroadcastMetrics));
+                DynamicIslandOverlayWindow ??= new DynamicIslandWindow(_shellState) { Owner = this };
             };
 
             core.Navigate($"https://app.winzenshell.local/taskbar.html?v={DateTimeOffset.UtcNow.ToUnixTimeSeconds()}");
@@ -232,6 +257,48 @@ public partial class TaskbarWebWindow : Window
                 return;
             }
 
+            if (cmd.StartsWith("eval_taskbar_file", StringComparison.OrdinalIgnoreCase))
+            {
+                var parts = cmd.Split(new[] { ' ' }, 3);
+                string outPath = parts[1];
+                string script = parts[2];
+                Dispatcher.InvokeAsync(async () =>
+                {
+                    if (TaskbarWebView?.CoreWebView2 != null)
+                    {
+                        var res = await TaskbarWebView.CoreWebView2.ExecuteScriptAsync(script);
+                        File.WriteAllText(outPath, res);
+                    }
+                });
+                return;
+            }
+
+            if (cmd.StartsWith("eval_taskbar", StringComparison.OrdinalIgnoreCase))
+            {
+                string script = cmd.Substring("eval_taskbar".Length).Trim();
+                Dispatcher.InvokeAsync(async () =>
+                {
+                    if (TaskbarWebView?.CoreWebView2 != null)
+                    {
+                        await TaskbarWebView.CoreWebView2.ExecuteScriptAsync(script);
+                    }
+                });
+                return;
+            }
+
+            if (cmd.StartsWith("eval_di", StringComparison.OrdinalIgnoreCase))
+            {
+                string script = cmd.Substring("eval_di".Length).Trim();
+                Dispatcher.InvokeAsync(async () =>
+                {
+                    if (DynamicIslandOverlayWindow?.DiWebView?.CoreWebView2 != null)
+                    {
+                        await DynamicIslandOverlayWindow.DiWebView.CoreWebView2.ExecuteScriptAsync(script);
+                    }
+                });
+                return;
+            }
+
             if (cmd.StartsWith("capture_taskbar", StringComparison.OrdinalIgnoreCase))
             {
                 var parts = cmd.Split(' ');
@@ -259,6 +326,35 @@ public partial class TaskbarWebWindow : Window
                 return;
             }
 
+            if (cmd.StartsWith("capture_di", StringComparison.OrdinalIgnoreCase))
+            {
+                var parts = cmd.Split(' ');
+                string outPath = parts.Length > 1 ? parts[1] : Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "di_capture.png");
+                Dispatcher.InvokeAsync(async () =>
+                {
+                    try
+                    {
+                        if (DynamicIslandOverlayWindow?.DiWebView?.CoreWebView2 != null)
+                        {
+                            using var fs = new FileStream(outPath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite);
+                            await DynamicIslandOverlayWindow.DiWebView.CoreWebView2.CapturePreviewAsync(
+                                Microsoft.Web.WebView2.Core.CoreWebView2CapturePreviewImageFormat.Png,
+                                fs);
+                            await fs.FlushAsync();
+                        }
+                        else
+                        {
+                            File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "capture_err.txt"), $"DynamicIslandOverlayWindow={DynamicIslandOverlayWindow != null}, CoreWebView2={DynamicIslandOverlayWindow?.DiWebView?.CoreWebView2 != null}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "capture_err.txt"), ex.ToString());
+                    }
+                });
+                return;
+            }
+
             if (cmd.StartsWith("capture_cc", StringComparison.OrdinalIgnoreCase))
             {
                 var parts = cmd.Split(' ');
@@ -271,12 +367,12 @@ public partial class TaskbarWebWindow : Window
                         var ccFlyout = EnsureControlCenterFlyout();
                         ccFlyout.ShowAt(mon.Right - 380, 34, Top, Height, _shellState.Settings.DockEdge);
                         await System.Threading.Tasks.Task.Delay(600);
-                        if (parts.Length > 2 && string.Equals(parts[2], "edit", StringComparison.OrdinalIgnoreCase))
+                        if (parts.Length > 2 && string.Equals(parts[2], "edit", StringComparison.OrdinalIgnoreCase) && _controlCenterFlyout?.CcWebView?.CoreWebView2 != null)
                         {
                             await _controlCenterFlyout.CcWebView.CoreWebView2.ExecuteScriptAsync("document.getElementById('btnEditControls')?.click();");
                             await System.Threading.Tasks.Task.Delay(500);
                         }
-                        if (_controlCenterFlyout.CcWebView?.CoreWebView2 != null)
+                        if (_controlCenterFlyout?.CcWebView?.CoreWebView2 != null)
                         {
                             using var fs = new FileStream(outPath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite);
                             await _controlCenterFlyout.CcWebView.CoreWebView2.CapturePreviewAsync(
@@ -1278,23 +1374,30 @@ public partial class TaskbarWebWindow : Window
                     });
                     break;
 
+                case "toggle_dynamic_island_expand":
+                    double diX = root.TryGetProperty("x", out var diXProp) && diXProp.TryGetDouble(out double diXd) ? diXd : (Width / 2.0 - 40);
+                    double diW = root.TryGetProperty("width", out var diWProp) && diWProp.TryGetDouble(out double diWd) ? diWd : 80;
+                    double diY = root.TryGetProperty("y", out var diYProp) && diYProp.TryGetDouble(out double diYd) ? diYd : 0;
+                    double diH = root.TryGetProperty("height", out var diHProp) && diHProp.TryGetDouble(out double diHd) ? diHd : Height;
+                    string diSlot = root.TryGetProperty("slot", out var sProp) ? sProp.GetString() ?? "center" : "center";
+                    ToggleDynamicIslandOverlay(diX, diW, diY, diH, diSlot);
+                    break;
+
+                case "taskbar_clicked_outside":
+                    Dispatcher.Invoke(() =>
+                    {
+                        if (DynamicIslandOverlayWindow != null && DynamicIslandOverlayWindow.IsVisible && DynamicIslandOverlayWindow.IsOverlayOpen)
+                        {
+                            DynamicIslandOverlayWindow.CloseOverlay();
+                        }
+                    });
+                    break;
+
                 case "toggle_clock_flyout":
                     double clkX = root.TryGetProperty("x", out var clkXProp) && clkXProp.TryGetDouble(out double clkXd) ? clkXd : 0;
                     double clkW = root.TryGetProperty("width", out var clkWProp) && clkWProp.TryGetDouble(out double clkWd) ? clkWd : 34;
 
-                    Dispatcher.Invoke(() =>
-                    {
-                        _clockFlyout ??= new ClockFlyoutWindow();
-                        bool wasJustOpen = _clockFlyout.IsVisible ||
-                            (DateTime.UtcNow - _clockFlyout.LastDeactivatedTime).TotalMilliseconds < 350;
-
-                        CloseAllFlyouts();
-
-                        if (!wasJustOpen)
-                        {
-                            _clockFlyout.ShowAt(Left + clkX, clkW, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
-                        }
-                    });
+                    ToggleClockFlyout(Left + clkX, clkW, Top, Height);
                     break;
 
                 case "toggle_system_monitor_flyout":
@@ -1531,6 +1634,44 @@ public partial class TaskbarWebWindow : Window
         {
             // Ignore malformed message
         }
+    }
+
+    public void ToggleDynamicIslandOverlay(double x, double w, double y, double h, string slot = "center")
+    {
+        Dispatcher.Invoke(() =>
+        {
+            DynamicIslandOverlayWindow ??= new DynamicIslandWindow(_shellState);
+            if (DynamicIslandOverlayWindow.Owner == null)
+            {
+                DynamicIslandOverlayWindow.Owner = this;
+            }
+            if (DynamicIslandOverlayWindow.IsVisible && DynamicIslandOverlayWindow.IsOverlayOpen)
+            {
+                DynamicIslandOverlayWindow.CloseOverlay();
+            }
+            else
+            {
+                CloseAllFlyouts();
+                DynamicIslandOverlayWindow.ShowAsOverlay(Left + x, w, Top, Height, _shellState.Settings.DockEdge, slot);
+            }
+        });
+    }
+
+    public void ToggleClockFlyout(double x, double w, double y, double h)
+    {
+        Dispatcher.Invoke(() =>
+        {
+            _clockFlyout ??= new ClockFlyoutWindow();
+            bool wasJustOpen = _clockFlyout.IsVisible ||
+                (DateTime.UtcNow - _clockFlyout.LastDeactivatedTime).TotalMilliseconds < 350;
+
+            CloseAllFlyouts();
+
+            if (!wasJustOpen)
+            {
+                _clockFlyout.ShowAt(x, w, y, h, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
+            }
+        });
     }
 
     public static Bitmap? GetBitmapFromDataUrl(string? dataUrl)
@@ -2235,6 +2376,8 @@ public partial class TaskbarWebWindow : Window
             FlyoutAnimationHelper.AnimateHide(_trayOverflowFlyout);
         if (_windowSelectorFlyout != null && _windowSelectorFlyout != except && _windowSelectorFlyout.IsVisible)
             _windowSelectorFlyout.HideSelector();
+        if (DynamicIslandOverlayWindow != null && DynamicIslandOverlayWindow.IsOverlayOpen)
+            DynamicIslandOverlayWindow.CloseOverlay();
     }
 
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
