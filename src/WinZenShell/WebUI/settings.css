@@ -2258,10 +2258,10 @@ body.winzen-no-anim *:active {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 0;
   background: #000000 !important; /* Strictly pitch black */
   color: #ffffff !important;
-  height: 36px;
+  height: 30px;
   padding: 0 16px;
   border-radius: 9999px;
   border: 1px solid rgba(255, 255, 255, 0.16);
@@ -2280,30 +2280,29 @@ body.winzen-no-anim *:active {
   font-size: 13.5px;
   font-weight: 700;
   color: #ffffff;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.2px;
   font-variant-numeric: tabular-nums;
 }
 
 .di-preview-seconds {
-  font-size: 11px;
-  font-weight: 600;
-  color: #a1a1aa;
-  margin-left: -3px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-left: 0;
   font-variant-numeric: tabular-nums;
 }
 
 .di-preview-sep {
-  width: 3.5px;
-  height: 3.5px;
-  background: #71717a;
-  border-radius: 50%;
-  margin: 0 1px;
+  display: none !important;
 }
 
 .di-preview-date {
-  font-size: 11.5px;
-  font-weight: 500;
-  color: #a1a1aa;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-left: 20px;
+  letter-spacing: 0.2px;
+  font-variant-numeric: tabular-nums;
 }
 
 .di-preview-caption {

@@ -326,19 +326,24 @@ function initSettingsPage() {
     const hrStr = is12h ? String(hours) : String(hours).padStart(2, '0');
     diPreviewTime.textContent = `${hrStr}:${minStr}${ampm}`;
 
+    const dayStr = String(now.getDate()).padStart(2, '0');
+    const monthStr = String(now.getMonth() + 1).padStart(2, '0');
+    const yearStr = String(now.getFullYear());
+    const formattedDate = `${dayStr}-${monthStr}-${yearStr}`;
+
     const showSec = toggleDiSeconds ? toggleDiSeconds.checked : false;
     if (diPreviewSeconds) {
       diPreviewSeconds.style.display = showSec ? 'inline' : 'none';
-      diPreviewSeconds.textContent = `:${String(now.getSeconds()).padStart(2, '0')}`;
+      diPreviewSeconds.textContent = `.${String(now.getSeconds()).padStart(2, '0')}`;
     }
 
     const showDt = toggleDiDate ? toggleDiDate.checked : true;
     if (diPreviewDate) {
       diPreviewDate.style.display = showDt ? 'inline' : 'none';
-      diPreviewDate.textContent = now.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+      diPreviewDate.textContent = formattedDate;
     }
     if (diPreviewSep) {
-      diPreviewSep.style.display = showDt ? 'inline-block' : 'none';
+      diPreviewSep.style.display = 'none';
     }
   }
 

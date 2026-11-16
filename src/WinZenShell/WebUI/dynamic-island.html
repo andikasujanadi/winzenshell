@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dynamic Island</title>
-  <link rel="stylesheet" href="dynamic-island.css" />
+  <link rel="stylesheet" href="dynamic-island.css?v=12" />
 </head>
 <body>
   <div class="island-container" id="islandContainer">
@@ -13,32 +13,33 @@
       <div class="island-collapsed-content" id="islandCollapsedContent">
         <div class="island-collapsed-inner" id="islandCollapsedInner">
           <span class="di-time" id="diTime">--:--</span>
-          <span class="di-seconds" id="diSeconds" style="display:none;">:00</span>
-          <span class="di-sep" id="diSep" style="display:none;"></span>
-          <span class="di-date" id="diDate" style="display:none;"></span>
+          <span class="di-seconds" id="diSeconds" style="display:none;">.00</span>
+          <span class="di-date" id="diDate" style="display:none;">16-11-2026</span>
         </div>
       </div>
 
-      <!-- 2. Expanded Island Card: Clock & Date -->
+      <!-- 2. Expanded Island Card -->
       <div class="island-expanded-content" id="islandExpandedContent">
-        <div class="di-card-header">
-          <div class="di-card-header-left">
-            <span class="di-card-badge" id="diCardWeekday">SUNDAY</span>
-            <span class="di-card-dot">•</span>
-            <span class="di-card-date-short" id="diCardDateShort">NOV 15, 2026</span>
+        <div class="di-card-top-row">
+          <div class="di-card-time-group">
+            <span class="di-card-time" id="diCardTime">--:--</span><span class="di-card-seconds" id="diCardSeconds">.00</span>
+          </div>
+          <div class="di-card-battery-group" id="diCardBattery">
+            <span class="di-card-battery-pct" id="diCardBatteryPct">100%</span>
+            <div class="di-card-battery-icon" id="diCardBatteryIcon">
+              <div class="di-card-battery-fill" id="diCardBatteryFill" style="width: 100%;"></div>
+            </div>
           </div>
         </div>
 
-        <div class="di-card-clock-area">
-          <div class="di-card-clock">
-            <span class="di-card-time" id="diCardTime">--:--</span>
-            <span class="di-card-seconds" id="diCardSeconds">:00</span>
-          </div>
+        <div class="di-card-bottom-group">
+          <div class="di-card-weekday" id="diCardWeekday">Monday</div>
+          <div class="di-card-date" id="diCardDate">16-11-2026</div>
         </div>
       </div>
     </div>
   </div>
   <script src="bridge.js"></script>
-  <script src="dynamic-island.js"></script>
+  <script src="dynamic-island.js?v=12"></script>
 </body>
 </html>

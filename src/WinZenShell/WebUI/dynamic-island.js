@@ -6,11 +6,12 @@
 
   const timeEl = document.getElementById('diTime');
   const secEl = document.getElementById('diSeconds');
-  const sepEl = document.getElementById('diSep');
   const dateEl = document.getElementById('diDate');
 
   const cardTime = document.getElementById('diCardTime');
   const cardSec = document.getElementById('diCardSeconds');
+  const cardBatteryPct = document.getElementById('diCardBatteryPct');
+  const cardBatteryFill = document.getElementById('diCardBatteryFill');
   const cardWeekday = document.getElementById('diCardWeekday');
   const cardDate = document.getElementById('diCardDate');
 
@@ -43,7 +44,14 @@
 
     const minStr = String(now.getMinutes()).padStart(2, '0');
     const hrStr = is12h ? String(hours) : String(hours).padStart(2, '0');
-    const secStr = `:${String(now.getSeconds()).padStart(2, '0')}`;
+    const rawSec = String(now.getSeconds()).padStart(2, '0');
+    const secStr = `.${rawSec}`;
+
+    const dayStr = String(now.getDate()).padStart(2, '0');
+    const monthStr = String(now.getMonth() + 1).padStart(2, '0');
+    const yearStr = String(now.getFullYear());
+    const formattedDate = `${dayStr}-${monthStr}-${yearStr}`;
+    const weekdayStr = now.toLocaleDateString('en-US', { weekday: 'long' });
 
     // 1. Collapsed Clock
     if (timeEl) timeEl.textContent = `${hrStr}:${minStr}${ampm}`;
@@ -57,28 +65,36 @@
       }
     }
 
-    if (dateEl && sepEl) {
+    if (dateEl) {
       if (diConfig.showDate) {
         dateEl.style.display = 'inline';
-        sepEl.style.display = 'inline-block';
-        dateEl.textContent = now.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+        dateEl.textContent = formattedDate;
       } else {
         dateEl.style.display = 'none';
-        sepEl.style.display = 'none';
       }
     }
 
     // 2. Expanded Card Clock & Date
     if (cardTime) cardTime.textContent = `${hrStr}:${minStr}${ampm}`;
-    if (cardSec) cardSec.textContent = secStr;
+    if (cardSec) {
+      cardSec.style.display = 'inline';
+      cardSec.textContent = secStr;
+    }
 
-    const cardBadge = document.getElementById('diCardWeekday');
-    const cardDateShort = document.getElementById('diCardDateShort');
-
-    if (cardBadge) cardBadge.textContent = now.toLocaleDateString([], { weekday: 'long' }).toUpperCase();
-    if (cardDateShort) cardDateShort.textContent = now.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase();
+    if (cardWeekday) cardWeekday.textContent = weekdayStr;
+    if (cardDate) cardDate.textContent = formattedDate;
 
     updateCollapsedWidth();
+  }
+
+  function updateBattery(metrics) {
+    if (!metrics) return;
+    let pct = 100;
+    if (typeof metrics.batteryPercent === 'number' && metrics.batteryPercent >= 0) {
+      pct = metrics.batteryPercent;
+    }
+    if (cardBatteryPct) cardBatteryPct.textContent = `${pct}%`;
+    if (cardBatteryFill) cardBatteryFill.style.width = `${Math.max(5, Math.min(100, pct))}%`;
   }
 
   function updateCollapsedWidth() {
@@ -87,7 +103,7 @@
       const innerW = (collapsedInner && collapsedInner.getBoundingClientRect().width > 0)
         ? collapsedInner.getBoundingClientRect().width
         : (timeEl && timeEl.getBoundingClientRect().width > 0 ? timeEl.getBoundingClientRect().width : 45);
-      const targetW = Math.max(76, Math.min(220, Math.ceil(innerW + 28))); // 14px padding each side
+      const targetW = Math.max(76, Math.min(260, Math.ceil(innerW + 32))); // 16px padding each side
       capsule.style.setProperty('--di-collapsed-width', `${targetW}px`);
     }
   }
@@ -126,8 +142,13 @@
 
     const collapsedH = (options.anchorHeight && options.anchorHeight > 10) ? Math.round(options.anchorHeight) : 30;
     capsule.style.setProperty('--di-collapsed-height', `${collapsedH}px`);
-    // Small border radius is exactly half the height (15px) so the corner radius animates smoothly from the start
     capsule.style.setProperty('--di-collapsed-radius', `${Math.round(collapsedH / 2)}px`);
+
+    if (options.taskbarHeight && options.anchorHeight) {
+      const pad = Math.max(0, Math.round((options.taskbarHeight - options.anchorHeight) / 2));
+      capsule.style.setProperty('--di-dock-bottom-padding', `${pad}px`);
+      capsule.style.setProperty('--di-dock-top-padding', `${pad}px`);
+    }
 
     const container = document.getElementById('islandContainer') || document.querySelector('.island-container');
     if (container) {
@@ -149,7 +170,6 @@
 
     if (shouldExpand) {
       updateClock();
-      // Animate corner radius, width, and height immediately from the start of the click
       capsule.classList.add('expanded');
 
       if (window.winzen && typeof window.winzen.send === 'function') {
@@ -163,7 +183,6 @@
       }
 
       if (hasAnim) {
-        // Wait for contraction transition and small content fade-in to complete before telling host to hide window
         closeTimeout = setTimeout(() => {
           if (!isExpanded && window.winzen && typeof window.winzen.send === 'function') {
             window.winzen.send('di_close_complete');
@@ -208,6 +227,10 @@
     applyState(e.detail);
   });
 
+  window.addEventListener('winzen:metrics', (e) => {
+    updateBattery(e.detail);
+  });
+
   if (window.winzen && typeof window.winzen.onState === 'function') {
     window.winzen.onState((state) => applyState(state));
   }
@@ -216,6 +239,10 @@
     if (!msg) return;
     if (msg.type === 'state_update' || msg.type === 'state') {
       applyState(msg.payload || msg.data);
+      return;
+    }
+    if (msg.type === 'metrics_update' || msg.type === 'metrics') {
+      updateBattery(msg.payload || msg.data);
       return;
     }
     if (msg.type === 'set_mode') {
@@ -249,8 +276,6 @@
       if (capsule && !capsule.contains(ev.target)) {
         toggleExpand(false);
       }
-    } else {
-      toggleExpand(true);
     }
   });
 

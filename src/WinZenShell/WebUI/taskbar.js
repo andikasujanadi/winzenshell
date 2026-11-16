@@ -203,7 +203,12 @@ function initTaskbar() {
 
     const minStr = String(now.getMinutes()).padStart(2, '0');
     const hrStr = is12h ? String(hours) : String(hours).padStart(2, '0');
-    const secStr = `:${String(now.getSeconds()).padStart(2, '0')}`;
+    const secStr = `.${String(now.getSeconds()).padStart(2, '0')}`;
+
+    const dayStr = String(now.getDate()).padStart(2, '0');
+    const monthStr = String(now.getMonth() + 1).padStart(2, '0');
+    const yearStr = String(now.getFullYear());
+    const formattedDate = `${dayStr}-${monthStr}-${yearStr}`;
 
     // Collapsed view clock
     if (timeSpan) timeSpan.textContent = `${hrStr}:${minStr}${ampm}`;
@@ -217,15 +222,16 @@ function initTaskbar() {
       }
     }
 
-    if (dateSpan && sepSpan) {
+    if (dateSpan) {
       if (currentDynamicIslandConfig.showDate) {
         dateSpan.style.display = 'inline';
-        sepSpan.style.display = 'inline-block';
-        dateSpan.textContent = now.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+        dateSpan.textContent = formattedDate;
       } else {
         dateSpan.style.display = 'none';
-        sepSpan.style.display = 'none';
       }
+    }
+    if (sepSpan) {
+      sepSpan.style.display = 'none';
     }
 
     // Expanded view clock and date

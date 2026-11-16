@@ -232,8 +232,8 @@ body.winzen-no-anim *:active {
   background: #000000 !important; /* Pitch black strictly */
   color: #ffffff !important;
   height: 30px;
-  min-width: 80px;
-  padding: 0 14px;
+  min-width: 76px;
+  padding: 0 16px;
   border-radius: 15px;
   border: 1px solid rgba(255, 255, 255, 0.16);
   box-shadow: none !important;
@@ -269,12 +269,12 @@ body.winzen-no-anim *:active {
   transition: none !important;
 }
 
-/* Resting pill content in normal flow so the pill naturally hugs the clock with 14px padding */
+/* Resting pill content in normal flow so the pill naturally hugs the clock with 16px padding */
 .di-collapsed-content {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 0;
   white-space: nowrap;
   opacity: 1;
 }
@@ -283,86 +283,33 @@ body.winzen-no-anim *:active {
   display: none !important;
 }
 
-.di-exp-time-group {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 2px;
-}
-
-.di-exp-time {
-  font-size: 15px;
-  font-weight: 700;
-  color: #ffffff;
-  letter-spacing: 0.3px;
-  font-variant-numeric: tabular-nums;
-}
-
-.di-exp-seconds {
-  font-size: 11px;
-  font-weight: 600;
-  color: #a1a1aa;
-  font-variant-numeric: tabular-nums;
-}
-
-.di-exp-divider {
-  width: 3.5px;
-  height: 3.5px;
-  background: #71717a;
-  border-radius: 50%;
-}
-
-.di-exp-date-group {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.di-exp-date {
-  font-size: 12px;
-  font-weight: 600;
-  color: #f4f4f5;
-  letter-spacing: 0.2px;
-}
-
-.di-exp-badge {
-  font-size: 9.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.16);
-  padding: 1.5px 7px;
-  border-radius: 4px;
-  letter-spacing: 0.5px;
-}
-
 .shell-dynamic-island .di-time {
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 700;
   color: #ffffff;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.2px;
   font-variant-numeric: tabular-nums;
 }
 
 .shell-dynamic-island .di-seconds {
-  font-size: 10.5px;
-  font-weight: 600;
-  color: #a1a1aa;
-  margin-left: -3px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-left: 0;
   font-variant-numeric: tabular-nums;
 }
 
 .shell-dynamic-island .di-sep {
-  width: 3px;
-  height: 3px;
-  background: #71717a;
-  border-radius: 50%;
-  margin: 0 1px;
+  display: none !important;
 }
 
 .shell-dynamic-island .di-date {
-  font-size: 11px;
-  font-weight: 500;
-  color: #a1a1aa;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-left: 20px;
+  letter-spacing: 0.2px;
+  font-variant-numeric: tabular-nums;
 }
 
 

@@ -17,7 +17,8 @@ html, body {
   --di-collapsed-width: 80px;
   --di-collapsed-height: 30px;
   --di-collapsed-radius: 15px;
-  --di-slot-offset: 24px;
+  --di-dock-top-padding: 8px;
+  --di-dock-bottom-padding: 8px;
 }
 
 .island-container {
@@ -26,14 +27,15 @@ html, body {
   justify-content: center;
   width: 100%;
   height: 100%;
-  padding-top: 8px;
+  padding-top: var(--di-dock-top-padding, 8px);
+  padding-bottom: 0;
   box-sizing: border-box;
 }
 
 .island-container.dock-bottom {
   align-items: flex-end;
   padding-top: 0;
-  padding-bottom: 8px;
+  padding-bottom: var(--di-dock-bottom-padding, 8px);
 }
 
 .island-container.slot-center {
@@ -44,14 +46,14 @@ html, body {
 
 .island-container.slot-left {
   justify-content: flex-start;
-  padding-left: var(--di-slot-offset, 24px);
+  padding-left: 0;
   padding-right: 0;
 }
 
 .island-container.slot-right {
   justify-content: flex-end;
   padding-left: 0;
-  padding-right: var(--di-slot-offset, 24px);
+  padding-right: 0;
 }
 
 .island-container.slot-center .dynamic-island-capsule {
@@ -82,11 +84,11 @@ html, body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #050505 !important; /* Pitch black strictly (solid non-zero RGB to guarantee no transparent color-key pass-through in layered window) */
+  background: #050505 !important; /* Pitch black strictly */
   color: #ffffff;
-  width: var(--di-collapsed-width, 140px);
+  width: var(--di-collapsed-width, 80px);
   min-width: 76px;
-  max-width: 250px;
+  max-width: 260px;
   height: var(--di-collapsed-height, 30px);
   padding: 0;
   border-radius: var(--di-collapsed-radius, 15px);
@@ -122,13 +124,14 @@ html, body {
   transform: scale(0.98);
 }
 
-/* Expanded state: large active height (170px) and width (400px) like reference */
+/* Expanded state: exactly matches design (Width 350px, Height 158px, radius 40px, ratio 2.22) */
 .dynamic-island-capsule.expanded {
-  width: 400px !important;
-  height: 170px !important;
+  max-width: none !important;
+  width: 350px !important;
+  height: 158px !important;
   padding: 0 !important;
   border-radius: 40px !important;
-  border-color: rgba(255, 255, 255, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   box-shadow: none !important;
   cursor: pointer;
   transform: none !important;
@@ -173,10 +176,10 @@ html, body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 0;
   width: max-content;
   white-space: nowrap;
-  padding: 0 14px;
+  padding: 0 16px;
 }
 
 .dynamic-island-capsule.expanded .island-collapsed-content {
@@ -192,14 +195,13 @@ html, body {
   position: absolute;
   top: 0;
   left: 0;
-  width: 400px;
-  height: 170px;
-  padding: 24px 30px;
+  width: 350px;
+  height: 158px;
+  padding: 20px 24px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 14px;
+  justify-content: space-between;
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
@@ -217,100 +219,126 @@ html, body {
               visibility 0s linear 0.43s;
 }
 
+/* Collapsed Elements */
 .di-time {
   font-size: 13.5px;
   font-weight: 700;
   color: #ffffff;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.2px;
   font-variant-numeric: tabular-nums;
 }
 
 .di-seconds {
-  font-size: 11px;
-  font-weight: 600;
-  color: #a1a1aa;
-  margin-left: -3px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-left: 0;
   font-variant-numeric: tabular-nums;
 }
 
-.di-sep {
-  width: 3.5px;
-  height: 3.5px;
-  background: #71717a;
-  border-radius: 50%;
-  margin: 0 1px;
-}
-
 .di-date {
-  font-size: 11.5px;
-  font-weight: 500;
-  color: #a1a1aa;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-left: 20px;
   letter-spacing: 0.2px;
+  font-variant-numeric: tabular-nums;
 }
 
-/* Expanded View Content: Clean, spacious typography */
-.di-card-header {
+/* Expanded Card Elements */
+.di-card-top-row {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: space-between;
   width: 100%;
 }
 
-.di-card-header-left {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.di-card-badge {
-  font-size: 11.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.16);
-  padding: 3px 9px;
-  border-radius: 6px;
-}
-
-.di-card-dot {
-  font-size: 11px;
-  color: #71717a;
-}
-
-.di-card-date-short {
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  color: #a1a1aa;
-}
-
-.di-card-clock-area {
-  display: flex;
-  align-items: baseline;
-  justify-content: flex-start;
-  padding: 0;
-}
-
-.di-card-clock {
+.di-card-time-group {
   display: inline-flex;
   align-items: baseline;
-  gap: 4px;
 }
 
 .di-card-time {
-  font-size: 54px;
+  font-size: 24px;
   font-weight: 700;
   color: #ffffff;
-  letter-spacing: -1px;
+  letter-spacing: -0.3px;
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
 
 .di-card-seconds {
-  font-size: 21px;
+  font-size: 24px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.3px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.di-card-battery-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.di-card-battery-pct {
+  font-size: 13.5px;
   font-weight: 600;
-  color: #a1a1aa;
+  color: #ffffff;
+  font-variant-numeric: tabular-nums;
+}
+
+.di-card-battery-icon {
+  position: relative;
+  width: 24px;
+  height: 12px;
+  border: 1.5px solid #ffffff;
+  border-radius: 3.5px;
+  padding: 1.5px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+}
+
+.di-card-battery-icon::after {
+  content: '';
+  position: absolute;
+  right: -3px;
+  top: 2.5px;
+  width: 2px;
+  height: 5px;
+  background: #ffffff;
+  border-radius: 0 1px 1px 0;
+}
+
+.di-card-battery-fill {
+  height: 100%;
+  background: #ffffff;
+  border-radius: 1px;
+  width: 100%;
+  transition: width 0.3s ease;
+}
+
+.di-card-bottom-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.di-card-weekday {
+  font-size: 18px;
+  font-weight: 400;
+  color: #ffffff;
+  line-height: 1.25;
+  letter-spacing: -0.2px;
+}
+
+.di-card-date {
+  font-size: 18px;
+  font-weight: 400;
+  color: #ffffff;
+  line-height: 1.25;
+  letter-spacing: -0.2px;
   font-variant-numeric: tabular-nums;
 }

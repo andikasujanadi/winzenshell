@@ -34,6 +34,67 @@ public partial class DynamicIslandWindow : Window
         Loaded += OnLoaded;
         Deactivated += OnDeactivated;
         _shellState.StateChanged += OnShellStateChanged;
+        _ = InitializeWebViewAsync();
+    }
+
+    private bool _isInitializingWebView;
+    public async Task InitializeWebViewAsync()
+    {
+        if (_isInitializingWebView || _webViewReady) return;
+        _isInitializingWebView = true;
+        try
+        {
+            _hwnd = new WindowInteropHelper(this).EnsureHandle();
+            var env = await WebViewEnvironmentManager.GetSharedEnvironmentAsync();
+            await DiWebView.EnsureCoreWebView2Async(env);
+            DiWebView.DefaultBackgroundColor = System.Drawing.Color.Transparent;
+
+            var core = DiWebView.CoreWebView2;
+            core.Settings.AreDefaultContextMenusEnabled = false;
+            core.Settings.AreDevToolsEnabled = true;
+
+            string webUiDir = TaskbarWebWindow.ResolveWebUiDirectory();
+            core.SetVirtualHostNameToFolderMapping(
+                "app.winzenshell.local",
+                webUiDir,
+                CoreWebView2HostResourceAccessKind.Allow);
+
+            core.WebMessageReceived += OnWebMessageReceived;
+            core.NavigationCompleted += (_, _) =>
+            {
+                _webViewReady = true;
+                PushStateToWeb(_shellState.BuildPayload());
+                if (_isTaskbarOverlay)
+                {
+                    var msg = JsonSerializer.Serialize(new
+                    {
+                        type = "set_mode",
+                        expanded = true,
+                        anchorWidth = _lastAnchorW > 0 ? _lastAnchorW : 80,
+                        anchorHeight = 30.0,
+                        dockEdge = _lastDockEdge,
+                        slot = _lastSlot
+                    });
+                    core.PostWebMessageAsJson(msg);
+                }
+            };
+
+            core.Navigate($"https://app.winzenshell.local/dynamic-island.html?v={DateTimeOffset.UtcNow.ToUnixTimeSeconds()}");
+        }
+        catch (Exception ex)
+        {
+            try { System.IO.File.WriteAllText(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "di_init_err.txt"), ex.ToString()); } catch { }
+            System.Diagnostics.Debug.WriteLine($"DynamicIsland init error: {ex.Message}");
+        }
+        finally
+        {
+            _isInitializingWebView = false;
+        }
+    }
+
+    private void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        _ = InitializeWebViewAsync();
     }
 
     private void OnDeactivated(object? sender, EventArgs e)
@@ -129,8 +190,8 @@ public partial class DynamicIslandWindow : Window
         _lastAnchorW = anchorW;
         _lastDockEdge = dockEdge;
         _lastSlot = slot;
-        Width = 560;
-        Height = 260;
+        Width = 440;
+        Height = 240;
 
         var mon = WorkAreaAppBarService.GetPrimaryMonitorInfo().rcMonitor;
         double dpi = 1.0;
@@ -144,23 +205,22 @@ public partial class DynamicIslandWindow : Window
         double monW = mon.Width / dpi;
 
         double targetLeft;
-        const double xOffset = 24.0; // Matches --di-slot-offset in dynamic-island.css
 
         if (string.Equals(slot, "left", StringComparison.OrdinalIgnoreCase))
         {
-            targetLeft = anchorScreenX - xOffset;
+            targetLeft = anchorScreenX;
         }
         else if (string.Equals(slot, "right", StringComparison.OrdinalIgnoreCase))
         {
-            targetLeft = (anchorScreenX + anchorW + xOffset) - Width;
+            targetLeft = (anchorScreenX + anchorW) - Width;
         }
         else
         {
             targetLeft = anchorScreenX + (anchorW - Width) / 2.0;
         }
 
-        // Clamp within monitor bounds with 12px margin
-        targetLeft = Math.Max(monLeft + 12, Math.Min(monLeft + monW - Width - 12, targetLeft));
+        // Clamp within monitor bounds
+        targetLeft = Math.Max(monLeft, Math.Min(monLeft + monW - Width, targetLeft));
         Left = targetLeft;
 
         if (string.Equals(dockEdge, "Top", StringComparison.OrdinalIgnoreCase))
@@ -181,7 +241,8 @@ public partial class DynamicIslandWindow : Window
                 anchorWidth = anchorW,
                 anchorHeight = 30.0,
                 dockEdge = dockEdge,
-                slot = slot
+                slot = slot,
+                taskbarHeight = taskbarH
             });
             DiWebView.CoreWebView2.PostWebMessageAsJson(msg);
         }
@@ -302,51 +363,7 @@ public partial class DynamicIslandWindow : Window
         }
     }
 
-    private async void OnLoaded(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            var env = await WebViewEnvironmentManager.GetSharedEnvironmentAsync();
-            await DiWebView.EnsureCoreWebView2Async(env);
-            DiWebView.DefaultBackgroundColor = System.Drawing.Color.Transparent;
 
-            var core = DiWebView.CoreWebView2;
-            core.Settings.AreDefaultContextMenusEnabled = false;
-            core.Settings.AreDevToolsEnabled = true;
-
-            string webUiDir = TaskbarWebWindow.ResolveWebUiDirectory();
-            core.SetVirtualHostNameToFolderMapping(
-                "app.winzenshell.local",
-                webUiDir,
-                CoreWebView2HostResourceAccessKind.Allow);
-
-            core.WebMessageReceived += OnWebMessageReceived;
-            core.NavigationCompleted += (_, _) =>
-            {
-                _webViewReady = true;
-                PushStateToWeb(_shellState.BuildPayload());
-                if (_isTaskbarOverlay)
-                {
-                    var msg = JsonSerializer.Serialize(new
-                    {
-                        type = "set_mode",
-                        expanded = true,
-                        anchorWidth = _lastAnchorW > 0 ? _lastAnchorW : 80,
-                        anchorHeight = 30.0,
-                        dockEdge = _lastDockEdge,
-                        slot = _lastSlot
-                    });
-                    core.PostWebMessageAsJson(msg);
-                }
-            };
-
-            core.Navigate($"https://app.winzenshell.local/dynamic-island.html?v={DateTimeOffset.UtcNow.ToUnixTimeSeconds()}");
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"DynamicIsland init error: {ex.Message}");
-        }
-    }
 
     private void OnShellStateChanged(ShellFullStatePayload payload)
     {
@@ -407,8 +424,8 @@ public partial class DynamicIslandWindow : Window
                     _lastExpandTime = DateTime.UtcNow;
                     Dispatcher.Invoke(() =>
                     {
-                        Width = 560;
-                        Height = 260;
+                        Width = 440;
+                        Height = 240;
                         if (!_isTaskbarOverlay)
                         {
                             UpdatePosition();

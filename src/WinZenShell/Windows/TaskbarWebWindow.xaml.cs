@@ -1045,6 +1045,10 @@ public partial class TaskbarWebWindow : Window
         });
 
         TaskbarWebView.CoreWebView2.PostWebMessageAsJson(json);
+        if (DynamicIslandOverlayWindow?.DiWebView?.CoreWebView2 != null && DynamicIslandOverlayWindow.IsVisible)
+        {
+            DynamicIslandOverlayWindow.DiWebView.CoreWebView2.PostWebMessageAsJson(json);
+        }
     }
 
     private void BroadcastMetrics()
@@ -1063,6 +1067,10 @@ public partial class TaskbarWebWindow : Window
         });
 
         TaskbarWebView.CoreWebView2.PostWebMessageAsJson(json);
+        if (DynamicIslandOverlayWindow?.DiWebView?.CoreWebView2 != null && DynamicIslandOverlayWindow.IsVisible)
+        {
+            DynamicIslandOverlayWindow.DiWebView.CoreWebView2.PostWebMessageAsJson(json);
+        }
         if (_controlCenterFlyout != null && _controlCenterFlyout.IsVisible)
         {
             _controlCenterFlyout.BroadcastMetrics();
@@ -1651,6 +1659,7 @@ public partial class TaskbarWebWindow : Window
             {
                 CloseAllFlyouts();
                 DynamicIslandOverlayWindow.ShowAsOverlay(Left + x, w, Top, Height, _shellState.Settings.DockEdge, slot);
+                BroadcastMetrics();
             }
         });
     }
