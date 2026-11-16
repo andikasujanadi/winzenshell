@@ -123,21 +123,23 @@
 .win-pill.combined::before {
   content: '';
   position: absolute;
-  top: 2px;
-  bottom: 2px;
-  left: 4px;
+  top: 3px;
+  bottom: 3px;
   right: -3px;
-  border-radius: inherit;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  z-index: -1;
+  width: 3px;
+  border-radius: 0 4px 4px 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.16);
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+  border-left: none !important;
+  background: rgba(255, 255, 255, 0.05);
   pointer-events: none;
   transition: background-color 0.1s ease, border-color 0.1s ease;
 }
 
 .win-pill.combined:hover::before {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.22);
 }
 
 .win-pill.combined.active {
@@ -146,8 +148,21 @@
 }
 
 .win-pill.combined.active::before {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.20);
+}
+
+/* Multi-window dual bottom pill indicator */
+.win-pill.combined::after {
+  transform: translateX(-6px);
+  width: 5px;
+  box-shadow: 7px 0 0 0 var(--winzen-text-muted, #8a8a8a);
+}
+
+.win-pill.combined.active::after {
+  width: 14px;
+  transform: translateX(-50%);
+  box-shadow: none;
 }
 
 .win-badge {
@@ -252,8 +267,11 @@ body.theme-light .win-pill.combined {
 .theme-light .win-pill.combined::before,
 [data-theme="light"] .win-pill.combined::before,
 body.theme-light .win-pill.combined::before {
-  background: rgba(0, 0, 0, 0.03);
-  border-color: rgba(0, 0, 0, 0.10);
+  background: rgba(0, 0, 0, 0.04);
+  border-right: 1px solid rgba(0, 0, 0, 0.14);
+  border-top: 1px solid rgba(0, 0, 0, 0.14);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.14);
+  border-left: none !important;
 }
 
 :host([data-theme="light"]) .win-pill.combined:hover::before,
@@ -261,8 +279,9 @@ body.theme-light .win-pill.combined::before {
 .theme-light .win-pill.combined:hover::before,
 [data-theme="light"] .win-pill.combined:hover::before,
 body.theme-light .win-pill.combined:hover::before {
-  background: rgba(0, 0, 0, 0.05);
-  border-color: rgba(0, 0, 0, 0.14);
+  background: rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 0, 0, 0.20);
+  border-left: none !important;
 }
 
 :host([data-theme="light"]) .win-pill.combined.active,
