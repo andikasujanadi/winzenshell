@@ -11,30 +11,131 @@ namespace WinZenShell.Windows;
 public partial class DynamicIslandWindow : Window
 {
     private readonly ShellStateService _shellState;
+    private readonly MediaService? _mediaService;
     private IntPtr _hwnd = IntPtr.Zero;
     private bool _webViewReady;
     private bool _isTaskbarOverlay;
     private bool _isExpanded;
     private bool _isClosing;
     private double _lastAnchorW = 80;
+    private double _lastClockW = 78;
+    private double _lastMusicW = 0;
+    private bool _lastHasMusic = false;
+    private double _lastAnchorY = 8.0;
+    private double _lastAnchorH = 30.0;
+    private double _lastTaskbarH = 46.0;
     private string _lastDockEdge = "Top";
     private string _lastSlot = "center";
+    private string _lastTarget = "clock";
 
     private DateTime _lastExpandTime = DateTime.MinValue;
 
     public IntPtr Handle => _hwnd != IntPtr.Zero ? _hwnd : (_hwnd = new WindowInteropHelper(this).EnsureHandle());
     public bool IsOverlayOpen => _isTaskbarOverlay && IsVisible && !_isClosing;
     public bool IsExpanded => _isExpanded;
+    public TaskbarWebWindow? TaskbarWindow { get; set; }
 
-    public DynamicIslandWindow(ShellStateService shellState)
+    public DynamicIslandWindow(ShellStateService shellState, MediaService? mediaService = null)
     {
         InitializeComponent();
         _shellState = shellState;
+        _mediaService = mediaService;
 
         Loaded += OnLoaded;
         Deactivated += OnDeactivated;
+        SizeChanged += OnWindowSizeChanged;
         _shellState.StateChanged += OnShellStateChanged;
         _ = InitializeWebViewAsync();
+    }
+
+    private void OnWindowSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        // Invariant guard: overlay or expanded island must never be clipped below 440x240
+        if ((_isTaskbarOverlay || _isExpanded) && (e.NewSize.Width < 439 || e.NewSize.Height < 239))
+        {
+            Dispatcher.BeginInvoke(() => EnsureWindowSize(440, 240));
+        }
+    }
+
+    public void EnsureWindowSize(double targetW, double targetH)
+    {
+        bool changed = Math.Abs(Width - targetW) > 0.5 ||
+                       Math.Abs(Height - targetH) > 0.5 ||
+                       Math.Abs(DiWebView.ActualWidth - targetW) > 0.5 ||
+                       Math.Abs(DiWebView.ActualHeight - targetH) > 0.5;
+        if (!changed) return;
+
+        Width = targetW;
+        Height = targetH;
+        DiWebView.Width = targetW;
+        DiWebView.Height = targetH;
+        DiWebView.InvalidateMeasure();
+        UpdateLayout();
+
+        if (_hwnd != IntPtr.Zero)
+        {
+            double dpi = 1.0;
+            try { dpi = System.Windows.Media.VisualTreeHelper.GetDpi(this).DpiScaleX; } catch { }
+            if (dpi <= 0) dpi = 1.0;
+            int pxW = (int)Math.Round(targetW * dpi);
+            int pxH = (int)Math.Round(targetH * dpi);
+            Win32Api.SetWindowPos(_hwnd, Win32Api.HWND_TOPMOST, 0, 0, pxW, pxH,
+                Win32Api.SWP_NOMOVE | Win32Api.SWP_NOACTIVATE);
+        }
+    }
+
+    public void EnsureWindowBounds(double targetLeft, double targetTop, double targetW, double targetH)
+    {
+        Left = targetLeft;
+        Top = targetTop;
+        Width = targetW;
+        Height = targetH;
+        DiWebView.Width = targetW;
+        DiWebView.Height = targetH;
+        DiWebView.InvalidateMeasure();
+        UpdateLayout();
+
+        if (_hwnd != IntPtr.Zero)
+        {
+            double dpiX = 1.0;
+            double dpiY = 1.0;
+            try
+            {
+                var dpi = System.Windows.Media.VisualTreeHelper.GetDpi(this);
+                if (dpi.DpiScaleX > 0) dpiX = dpi.DpiScaleX;
+                if (dpi.DpiScaleY > 0) dpiY = dpi.DpiScaleY;
+            }
+            catch { }
+            int pxLeft = (int)Math.Round(targetLeft * dpiX);
+            int pxTop = (int)Math.Round(targetTop * dpiY);
+            int pxW = (int)Math.Round(targetW * dpiX);
+            int pxH = (int)Math.Round(targetH * dpiY);
+            Win32Api.SetWindowPos(_hwnd, Win32Api.HWND_TOPMOST, pxLeft, pxTop, pxW, pxH,
+                Win32Api.SWP_NOACTIVATE);
+        }
+    }
+
+    public void ResetOverlayImmediate()
+    {
+        _isClosing = false;
+        if (_isTaskbarOverlay)
+        {
+            _isTaskbarOverlay = false;
+            _isExpanded = false;
+            if (_webViewReady && DiWebView?.CoreWebView2 != null)
+            {
+                DiWebView.CoreWebView2.PostWebMessageAsJson("{\"type\":\"set_mode\",\"expanded\":false,\"instant\":true}");
+            }
+            var tb = TaskbarWindow ?? Owner as TaskbarWebWindow ?? System.Windows.Application.Current.Windows.OfType<TaskbarWebWindow>().FirstOrDefault();
+            if (tb?.TaskbarWebView?.CoreWebView2 != null)
+            {
+                tb.TaskbarWebView.CoreWebView2.ExecuteScriptAsync(
+                    "document.getElementById('shell-dynamic-island-wrapper')?.classList.remove('island-hidden'); " +
+                    "document.getElementById('shell-dynamic-island')?.classList.remove('island-hidden');"
+                );
+            }
+            Hide();
+        }
     }
 
     private bool _isInitializingWebView;
@@ -70,8 +171,14 @@ public partial class DynamicIslandWindow : Window
                     {
                         type = "set_mode",
                         expanded = true,
+                        target = _lastTarget,
                         anchorWidth = _lastAnchorW > 0 ? _lastAnchorW : 80,
-                        anchorHeight = 30.0,
+                        clockWidth = _lastClockW > 0 ? _lastClockW : 78,
+                        musicWidth = _lastMusicW,
+                        hasMusicPill = _lastHasMusic,
+                        anchorY = _lastAnchorY,
+                        anchorHeight = _lastAnchorH > 0 ? _lastAnchorH : 30.0,
+                        taskbarHeight = _lastTaskbarH > 0 ? _lastTaskbarH : 46.0,
                         dockEdge = _lastDockEdge,
                         slot = _lastSlot
                     });
@@ -178,20 +285,26 @@ public partial class DynamicIslandWindow : Window
         double monWidth = mon.Width / dpi;
         double monTop = mon.Top / dpi;
 
-        Left = monLeft + (monWidth - Width) / 2.0;
-        Top = monTop + 2;
+        double targetLeft = monLeft + (monWidth - Width) / 2.0;
+        double targetTop = monTop + 2;
+        EnsureWindowBounds(targetLeft, targetTop, Width, Height);
     }
 
-    public void ShowAsOverlay(double anchorScreenX, double anchorW, double taskbarScreenY, double taskbarH, string dockEdge, string slot = "center")
+    public void ShowAsOverlay(double anchorScreenX, double anchorW, double taskbarScreenY, double taskbarH, string dockEdge, string slot = "center", string target = "clock", double clockW = 0, double musicW = 0, bool hasMusic = false, double anchorY = 8.0, double anchorH = 30.0)
     {
         _isClosing = false;
         _isTaskbarOverlay = true;
         _isExpanded = true;
         _lastAnchorW = anchorW;
+        _lastClockW = clockW > 0 ? clockW : anchorW;
+        _lastMusicW = musicW;
+        _lastHasMusic = hasMusic;
+        _lastAnchorY = anchorY >= 0 ? anchorY : 8.0;
+        _lastAnchorH = anchorH > 10 ? anchorH : 30.0;
+        _lastTaskbarH = taskbarH > 10 ? taskbarH : 46.0;
         _lastDockEdge = dockEdge;
         _lastSlot = slot;
-        Width = 440;
-        Height = 240;
+        _lastTarget = target;
 
         var mon = WorkAreaAppBarService.GetPrimaryMonitorInfo().rcMonitor;
         double dpi = 1.0;
@@ -204,6 +317,9 @@ public partial class DynamicIslandWindow : Window
         double monLeft = mon.Left / dpi;
         double monW = mon.Width / dpi;
 
+        const double overlayW = 440.0;
+        const double overlayH = 240.0;
+
         double targetLeft;
 
         if (string.Equals(slot, "left", StringComparison.OrdinalIgnoreCase))
@@ -212,25 +328,27 @@ public partial class DynamicIslandWindow : Window
         }
         else if (string.Equals(slot, "right", StringComparison.OrdinalIgnoreCase))
         {
-            targetLeft = (anchorScreenX + anchorW) - Width;
+            targetLeft = (anchorScreenX + anchorW) - overlayW;
         }
         else
         {
-            targetLeft = anchorScreenX + (anchorW - Width) / 2.0;
+            targetLeft = anchorScreenX + (anchorW - overlayW) / 2.0;
         }
 
         // Clamp within monitor bounds
-        targetLeft = Math.Max(monLeft, Math.Min(monLeft + monW - Width, targetLeft));
-        Left = targetLeft;
+        targetLeft = Math.Max(monLeft, Math.Min(monLeft + monW - overlayW, targetLeft));
 
+        double targetTop;
         if (string.Equals(dockEdge, "Top", StringComparison.OrdinalIgnoreCase))
         {
-            Top = taskbarScreenY;
+            targetTop = taskbarScreenY;
         }
         else
         {
-            Top = taskbarScreenY + taskbarH - Height;
+            targetTop = taskbarScreenY + taskbarH - overlayH;
         }
+
+        EnsureWindowBounds(targetLeft, targetTop, overlayW, overlayH);
 
         if (_webViewReady && DiWebView?.CoreWebView2 != null)
         {
@@ -238,28 +356,39 @@ public partial class DynamicIslandWindow : Window
             {
                 type = "set_mode",
                 expanded = true,
+                target = target,
                 anchorWidth = anchorW,
-                anchorHeight = 30.0,
+                clockWidth = _lastClockW,
+                musicWidth = _lastMusicW,
+                hasMusicPill = _lastHasMusic,
+                anchorY = _lastAnchorY,
+                anchorHeight = _lastAnchorH,
                 dockEdge = dockEdge,
                 slot = slot,
-                taskbarHeight = taskbarH
+                taskbarHeight = _lastTaskbarH
             });
             DiWebView.CoreWebView2.PostWebMessageAsJson(msg);
         }
 
         Show();
         Topmost = true;
-        if (_hwnd != IntPtr.Zero)
-        {
-            Win32Api.SetWindowPos(_hwnd, Win32Api.HWND_TOPMOST, 0, 0, 0, 0,
-                Win32Api.SWP_NOMOVE | Win32Api.SWP_NOSIZE);
-        }
+        EnsureWindowBounds(targetLeft, targetTop, overlayW, overlayH);
         Activate();
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Render, () =>
+        {
+            if (_isTaskbarOverlay && IsVisible && !_isClosing)
+            {
+                EnsureWindowBounds(targetLeft, targetTop, overlayW, overlayH);
+            }
+        });
 
-        var tb = Owner as TaskbarWebWindow ?? System.Windows.Application.Current.Windows.OfType<TaskbarWebWindow>().FirstOrDefault();
+        var tb = TaskbarWindow ?? Owner as TaskbarWebWindow ?? System.Windows.Application.Current.Windows.OfType<TaskbarWebWindow>().FirstOrDefault();
         if (tb?.TaskbarWebView?.CoreWebView2 != null)
         {
-            tb.TaskbarWebView.CoreWebView2.ExecuteScriptAsync("document.getElementById('shell-dynamic-island')?.classList.add('island-hidden');");
+            tb.TaskbarWebView.CoreWebView2.ExecuteScriptAsync(
+                "document.getElementById('shell-dynamic-island-wrapper')?.classList.add('island-hidden'); " +
+                "document.getElementById('shell-dynamic-island')?.classList.add('island-hidden');"
+            );
         }
     }
 
@@ -277,8 +406,14 @@ public partial class DynamicIslandWindow : Window
                 {
                     type = "set_mode",
                     expanded = false,
+                    target = _lastTarget,
                     anchorWidth = _lastAnchorW > 0 ? _lastAnchorW : 80,
-                    anchorHeight = 30.0,
+                    clockWidth = _lastClockW > 0 ? _lastClockW : 78,
+                    musicWidth = _lastMusicW,
+                    hasMusicPill = _lastHasMusic,
+                    anchorY = _lastAnchorY,
+                    anchorHeight = _lastAnchorH > 0 ? _lastAnchorH : 30.0,
+                    taskbarHeight = _lastTaskbarH > 0 ? _lastTaskbarH : 46.0,
                     dockEdge = _lastDockEdge,
                     slot = _lastSlot
                 });
@@ -326,7 +461,7 @@ public partial class DynamicIslandWindow : Window
 
         if (wasOverlay)
         {
-            TaskbarWebWindow? tbWindow = Owner as TaskbarWebWindow;
+            TaskbarWebWindow? tbWindow = TaskbarWindow ?? Owner as TaskbarWebWindow;
             if (tbWindow == null)
             {
                 foreach (Window win in System.Windows.Application.Current.Windows)
@@ -343,12 +478,19 @@ public partial class DynamicIslandWindow : Window
             {
                 try
                 {
-                    // Unhide the taskbar pill FIRST and await the IPC execution
+                    // Unhide the taskbar pill FIRST with inline transition=none so it is 100% opaque on the very first painted frame
                     await tbWindow.TaskbarWebView.CoreWebView2.ExecuteScriptAsync(
-                        "document.getElementById('shell-dynamic-island')?.classList.remove('island-hidden');"
+                        "(() => { " +
+                        "  const w = document.getElementById('shell-dynamic-island-wrapper'); " +
+                        "  const el = document.getElementById('shell-dynamic-island'); " +
+                        "  if (w) { w.style.transition = 'none'; w.classList.remove('island-hidden'); } " +
+                        "  if (el) { el.classList.remove('island-hidden'); } " +
+                        "  if (window.winzenUnmergeDynamicIsland) window.winzenUnmergeDynamicIsland(); " +
+                        "  if (w) void w.offsetWidth; " +
+                        "})();"
                     );
-                    // Wait 1 compositor frame (25ms) so DWM paints the visible taskbar pill behind the overlay
-                    await System.Threading.Tasks.Task.Delay(25);
+                    // Wait 2 compositor frames (~32ms) so DWM composites the 100% opaque taskbar pill before hiding the overlay
+                    await System.Threading.Tasks.Task.Delay(32);
                 }
                 catch { }
             }
@@ -357,9 +499,12 @@ public partial class DynamicIslandWindow : Window
         }
         else
         {
-            Width = 260;
-            Height = 44;
-            UpdatePosition();
+            await System.Threading.Tasks.Task.Delay(50);
+            if (!_isExpanded && !_isTaskbarOverlay)
+            {
+                EnsureWindowSize(440, 44);
+                UpdatePosition();
+            }
         }
     }
 
@@ -424,14 +569,38 @@ public partial class DynamicIslandWindow : Window
                     _lastExpandTime = DateTime.UtcNow;
                     Dispatcher.Invoke(() =>
                     {
-                        Width = 440;
-                        Height = 240;
+                        EnsureWindowSize(440, 240);
                         if (!_isTaskbarOverlay)
                         {
                             UpdatePosition();
                         }
                     });
                 }
+            }
+            else if (type == "media_play_pause")
+            {
+                _ = _mediaService?.TryTogglePlayPauseAsync();
+            }
+            else if (type == "media_play")
+            {
+                _ = _mediaService?.TryPlayAsync();
+            }
+            else if (type == "media_pause")
+            {
+                _ = _mediaService?.TryPauseAsync();
+            }
+            else if (type == "media_next")
+            {
+                _ = _mediaService?.TrySkipNextAsync();
+            }
+            else if (type == "media_previous")
+            {
+                _ = _mediaService?.TrySkipPreviousAsync();
+            }
+            else if (type == "media_seek")
+            {
+                double posVal = root.TryGetProperty("position", out var posProp) && posProp.TryGetDouble(out var pVal) ? pVal : 0;
+                _ = _mediaService?.TryChangePlaybackPositionAsync(posVal);
             }
         }
         catch { }

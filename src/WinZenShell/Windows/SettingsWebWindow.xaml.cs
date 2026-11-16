@@ -321,7 +321,8 @@ public partial class SettingsWebWindow : Window
                     bool diShowDate = !root.TryGetProperty("showDate", out var disdProp) || disdProp.GetBoolean();
                     bool diAnim = !root.TryGetProperty("enableAnimation", out var diaProp) || diaProp.GetBoolean();
                     bool diReserve = !root.TryGetProperty("reserveWorkArea", out var dirProp) || dirProp.GetBoolean();
-                    _shellState.UpdateDynamicIslandConfig(diEnabled, diPlacement, diSlot, diTimeFormat, diShowSec, diShowDate, diAnim, diReserve);
+                    bool diMusic = !root.TryGetProperty("enableMusicIsland", out var dimProp) || dimProp.GetBoolean();
+                    _shellState.UpdateDynamicIslandConfig(diEnabled, diPlacement, diSlot, diTimeFormat, diShowSec, diShowDate, diAnim, diReserve, diMusic);
                     break;
 
                 case "update_control_center_widgets":

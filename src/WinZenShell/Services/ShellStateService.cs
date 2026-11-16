@@ -144,6 +144,9 @@ public class DynamicIslandConfig
 
     [JsonPropertyName("reserveWorkArea")]
     public bool ReserveWorkArea { get; set; } = true;
+
+    [JsonPropertyName("enableMusicIsland")]
+    public bool EnableMusicIsland { get; set; } = true;
 }
 
 public class ShellSettings
@@ -671,7 +674,7 @@ public class ShellStateService
         BroadcastState();
     }
 
-    public void UpdateDynamicIslandConfig(bool enabled, string placement, string slot, string timeFormat, bool showSeconds, bool showDate, bool enableAnimation = true, bool reserveWorkArea = true)
+    public void UpdateDynamicIslandConfig(bool enabled, string placement, string slot, string timeFormat, bool showSeconds, bool showDate, bool enableAnimation = true, bool reserveWorkArea = true, bool enableMusicIsland = true)
     {
         if (string.Equals(_settings.DockEdge, "Top", StringComparison.OrdinalIgnoreCase) && placement == "top-center")
         {
@@ -686,6 +689,7 @@ public class ShellStateService
         _settings.DynamicIsland.ShowDate = showDate;
         _settings.DynamicIsland.EnableAnimation = enableAnimation;
         _settings.DynamicIsland.ReserveWorkArea = reserveWorkArea;
+        _settings.DynamicIsland.EnableMusicIsland = enableMusicIsland;
 
         SaveSettings();
         SyncTaskbarAndWorkArea();

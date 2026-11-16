@@ -89,6 +89,7 @@ function initSettingsPage() {
   const toggleDynamicIsland = document.getElementById('toggleDynamicIsland');
   const stateDynamicIsland = document.getElementById('stateDynamicIsland');
   const selectDiPlacement = document.getElementById('selectDiPlacement');
+  const selectShellDiPlacement = document.getElementById('selectShellDiPlacement');
   const rowDiPlacement = document.getElementById('rowDiPlacement');
   const subtextDiPlacement = document.getElementById('subtextDiPlacement');
   const rowDiReserveWorkArea = document.getElementById('rowDiReserveWorkArea');
@@ -103,6 +104,8 @@ function initSettingsPage() {
   const stateDiDate = document.getElementById('stateDiDate');
   const toggleDiAnimation = document.getElementById('toggleDiAnimation');
   const stateDiAnimation = document.getElementById('stateDiAnimation');
+  const toggleDiMusic = document.getElementById('toggleDiMusic');
+  const stateDiMusic = document.getElementById('stateDiMusic');
 
   const diPreviewTime = document.getElementById('diPreviewTime');
   const diPreviewSeconds = document.getElementById('diPreviewSeconds');
@@ -354,6 +357,7 @@ function initSettingsPage() {
     if (isDockTop && placement === 'top-center') {
       placement = 'taskbar';
       if (selectDiPlacement) selectDiPlacement.value = 'taskbar';
+      if (selectShellDiPlacement) selectShellDiPlacement.value = 'taskbar';
     }
 
     const payload = {
@@ -364,7 +368,8 @@ function initSettingsPage() {
       timeFormat: selectDiTimeFormat ? selectDiTimeFormat.value : '24h',
       showSeconds: toggleDiSeconds ? toggleDiSeconds.checked : false,
       showDate: toggleDiDate ? toggleDiDate.checked : true,
-      enableAnimation: toggleDiAnimation ? toggleDiAnimation.checked : true
+      enableAnimation: toggleDiAnimation ? toggleDiAnimation.checked : true,
+      enableMusicIsland: toggleDiMusic ? toggleDiMusic.checked : true
     };
 
     window.winzen.send('update_dynamic_island', payload);
@@ -381,6 +386,7 @@ function initSettingsPage() {
     if (stateDiSeconds) stateDiSeconds.textContent = toggleDiSeconds && toggleDiSeconds.checked ? 'On' : 'Off';
     if (stateDiDate) stateDiDate.textContent = toggleDiDate && toggleDiDate.checked ? 'On' : 'Off';
     if (stateDiAnimation) stateDiAnimation.textContent = toggleDiAnimation && toggleDiAnimation.checked ? 'On' : 'Off';
+    if (stateDiMusic) stateDiMusic.textContent = toggleDiMusic && toggleDiMusic.checked ? 'On' : 'Off';
 
     if (selectDiPlacement) {
       const topCenterOpt = selectDiPlacement.querySelector('option[value="top-center"]');
@@ -389,6 +395,11 @@ function initSettingsPage() {
         if (isDockTop && selectDiPlacement.value === 'top-center') {
           selectDiPlacement.value = 'taskbar';
         }
+      }
+      if (selectShellDiPlacement) {
+        const shellTopCenterOpt = selectShellDiPlacement.querySelector('option[value="top-center"]');
+        if (shellTopCenterOpt) shellTopCenterOpt.disabled = isDockTop;
+        selectShellDiPlacement.value = selectDiPlacement.value;
       }
     }
     if (subtextDiPlacement) {
@@ -407,13 +418,25 @@ function initSettingsPage() {
   }
 
   if (toggleDynamicIsland) toggleDynamicIsland.addEventListener('change', sendDynamicIslandConfig);
-  if (selectDiPlacement) selectDiPlacement.addEventListener('change', sendDynamicIslandConfig);
+  if (selectDiPlacement) {
+    selectDiPlacement.addEventListener('change', () => {
+      if (selectShellDiPlacement) selectShellDiPlacement.value = selectDiPlacement.value;
+      sendDynamicIslandConfig();
+    });
+  }
+  if (selectShellDiPlacement) {
+    selectShellDiPlacement.addEventListener('change', () => {
+      if (selectDiPlacement) selectDiPlacement.value = selectShellDiPlacement.value;
+      sendDynamicIslandConfig();
+    });
+  }
   if (toggleDiReserveWorkArea) toggleDiReserveWorkArea.addEventListener('change', sendDynamicIslandConfig);
   if (selectDiSlot) selectDiSlot.addEventListener('change', sendDynamicIslandConfig);
   if (selectDiTimeFormat) selectDiTimeFormat.addEventListener('change', () => { sendDynamicIslandConfig(); updateDynamicIslandPreview(); });
   if (toggleDiSeconds) toggleDiSeconds.addEventListener('change', () => { sendDynamicIslandConfig(); updateDynamicIslandPreview(); });
   if (toggleDiDate) toggleDiDate.addEventListener('change', () => { sendDynamicIslandConfig(); updateDynamicIslandPreview(); });
   if (toggleDiAnimation) toggleDiAnimation.addEventListener('change', sendDynamicIslandConfig);
+  if (toggleDiMusic) toggleDiMusic.addEventListener('change', sendDynamicIslandConfig);
   setInterval(updateDynamicIslandPreview, 1000);
 
   function updateSliderTrackFill(sliderEl) {
@@ -571,6 +594,9 @@ function initSettingsPage() {
       if (selectDiPlacement) {
         selectDiPlacement.value = di.placement || 'taskbar';
       }
+      if (selectShellDiPlacement) {
+        selectShellDiPlacement.value = di.placement || 'taskbar';
+      }
       if (toggleDiReserveWorkArea) {
         toggleDiReserveWorkArea.checked = di.reserveWorkArea !== false;
         if (stateDiReserveWorkArea) stateDiReserveWorkArea.textContent = di.reserveWorkArea !== false ? 'On' : 'Off';
@@ -592,6 +618,10 @@ function initSettingsPage() {
       if (toggleDiAnimation) {
         toggleDiAnimation.checked = di.enableAnimation !== false;
         if (stateDiAnimation) stateDiAnimation.textContent = di.enableAnimation !== false ? 'On' : 'Off';
+      }
+      if (toggleDiMusic) {
+        toggleDiMusic.checked = di.enableMusicIsland !== false;
+        if (stateDiMusic) stateDiMusic.textContent = di.enableMusicIsland !== false ? 'On' : 'Off';
       }
       updateDynamicIslandUIState();
       updateDynamicIslandPreview();

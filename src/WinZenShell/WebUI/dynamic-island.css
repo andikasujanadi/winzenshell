@@ -84,75 +84,69 @@ html, body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #050505 !important; /* Pitch black strictly */
+  background: #000000 !important; /* Pitch black strictly */
   color: #ffffff;
-  width: var(--di-collapsed-width, 80px);
-  min-width: 76px;
+  width: var(--di-collapsed-width, 78px);
+  min-width: 66px;
   max-width: none;
   height: var(--di-collapsed-height, 30px);
   padding: 0;
   border-radius: var(--di-collapsed-radius, 15px);
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid #292929;
   box-shadow: none !important;
   cursor: pointer;
-  /* Collapsing / Shrinking: capsule shrinks at 150ms after large content fades out in 100ms */
-  transition: width 0.26s cubic-bezier(0.16, 1, 0.3, 1) 0.15s,
-              height 0.26s cubic-bezier(0.16, 1, 0.3, 1) 0.15s,
-              border-radius 0.26s cubic-bezier(0.16, 1, 0.3, 1) 0.15s,
-              padding 0.26s cubic-bezier(0.16, 1, 0.3, 1) 0.15s,
-              border-color 0.25s ease 0.15s,
-              transform 0.25s cubic-bezier(0.16, 1, 0.3, 1) 0s;
+  transform: translateX(var(--di-pill-offset-x, 0px));
+  /* Collapsing / Shrinking: capsule shrinks and translates back to its pill position simultaneously */
+  transition: width 0.28s cubic-bezier(0.16, 1, 0.3, 1) 0.12s,
+              height 0.28s cubic-bezier(0.16, 1, 0.3, 1) 0.12s,
+              border-radius 0.28s cubic-bezier(0.16, 1, 0.3, 1) 0.12s,
+              padding 0.28s cubic-bezier(0.16, 1, 0.3, 1) 0.12s,
+              border-color 0.25s ease 0.12s,
+              transform 0.28s cubic-bezier(0.16, 1, 0.3, 1) 0.12s;
   outline: none;
   overflow: hidden;
   position: relative;
-  will-change: width, height, border-radius;
+  will-change: width, height, border-radius, transform;
 }
 
+.dynamic-island-capsule.instant-setup,
+.dynamic-island-capsule.instant-setup *,
+.island-bg-pill.instant-setup,
+.island-bg-pill.instant-setup *,
 .dynamic-island-capsule.no-anim,
 .dynamic-island-capsule.no-anim * {
   transition: none !important;
-  animation: none !important;
 }
 
 .dynamic-island-capsule.pitch-black:hover:not(.expanded) {
-  transform: scale(1.02);
-  border-color: rgba(255, 255, 255, 0.28);
+  border-color: #474747;
   box-shadow: none !important;
 }
 
 .dynamic-island-capsule.pitch-black:active:not(.expanded) {
-  transform: scale(0.98);
+  transform: translateX(var(--di-pill-offset-x, 0px)) scale(0.98);
 }
 
-/* Expanded state: exactly matches design (Width 350px, Height 158px, radius 40px, ratio 2.22) */
+/* Expanded state: animates from pill position into centered 350x158 grow position */
 .dynamic-island-capsule.expanded {
   max-width: none !important;
   width: 350px !important;
   height: 158px !important;
   padding: 0 !important;
   border-radius: 40px !important;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid #292929;
   box-shadow: none !important;
   cursor: pointer;
-  transform: none !important;
-  /* Expanding / Growing: capsule grows at 150ms after small content fades out in 100ms */
-  transition: width 0.28s cubic-bezier(0.16, 1, 0.3, 1) 0.15s,
-              height 0.28s cubic-bezier(0.16, 1, 0.3, 1) 0.15s,
-              border-radius 0.28s cubic-bezier(0.16, 1, 0.3, 1) 0.15s,
-              padding 0.28s cubic-bezier(0.16, 1, 0.3, 1) 0.15s,
-              border-color 0.25s ease 0.15s;
+  transform: translateX(0px) !important;
+  /* Expanding / Growing: capsule translates from pill spot into center and grows simultaneously */
+  transition: width 0.32s cubic-bezier(0.16, 1, 0.3, 1) 0.06s,
+              height 0.32s cubic-bezier(0.16, 1, 0.3, 1) 0.06s,
+              border-radius 0.32s cubic-bezier(0.16, 1, 0.3, 1) 0.06s,
+              padding 0.32s cubic-bezier(0.16, 1, 0.3, 1) 0.06s,
+              border-color 0.25s ease 0.06s,
+              transform 0.32s cubic-bezier(0.16, 1, 0.3, 1) 0.06s;
 }
 
-/* Contents choreographed sequence:
-   EXPAND:
-   1. Small elements fade away completely (0.10s duration, 0s delay)
-   2. Capsule grows at 150ms (0.28s duration, 0.15s delay, finishes at 0.43s)
-   3. Large content fades in ONLY AFTER grow is done (0.12s duration, 0.43s delay)
-
-   COLLAPSE / SHRINK:
-   1. Large elements fade away completely (0.10s duration, 0s delay)
-   2. Capsule shrinks at 150ms (0.26s duration, 0.15s delay, finishes at 0.41s)
-   3. Small elements fade in ONLY AFTER shrink is done (0.12s duration, 0.41s delay) */
 .island-collapsed-content {
   position: absolute;
   top: 0;
@@ -167,9 +161,9 @@ html, body {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
-  /* When collapsing: small elements fade in in-place ONLY AFTER shrink completes (0.41s delay) */
-  transition: opacity 0.07s ease-out 0.41s,
-              visibility 0s linear 0.41s;
+  /* When collapsing: small elements fade in only after capsule has settled at final size */
+  transition: opacity 0.06s ease-out 0.36s,
+              visibility 0s linear 0.36s;
 }
 
 .island-collapsed-inner {
@@ -177,18 +171,31 @@ html, body {
   align-items: center;
   justify-content: center;
   gap: 0;
-  width: max-content;
+  width: var(--di-collapsed-width, 78px);
+  height: 30px;
+  flex-shrink: 0;
   white-space: nowrap;
-  padding: 0 16px;
+  padding: 0;
+}
+
+.island-collapsed-music-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 66px;
+  height: 28px;
+  flex-shrink: 0;
+  padding: 0 9px;
+  box-sizing: border-box;
 }
 
 .dynamic-island-capsule.expanded .island-collapsed-content {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  /* When expanding: small elements fade out in-place in 100ms BEFORE capsule grows at 150ms */
-  transition: opacity 0.10s ease-out 0s,
-              visibility 0s linear 0.10s;
+  /* When expanding: small elements fade out quickly as capsule starts growing */
+  transition: opacity 0.07s ease-out 0s,
+              visibility 0s linear 0.07s;
 }
 
 .island-expanded-content {
@@ -205,7 +212,7 @@ html, body {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  /* When collapsing: large elements fade out in 100ms BEFORE capsule shrinks at 150ms */
+  /* When collapsing: large elements fade out in 100ms BEFORE capsule shrinks at 120ms */
   transition: opacity 0.10s ease-out 0s,
               visibility 0s linear 0.10s;
 }
@@ -214,9 +221,208 @@ html, body {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
-  /* When expanding: large elements fade in ONLY AFTER capsule grow is 100% finished (0.43s delay) */
-  transition: opacity 0.12s cubic-bezier(0.16, 1, 0.3, 1) 0.43s,
-              visibility 0s linear 0.43s;
+  /* When expanding: large elements fade in ONLY AFTER capsule grow finishes (0.37s delay) */
+  transition: opacity 0.12s cubic-bezier(0.16, 1, 0.3, 1) 0.37s,
+              visibility 0s linear 0.37s;
+}
+
+.island-expanded-music-content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 350px;
+  height: 158px;
+  padding: 20px 24px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  /* When collapsing: large elements fade out in 100ms BEFORE capsule shrinks at 120ms */
+  transition: opacity 0.10s ease-out 0s,
+              visibility 0s linear 0.10s;
+}
+
+.dynamic-island-capsule.expanded .island-expanded-music-content {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  /* When expanding: large elements fade in ONLY AFTER capsule grow finishes (0.37s delay) */
+  transition: opacity 0.12s cubic-bezier(0.16, 1, 0.3, 1) 0.37s,
+              visibility 0s linear 0.37s;
+}
+
+/* Music Card Elements */
+.di-music-top-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+}
+
+.di-music-cover-wrapper {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.di-music-cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+.di-music-cover-placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #f97316 0%, #dc2626 100%);
+  border-radius: 12px;
+}
+
+.di-music-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.di-music-card-title {
+  font-size: 16.5px;
+  font-weight: 700;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.25;
+}
+
+.di-music-card-artist {
+  font-size: 13.5px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.65);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 3px;
+  line-height: 1.2;
+}
+
+.di-music-card-waveform {
+  display: flex;
+  align-items: center;
+  gap: 2.5px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.di-card-wave-bar {
+  width: 3px;
+  height: 6px;
+  background-color: #ffffff;
+  border-radius: 2px;
+  transition: height 0.2s ease;
+}
+
+.di-music-card-waveform.playing .di-card-wave-bar {
+  animation: diWaveBounceCard 1.1s ease-in-out infinite alternate;
+}
+
+.di-music-card-waveform.playing .di-card-wave-bar:nth-child(1) { height: 12px; animation-delay: 0.05s; }
+.di-music-card-waveform.playing .di-card-wave-bar:nth-child(2) { height: 19px; animation-delay: 0.25s; }
+.di-music-card-waveform.playing .di-card-wave-bar:nth-child(3) { height: 9px;  animation-delay: 0.15s; }
+.di-music-card-waveform.playing .di-card-wave-bar:nth-child(4) { height: 16px; animation-delay: 0.35s; }
+.di-music-card-waveform.playing .di-card-wave-bar:nth-child(5) { height: 8px;  animation-delay: 0.1s; }
+
+@keyframes diWaveBounceCard {
+  0% { transform: scaleY(0.35); }
+  50% { transform: scaleY(1.0); }
+  100% { transform: scaleY(0.45); }
+}
+
+/* Timeline */
+.di-music-timeline-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin: 6px 0 2px 0;
+}
+
+.di-music-time {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+  font-variant-numeric: tabular-nums;
+  min-width: 30px;
+}
+
+.di-music-seek-track {
+  flex: 1;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 3px;
+  position: relative;
+  cursor: pointer;
+  transition: height 0.15s ease;
+}
+
+.di-music-seek-track:hover {
+  height: 6px;
+}
+
+.di-music-seek-fill {
+  height: 100%;
+  background: #ffffff;
+  border-radius: 3px;
+  pointer-events: none;
+  transition: width 0.1s linear;
+}
+
+/* Controls */
+.di-music-controls-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 36px;
+  width: 100%;
+  padding-bottom: 2px;
+}
+
+.di-music-ctrl-btn {
+  background: none;
+  border: none;
+  color: #ffffff;
+  opacity: 0.85;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: opacity 0.18s ease, transform 0.15s ease;
+}
+
+.di-music-ctrl-btn:hover {
+  opacity: 1.0;
+  transform: scale(1.1);
+}
+
+.di-music-ctrl-btn:active {
+  transform: scale(0.95);
+}
+
+.di-music-play-btn {
+  opacity: 0.95;
 }
 
 /* Collapsed Elements */
@@ -341,4 +547,209 @@ html, body {
   line-height: 1.25;
   letter-spacing: -0.2px;
   font-variant-numeric: tabular-nums;
+}
+
+/* Pills row & Background merge/unmerge pill */
+.island-pills-row {
+  display: flex;
+  width: 100%;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 8px;
+  position: relative;
+}
+
+.island-container.dock-bottom .island-pills-row {
+  align-items: flex-end;
+}
+
+.island-container.slot-left .island-pills-row {
+  justify-content: flex-start;
+}
+
+.island-container.slot-right .island-pills-row {
+  justify-content: flex-end;
+}
+
+.island-pills-row .dynamic-island-capsule {
+  z-index: 2;
+  position: relative;
+}
+
+.island-pills-row .shell-dynamic-island-music {
+  z-index: 1;
+  position: relative;
+}
+
+.island-bg-pill {
+  position: absolute;
+  top: 0;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #000000 !important;
+  color: #ffffff;
+  width: var(--di-bg-pill-width, 78px);
+  height: 30px;
+  border-radius: 15px;
+  border: 1px solid #292929;
+  box-sizing: border-box;
+  overflow: hidden;
+  pointer-events: none;
+  transform: translateX(var(--di-bg-pill-offset-x, 0px));
+  opacity: 1;
+  /* Unmerging during shrink: moves from 0px back to standby offset */
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1) 0.12s,
+              opacity 0.22s ease 0.14s;
+}
+
+.island-container.dock-bottom .island-bg-pill {
+  top: auto;
+  bottom: 0;
+}
+
+.island-pills-row.stage-expanded .island-bg-pill {
+  transform: translateX(0px) scale(0.92);
+  opacity: 0;
+  /* Merging during grow: moves from standby offset into center behind growing capsule */
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1) 0.05s,
+              opacity 0.22s ease 0.07s;
+}
+
+.island-bg-clock-inner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  white-space: nowrap;
+}
+
+.island-bg-music-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 100%;
+  padding: 0 10px;
+  box-sizing: border-box;
+}
+
+.shell-dynamic-island-music {
+  display: inline-flex;
+  align-items: center;
+  background: #000000 !important;
+  color: #ffffff !important;
+  height: 30px;
+  width: 68px;
+  padding: 0 10px;
+  border-radius: 15px;
+  border: 1px solid #292929;
+  box-shadow: none !important;
+  cursor: pointer;
+  user-select: none;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  flex-shrink: 0;
+  overflow: hidden;
+  position: relative;
+  box-sizing: border-box;
+  transition: width 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+              margin-left 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 0.16s ease,
+              border-color 0.25s ease;
+}
+
+.shell-dynamic-island-music:hover {
+  border-color: #474747;
+}
+
+.shell-dynamic-island-music.is-hovered {
+  width: 210px;
+  border-color: #525252;
+}
+
+.shell-dynamic-island-music:active {
+  transform: scale(0.97);
+}
+
+.di-music-thumb-container {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.di-music-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.di-music-thumb-placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #f97316 0%, #dc2626 100%);
+  border-radius: 4px;
+}
+
+.di-music-title {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 600;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+  opacity: 0;
+  max-width: 0;
+  transition: opacity 0.2s ease 0.05s,
+              max-width 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+              margin 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.shell-dynamic-island-music.is-hovered .di-music-title {
+  opacity: 1;
+  max-width: 130px;
+  margin: 0 8px;
+}
+
+.di-music-waveform {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 14px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.di-wave-bar {
+  width: 2.5px;
+  height: 5px;
+  background-color: #ffffff;
+  border-radius: 1.5px;
+  transition: height 0.2s ease;
+}
+
+.di-music-waveform.playing .di-wave-bar {
+  animation: diWaveBounce 1.1s ease-in-out infinite alternate;
+}
+
+.di-music-waveform.playing .di-wave-bar:nth-child(1) { height: 10px; animation-delay: 0.05s; }
+.di-music-waveform.playing .di-wave-bar:nth-child(2) { height: 14px; animation-delay: 0.25s; }
+.di-music-waveform.playing .di-wave-bar:nth-child(3) { height: 8px;  animation-delay: 0.15s; }
+.di-music-waveform.playing .di-wave-bar:nth-child(4) { height: 12px; animation-delay: 0.35s; }
+.di-music-waveform.playing .di-wave-bar:nth-child(5) { height: 6px;  animation-delay: 0.1s; }
+
+@keyframes diWaveBounce {
+  0% { transform: scaleY(0.35); }
+  50% { transform: scaleY(1.0); }
+  100% { transform: scaleY(0.45); }
 }

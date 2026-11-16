@@ -22,7 +22,7 @@
         </div>
         <div class="pane-profile-text">
           <span class="pane-title">WinZenShell</span>
-          <span class="pane-sub">v0.3.0</span>
+          <span class="pane-sub">v0.3.1</span>
         </div>
       </div>
 
@@ -154,7 +154,7 @@
               </div>
             </div>
 
-            <!-- 5. Theme & 7. Shell Position -->
+            <!-- 5. Theme, Shell Position & Island Placement -->
             <div class="expander-subrow controls-subrow">
               <div class="subrow-field">
                 <label for="selectTheme">Theme</label>
@@ -168,6 +168,13 @@
                 <select id="selectDockEdge" class="win11-select">
                   <option value="Bottom">Bottom</option>
                   <option value="Top">Top</option>
+                </select>
+              </div>
+              <div class="subrow-field" id="shellFieldDiPlacement">
+                <label for="selectShellDiPlacement">Island Placement</label>
+                <select id="selectShellDiPlacement" class="win11-select">
+                  <option value="taskbar">Inside Taskbar</option>
+                  <option value="top-center">Top Center (Desktop Work Area)</option>
                 </select>
               </div>
             </div>
@@ -469,6 +476,21 @@
                 <span class="toggle-state-text" id="stateDiAnimation">On</span>
                 <label class="win11-toggle">
                   <input type="checkbox" id="toggleDiAnimation" checked />
+                  <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                </label>
+              </div>
+            </div>
+
+            <!-- 8. Music Dynamic Island -->
+            <div class="expander-subrow setting-subrow" id="rowDiMusic">
+              <div class="card-titles">
+                <label class="card-title" for="toggleDiMusic">Music Island</label>
+                <span class="card-subtitle">Show media playback and controls in Dynamic Island when music is playing</span>
+              </div>
+              <div class="card-right">
+                <span class="toggle-state-text" id="stateDiMusic">On</span>
+                <label class="win11-toggle">
+                  <input type="checkbox" id="toggleDiMusic" checked />
                   <span class="toggle-track"><span class="toggle-thumb"></span></span>
                 </label>
               </div>

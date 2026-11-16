@@ -224,6 +224,26 @@ body.winzen-no-anim *:active {
   transform: none !important;
 }
 
+/* Core Shell Dynamic Island Wrapper (Houses Clock and Music Pills) */
+.shell-dynamic-island-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  z-index: 10;
+  flex-shrink: 0;
+  opacity: 1;
+  transition: none !important;
+}
+
+.shell-dynamic-island-wrapper.island-hidden,
+.shell-dynamic-island.island-hidden,
+.shell-dynamic-island-music.island-hidden {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: none !important;
+}
+
 /* Core Shell Dynamic Island (Pitch Black) */
 .shell-dynamic-island {
   display: inline-flex;
@@ -232,16 +252,16 @@ body.winzen-no-anim *:active {
   background: #000000 !important; /* Pitch black strictly */
   color: #ffffff !important;
   height: 30px;
-  min-width: 76px;
+  min-width: 78px;
   padding: 0 16px;
   border-radius: 15px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid #292929;
   box-shadow: none !important;
   cursor: pointer;
   user-select: none;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
   flex-shrink: 0;
-  z-index: 10;
+  z-index: 12;
   overflow: hidden;
   position: relative;
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
@@ -255,7 +275,7 @@ body.winzen-no-anim *:active {
 }
 
 .shell-dynamic-island:hover {
-  border-color: rgba(255, 255, 255, 0.3);
+  border-color: #474747;
   box-shadow: none !important;
 }
 
@@ -263,10 +283,124 @@ body.winzen-no-anim *:active {
   transform: scale(0.97);
 }
 
-.shell-dynamic-island.island-hidden {
-  opacity: 0 !important;
-  pointer-events: none !important;
-  transition: none !important;
+/* Music Pill in Taskbar */
+.shell-dynamic-island-music {
+  display: inline-flex;
+  align-items: center;
+  background: #000000 !important;
+  color: #ffffff !important;
+  height: 30px;
+  width: 68px;
+  padding: 0 10px;
+  border-radius: 15px;
+  border: 1px solid #292929;
+  box-shadow: none !important;
+  cursor: pointer;
+  user-select: none;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  flex-shrink: 0;
+  z-index: 11;
+  overflow: hidden;
+  position: relative;
+  box-sizing: border-box;
+  transition: width 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+              margin-left 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 0.16s ease,
+              border-color 0.25s ease;
+}
+
+.shell-dynamic-island-music:hover {
+  border-color: #474747;
+}
+
+.shell-dynamic-island-music.is-hovered {
+  width: 210px;
+  border-color: #525252;
+}
+
+.shell-dynamic-island-music:active {
+  transform: scale(0.97);
+}
+
+.di-music-thumb-container {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.di-music-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.di-music-thumb-placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #f97316 0%, #dc2626 100%);
+  border-radius: 4px;
+}
+
+.di-music-title {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 600;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+  opacity: 0;
+  max-width: 0;
+  transition: opacity 0.2s ease 0.05s,
+              max-width 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+              margin 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.shell-dynamic-island-music.is-hovered .di-music-title {
+  opacity: 1;
+  max-width: 130px;
+  margin: 0 8px;
+}
+
+.di-music-waveform {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 14px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.di-wave-bar {
+  width: 2.5px;
+  height: 5px;
+  background-color: #ffffff;
+  border-radius: 1.5px;
+  transition: height 0.2s ease;
+}
+
+.di-music-waveform.playing .di-wave-bar {
+  animation: diWaveBounce 1.1s ease-in-out infinite alternate;
+}
+
+.di-music-waveform.playing .di-wave-bar:nth-child(1) { height: 10px; animation-delay: 0.05s; }
+.di-music-waveform.playing .di-wave-bar:nth-child(2) { height: 14px; animation-delay: 0.25s; }
+.di-music-waveform.playing .di-wave-bar:nth-child(3) { height: 8px;  animation-delay: 0.15s; }
+.di-music-waveform.playing .di-wave-bar:nth-child(4) { height: 12px; animation-delay: 0.35s; }
+.di-music-waveform.playing .di-wave-bar:nth-child(5) { height: 6px;  animation-delay: 0.1s; }
+
+@keyframes diWaveBounce {
+  0% { transform: scaleY(0.35); }
+  50% { transform: scaleY(1.0); }
+  100% { transform: scaleY(0.45); }
 }
 
 /* Resting pill content in normal flow so the pill naturally hugs the clock with 16px padding */

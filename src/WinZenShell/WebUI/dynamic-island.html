@@ -8,33 +8,136 @@
 </head>
 <body>
   <div class="island-container" id="islandContainer">
-    <div class="dynamic-island-capsule pitch-black" id="islandCapsule" role="button" tabindex="0">
-      <!-- 1. Collapsed Island Pill -->
-      <div class="island-collapsed-content" id="islandCollapsedContent">
-        <div class="island-collapsed-inner" id="islandCollapsedInner">
-          <span class="di-time" id="diTime">--:--</span>
-          <span class="di-seconds" id="diSeconds" style="display:none;">.00</span>
-          <span class="di-date" id="diDate" style="display:none;">16-11-2026</span>
+    <div class="island-pills-row" id="islandPillsRow">
+      <!-- Background merging/unmerging small pill (sits behind active capsule during grow/shrink) -->
+      <div class="island-bg-pill pitch-black" id="islandBgPill" style="display: none;">
+        <div class="island-bg-clock-inner" id="islandBgClockInner">
+          <span class="di-time" id="diBgTime">--:--</span>
+          <span class="di-seconds" id="diBgSeconds" style="display:none;">.00</span>
+          <span class="di-date" id="diBgDate" style="display:none;">16-11-2026</span>
+        </div>
+        <div class="island-bg-music-inner" id="islandBgMusicInner" style="display: none;">
+          <div class="di-music-thumb-container">
+            <img id="diBgThumb" class="di-music-thumb" src="" alt="" style="display: none;" />
+            <div id="diBgThumbPlaceholder" class="di-music-thumb-placeholder"></div>
+          </div>
+          <div class="di-music-waveform" id="diBgWaveform">
+            <span class="di-wave-bar"></span>
+            <span class="di-wave-bar"></span>
+            <span class="di-wave-bar"></span>
+            <span class="di-wave-bar"></span>
+            <span class="di-wave-bar"></span>
+          </div>
         </div>
       </div>
 
-      <!-- 2. Expanded Island Card -->
-      <div class="island-expanded-content" id="islandExpandedContent">
-        <div class="di-card-top-row">
-          <div class="di-card-time-group">
-            <span class="di-card-time" id="diCardTime">--:--</span><span class="di-card-seconds" id="diCardSeconds">.00</span>
+      <div class="dynamic-island-capsule pitch-black" id="islandCapsule" role="button" tabindex="0">
+        <!-- 1. Collapsed Island Pill -->
+        <div class="island-collapsed-content" id="islandCollapsedContent">
+          <div class="island-collapsed-inner" id="islandCollapsedInner">
+            <span class="di-time" id="diTime">--:--</span>
+            <span class="di-seconds" id="diSeconds" style="display:none;">.00</span>
+            <span class="di-date" id="diDate" style="display:none;">16-11-2026</span>
           </div>
-          <div class="di-card-battery-group" id="diCardBattery">
-            <span class="di-card-battery-pct" id="diCardBatteryPct">100%</span>
-            <div class="di-card-battery-icon" id="diCardBatteryIcon">
-              <div class="di-card-battery-fill" id="diCardBatteryFill" style="width: 100%;"></div>
+          <div class="island-collapsed-music-inner" id="islandCollapsedMusicInner" style="display:none;">
+            <div class="di-music-thumb-container">
+              <img id="diColMusicThumb" class="di-music-thumb" src="" alt="" style="display: none;" />
+              <div id="diColMusicThumbPlaceholder" class="di-music-thumb-placeholder"></div>
+            </div>
+            <div class="di-music-waveform" id="diColMusicWaveform">
+              <span class="di-wave-bar"></span>
+              <span class="di-wave-bar"></span>
+              <span class="di-wave-bar"></span>
+              <span class="di-wave-bar"></span>
+              <span class="di-wave-bar"></span>
             </div>
           </div>
         </div>
 
-        <div class="di-card-bottom-group">
-          <div class="di-card-weekday" id="diCardWeekday">Monday</div>
-          <div class="di-card-date" id="diCardDate">16-11-2026</div>
+        <!-- 2. Expanded Island Card -->
+        <div class="island-expanded-content" id="islandExpandedContent">
+          <div class="di-card-top-row">
+            <div class="di-card-time-group">
+              <span class="di-card-time" id="diCardTime">--:--</span><span class="di-card-seconds" id="diCardSeconds">.00</span>
+            </div>
+            <div class="di-card-battery-group" id="diCardBattery">
+              <span class="di-card-battery-pct" id="diCardBatteryPct">100%</span>
+              <div class="di-card-battery-icon" id="diCardBatteryIcon">
+                <div class="di-card-battery-fill" id="diCardBatteryFill" style="width: 100%;"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="di-card-bottom-group">
+            <div class="di-card-weekday" id="diCardWeekday">Monday</div>
+            <div class="di-card-date" id="diCardDate">16-11-2026</div>
+          </div>
+        </div>
+
+        <!-- 3. Expanded Island Card: Music View -->
+        <div class="island-expanded-music-content" id="islandExpandedMusicContent" style="display: none;">
+          <div class="di-music-top-row">
+            <div class="di-music-cover-wrapper">
+              <img id="diMusicCoverImg" class="di-music-cover-img" src="" alt="Album Art" style="display: none;" />
+              <div id="diMusicCoverPlaceholder" class="di-music-cover-placeholder"></div>
+            </div>
+            <div class="di-music-meta">
+              <div id="diMusicTitle" class="di-music-card-title">Song Title</div>
+              <div id="diMusicArtist" class="di-music-card-artist">Artist Name</div>
+            </div>
+            <div class="di-music-card-waveform" id="diMusicCardWaveform">
+              <span class="di-card-wave-bar"></span>
+              <span class="di-card-wave-bar"></span>
+              <span class="di-card-wave-bar"></span>
+              <span class="di-card-wave-bar"></span>
+              <span class="di-card-wave-bar"></span>
+            </div>
+          </div>
+
+          <div class="di-music-timeline-row">
+            <span id="diMusicPosition" class="di-music-time">0:00</span>
+            <div class="di-music-seek-track" id="diMusicSeekTrack">
+              <div class="di-music-seek-fill" id="diMusicSeekFill" style="width: 0%;"></div>
+            </div>
+            <span id="diMusicDuration" class="di-music-time">0:00</span>
+          </div>
+
+          <div class="di-music-controls-row">
+            <button type="button" class="di-music-ctrl-btn" id="btnDiMusicPrev" aria-label="Previous Track">
+              <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22">
+                <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/>
+              </svg>
+            </button>
+            <button type="button" class="di-music-ctrl-btn di-music-play-btn" id="btnDiMusicPlayPause" aria-label="Play/Pause">
+              <svg id="iconDiPlay" viewBox="0 0 24 24" fill="currentColor" width="26" height="26" style="display: none;">
+                <path d="M8 5v14l11-7z"/>
+              </svg>
+              <svg id="iconDiPause" viewBox="0 0 24 24" fill="currentColor" width="26" height="26">
+                <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+              </svg>
+            </button>
+            <button type="button" class="di-music-ctrl-btn" id="btnDiMusicNext" aria-label="Next Track">
+              <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22">
+                <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top-Center Collapsed Music Pill -->
+      <div class="shell-dynamic-island-music pitch-black di-tc-music-pill" id="islandMusicPill" role="button" tabindex="0" style="display: none;">
+        <div class="di-music-thumb-container">
+          <img id="diTcThumb" class="di-music-thumb" src="" alt="Album Art" style="display: none;" />
+          <div id="diTcThumbPlaceholder" class="di-music-thumb-placeholder"></div>
+        </div>
+        <span id="diTcTitle" class="di-music-title">Song Title</span>
+        <div class="di-music-waveform" id="diTcWaveform">
+          <span class="di-wave-bar"></span>
+          <span class="di-wave-bar"></span>
+          <span class="di-wave-bar"></span>
+          <span class="di-wave-bar"></span>
+          <span class="di-wave-bar"></span>
         </div>
       </div>
     </div>

@@ -5,81 +5,73 @@
 [![Platform: Windows 11](https://img.shields.io/badge/Platform-Windows%2011%20(64--bit)-0078D4?logo=windows11&logoColor=white)](https://microsoft.com/windows)
 [![Runtime: .NET 10](https://img.shields.io/badge/Runtime-.NET%2010%20(WPF)-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 [![Frontend: WebView2](https://img.shields.io/badge/Frontend-WebView2%20%7C%20Web%20Components-008080?logo=microsoftedge&logoColor=white)](https://developer.microsoft.com/microsoft-edge/webview2/)
-[![Release: v0.3.0](https://img.shields.io/badge/Release-v0.3.0-0078D4)](README.md#changelog)
+[![Release: v0.3.1](https://img.shields.io/badge/Release-v0.3.1-0078D4)](README.md#changelog)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**WinZenShell** is a modular, high-performance Windows 11 custom taskbar and community widget studio.  
-It combines a **100% Web Frontend** (HTML5, Modern CSS, Web Components, Shadow DOM) with a lightweight **.NET 10 + WebView2** Win32 interop host.
+**WinZenShell** is a customizable, lightweight Windows 11 taskbar and widget studio.  
+It pairs a modern web interface (HTML, CSS, and JavaScript) with a fast native Windows 11 host.
 
 </div>
 
 ---
 
 > [!IMPORTANT]
-> **Release Notice (`v0.3.0`)**:  
-> WinZenShell v0.3.0 introduces the **Dynamic Island** system HUD with pitch-black capsule styling, choreographed expansion & collapse transitions, multi-slot taskbar anchoring (left, center, right), smooth overlay handoff, clean zero-shadow aesthetic, instant real-time volume & brightness sliders, and keyboard brightness sync.
+> **Release Notice (`v0.3.1`)**:  
+> WinZenShell v0.3.1 adds the **Music Dynamic Island** with live album art, animated audio waveform, hover track preview, and an expanded media player card. Expanding or collapsing an island now smoothly animates directly from the clicked pill's position while the secondary pill merges and unmerges in the background.
 
 ---
 
 ## Key Features
 
-### 🪟 Windows 11 Shell Integration
-* **Autohide-First Concealment**: Automatically places the default Windows 11 taskbar (`Shell_TrayWnd`) into `ABS_AUTOHIDE` before hiding, guaranteeing that Windows immediately relinquishes the desktop work area without leaving dead screen margins.
-* **Desktop Work Area Sync (`SPI_SETWORKAREA`)**: Automatically synchronizes `SHAppBarMessage` boundaries so maximized windows snap cleanly against the custom taskbar without overlapping or creating dead space.
-* **True Fullscreen Suppression**: Automatically conceals the custom taskbar when a fullscreen game, video (YouTube, Netflix), or presentation is running, and restores it instantly upon exiting fullscreen.
-* **Emergency Failsafe**: Press **`Ctrl + Shift + Alt + Z`** at any time to immediately restore and unhide the default Windows 11 taskbar.
+### Windows 11 Desktop Integration
+* **Clean Taskbar Replacement**: Hides the default Windows 11 taskbar cleanly without leaving empty gaps at the bottom of your screen.
+* **Smart Screen Space Management**: Automatically adjusts your desktop work area so maximized windows fit neatly against the WinZenShell taskbar (or top-center Dynamic Island) without overlapping.
+* **Automatic Fullscreen Hiding**: Hides the taskbar automatically when you play fullscreen games, watch fullscreen videos, or present slides, and brings it right back when you exit.
+* **Emergency Restore Shortcut**: Press **`Ctrl + Shift + Alt + Z`** at any time to immediately bring back the standard Windows 11 taskbar.
 
-### 🎨 Modular 4-Region Drag-and-Drop Layout
-* Split into **Left**, **Center**, **Right**, and **Inactive** zones.
-* **Interactive Arranger in Settings**: Drag and drop widgets with smooth on-the-fly ghost previews. Changes to widget order on the taskbar take effect cleanly upon mouse release.
-* **Inactive Zone**: Park widgets you don't need without deleting them.
+### Dynamic Island & Music Island
+* **Clock & Battery Island**: A sleek pitch-black pill displaying the current time (with optional seconds and date). Click it to expand a larger card showing the time, battery percentage, day of the week, and full date.
+* **Music Dynamic Island**: Appears automatically next to the clock pill whenever music or media is playing.
+  * **Standby**: Compact pill with album art and a live animated audio waveform.
+  * **Hover**: Hold your cursor over the music pill to smoothly reveal the current song title.
+  * **Expanded Media Card**: Click the music pill to expand a full media player with large album cover art, song title, artist name, interactive progress bar, and Previous / Play-Pause / Next controls.
+* **Natural Grow, Shrink & Merge Motion**: Clicking either pill expands the card directly from that pill's position toward the center while the other pill smoothly merges behind it. Closing the card shrinks it back to its spot while the secondary pill unmerges into standby position.
+* **Flexible Placement**: Dock the Dynamic Island inside the taskbar (left, center, or right) or float it at the top-center of your desktop.
 
-### 🌓 Universal Fluent 2 Theme Engine
-* Official **Windows 11 Fluent 2 Design Specification** color palettes.
-* Supports both **Windows 11 Dark** and **Windows 11 Light** themes across the entire taskbar, widgets, flyouts, and Settings app.
-* Seamless token sharing: Widgets reference `--winzen-*` CSS custom properties, automatically injected into each widget's isolated Shadow DOM.
+### Drag-and-Drop Taskbar Layout
+* **Four Layout Zones**: Arrange items across **Left**, **Center**, **Right**, and **Unused** sections.
+* **Live Visual Editor**: Drag and drop widgets in Settings to reorder your taskbar in real time.
+* **Unused Drawer**: Temporarily disable widgets you do not need without deleting them.
 
-### 🚀 Floating Flyouts & Official Widgets
-1. **ChromeOS-Style App Launcher (`zen-start-button`)**:
-   * Quick-launch search bar with instant prefix/fuzzy filtering across all installed Start Menu apps.
-   * Recent applications row and full keyboard navigation (<kbd>↑</kbd> <kbd>↓</kbd> <kbd>Enter</kbd> <kbd>Esc</kbd>).
-   * Dynamically aligns to Left, Center, or Right depending on start button placement.
-2. **Active Window Switcher (`zen-active-windows`)**:
-   * Live window list, thumbnail previews, active focus indicators, pin/unpin toggles, and right-click context menu.
-3. **Windows 11 Virtual Desktop Switcher (`zen-virtual-desktops`)**:
-   * Displays all active virtual desktops with indicator pills and one-click native desktop switching (`IVirtualDesktopManager`).
-4. **Clock & Calendar Flyout (`zen-clock-pill`)**:
-   * High-contrast digital time and date pill on the taskbar.
-   * Flyout features an animated analog clock, bold digital time, localized date, and timezone badge.
-5. **System Telemetry & Performance (`zen-system-monitor`)**:
-   * Live real-time CPU & RAM utilization bars and percentages.
-   * Direct shortcut to Windows Task Manager.
-6. **Master Volume Flyout (`zen-volume`)**:
-   * CoreAudio master volume control with mute toggle.
-   * Mouse wheel scrolling anywhere over the icon/slider for fluid adjustment.
-   * Proportional click tracking: clicking 0% snaps directly to **0%** (no accidental 10% decrements).
-7. **Display Brightness Flyout (`zen-brightness`)**:
-   * WMI-powered brightness slider with mouse wheel scrolling and instant 0% snap.
+### Windows 11 Light & Dark Themes
+* Matches the native **Windows 11 Dark** and **Windows 11 Light** appearances across the taskbar, flyout menus, widgets, and Settings window.
+* **Custom Accent Colors & Transparency**: Choose your favorite highlight color and adjust taskbar height, floating margin, corner roundness, opacity, and background blur.
+
+### Built-In Widgets & Quick Menus
+1. **App Launcher (`zen-start-button`)**:
+   * Search and launch any installed app with instant filtering, a recent apps row, and full keyboard navigation (<kbd>Up</kbd> <kbd>Down</kbd> <kbd>Enter</kbd> <kbd>Esc</kbd>).
+2. **Open Apps & Window Switcher (`zen-active-windows`)**:
+   * Shows your running and pinned apps with live window thumbnails on hover, multi-window indicators, pin/unpin options, and clean active-window highlights.
+3. **Virtual Desktop Switcher (`zen-virtual-desktops`)**:
+   * View and switch between your Windows 11 virtual desktops with a single click.
+4. **Clock & Calendar (`zen-clock-pill`)**:
+   * Displays the time and date on the taskbar and opens a flyout with an analog clock, digital time, and calendar date.
+5. **System Monitor (`zen-system-monitor`)**:
+   * Shows live CPU, memory (RAM), and GPU usage with a quick button to open Windows Task Manager.
+6. **Volume Control (`zen-volume`)**:
+   * Adjust system volume with a slider or by scrolling your mouse wheel over the icon, plus one-click mute.
+7. **Display Brightness (`zen-brightness`)**:
+   * Adjust screen brightness using the slider, mouse wheel, or your keyboard brightness keys.
 8. **Control Center (`zen-control-center`)**:
-   * Unified quick-settings card grid containing brightness, volume, telemetry, and settings launcher.
-9. **Network & Wi-Fi Flyout (`zen-network`)**:
-   * Instant Wi-Fi scanning with signal strength bars, security status, and adapter switcher.
-10. **Bluetooth & Devices Flyout (`zen-bluetooth`)**:
-    * Clean vector stroke Lucide Bluetooth icon with crisp multi-scale rendering across Light and Dark themes.
-    * Native Fluent 2 flyout: Quick Radio On/Off switch, live paired devices list categorized with dedicated hardware icons (audio, phone, pc, peripheral), one-click Connect/Disconnect actions, and shortcuts to "+ Add device" and Windows Bluetooth Settings.
-11. **Battery Indicator & Flyout (`zen-battery`)**:
-    * Real-time percentage, charging state, estimated battery runtime, and responsive multi-column layouts (`1x1`, `2x1`, `3x1`, `4x1`).
+   * A customizable quick-settings panel where you can add, remove, reorder, and resize widgets across a 4-column grid.
+9. **Wi-Fi & Network (`zen-network`)**:
+   * View available Wi-Fi networks, signal strength, and connection status.
+10. **Bluetooth & Devices (`zen-bluetooth`)**:
+    * Turn Bluetooth on or off, view paired headphones, phones, and accessories, and connect or disconnect with one click.
+11. **Battery Status (`zen-battery`)**:
+    * Shows battery percentage, charging status, and estimated remaining time.
 12. **Media Player Widget (`zen-media-player`)**:
-    * Integrated with Windows Global System Media Transport Controls (GSMTC) session manager.
-    * Live track metadata: title, artist, album art thumbnail with base64 streaming, track duration, and timeline position.
-    * Play/Pause, Next, Previous, and smooth interactive scrubbing / seeking via `MediaService`.
-    * Graceful "No Media is Playing" fallback with deactivated controls when no audio/video source is active.
-    * Multi-aspect ratio support in Control Center (`1x1`, `2x1`, `2x2`, `3x1`, `4x1`, `1x2`) with consistent responsive seekbars.
-    * Compact taskbar pill with customizable album art thumbnail toggle in Settings.
-
-### ⚡ Flyout UX Enhancements
-* **Single-Click Switching**: Seamlessly click from Volume to Brightness to Clock without Windows discarding clicks (`WM_MOUSEACTIVATE -> MA_ACTIVATE`).
-* **Debounced Toggle**: Clicking the active flyout's own icon toggles it off smoothly.
+    * Controls your currently playing music or video from any app (Spotify, browser, media players) with album art, track scrubbing, and multiple card sizes in Control Center.
 
 ---
 
@@ -87,53 +79,53 @@ It combines a **100% Web Frontend** (HTML5, Modern CSS, Web Components, Shadow D
 
 ```
 WinZenShell (Host)
-  ├── WorkAreaAppBarService    -> SHAppBarMessage + SPI_SETWORKAREA
-  ├── SystemMetricsService     -> CPU, RAM, Battery, GPU & Window enumeration
-  ├── MediaService             -> Windows.Media.Control GSMTC session & timeline
-  ├── AudioService             -> CoreAudio IAudioEndpointVolume
-  ├── BrightnessService        -> WmiMonitorBrightness / DDC-CI
-  ├── NetworkService           -> WLAN API Wi-Fi scanning & NetworkInformation
-  ├── BluetoothService         -> bthprops.cpl Bluetooth radio & device status
-  ├── VirtualDesktopService    -> IVirtualDesktopManager
-  ├── AppLauncherService       -> Start Menu indexer & icon extractor
-  └── WidgetManagerService     -> Manifest discovery & hot-reload
+  ├── WorkAreaAppBarService    -> Desktop work area & taskbar bounds
+  ├── SystemMetricsService     -> CPU, RAM, Battery, GPU & open windows
+  ├── MediaService             -> System media playback & timeline controls
+  ├── AudioService             -> System master volume & mute
+  ├── BrightnessService        -> Display brightness & hardware key sync
+  ├── NetworkService           -> Wi-Fi scanning & network status
+  ├── BluetoothService         -> Bluetooth radio & paired device controls
+  ├── VirtualDesktopService    -> Windows 11 virtual desktop switching
+  ├── AppLauncherService       -> Start Menu app search & icons
+  └── WidgetManagerService     -> Widget discovery & live reload
         │
-        ▼ (Edge WebView2 DirectComposition)
-Taskbar & Flyouts (Web Frontend)
-  ├── universal-theme.css      -> Fluent 2 Light & Dark design tokens
-  ├── Shadow DOM Isolation     -> Injected theme variables
-  └── window.winzen Bridge     -> Bidirectional IPC
+        ▼ (Edge WebView2)
+Taskbar, Dynamic Island & Flyouts (Web Frontend)
+  ├── universal-theme.css      -> Light & Dark theme tokens
+  ├── Shadow DOM Isolation     -> Scoped widget styles
+  └── window.winzen Bridge     -> Two-way host communication
 ```
 
 ---
 
 ## Getting Started
 
-### Prerequisites
-* **Windows 11** (64-bit).
-* **[.NET 10 SDK](https://dotnet.microsoft.com/download)**.
-* **Microsoft Edge WebView2 Runtime** (installed by default on Windows 11).
+### Requirements
+* **Windows 11** (64-bit)
+* **[.NET 10 SDK](https://dotnet.microsoft.com/download)**
+* **Microsoft Edge WebView2 Runtime** (included with Windows 11)
 
 ### Build & Run
 
 ```powershell
-# Clone repository
+# Clone the repository
 git clone https://github.com/your-username/winzenshell.git
 cd winzenshell
 
-# Run in Development mode
+# Run in development mode
 dotnet run --project src\WinZenShell\WinZenShell.csproj
 
-# Or publish a standalone release
-dotnet publish src\WinZenShell\WinZenShell.csproj -c Release -o publish\WinZenShell
+# Or publish a standalone release build
+dotnet publish src\WinZenShell\WinZenShell.csproj -c Release -r win-x64 --self-contained true -o publish\WinZenShell
 Start-Process "publish\WinZenShell\WinZenShell.exe"
 ```
 
 ---
 
-## Community Widget Development
+## Creating Custom Widgets
 
-Creating a custom widget is as simple as creating a folder inside `Widgets/`:
+You can create your own widget by adding a folder inside `Widgets/`:
 
 ```
 Widgets/
@@ -144,22 +136,22 @@ Widgets/
     └── style.css
 ```
 
-### Sample `manifest.json`
+### Example `manifest.json`
 ```json
 {
   "id": "community.my-custom-widget",
   "name": "My Custom Widget",
   "version": "1.0.0",
   "author": "Your Name",
-  "description": "A lightweight custom widget",
+  "description": "A simple custom taskbar widget",
   "defaultSlot": "right",
   "width": 120,
   "height": 40
 }
 ```
 
-### Using the Bridge & Theme Tokens
-Widgets are rendered inside Shadow DOMs with automatic access to `window.winzen` and Fluent 2 CSS variables:
+### Styling & System Data
+Widgets automatically receive theme colors and live system data through `window.winzen`:
 
 ```css
 /* style.css */
@@ -178,7 +170,7 @@ Widgets are rendered inside Shadow DOMs with automatic access to `window.winzen`
 ```
 
 ```javascript
-// script.js
+/* script.js */
 window.winzen.shell.onMetricsUpdate((metrics) => {
   console.log('CPU:', metrics.cpuPercent, 'RAM:', metrics.ramPercent);
 });
@@ -190,115 +182,64 @@ window.winzen.shell.onMetricsUpdate((metrics) => {
 
 | Shortcut | Action |
 | :--- | :--- |
-| **`Ctrl + Shift + Alt + Z`** | **Emergency Failsafe**: Restore and unhide default Windows taskbar |
-| **`Esc`** | Dismiss active flyout or clear App Launcher search |
-| **`↑` / `↓` / `Enter`** | Navigate and open apps in ChromeOS App Launcher |
+| **`Ctrl + Shift + Alt + Z`** | **Emergency Restore**: Immediately unhide and restore the default Windows taskbar |
+| **`Esc`** | Close the open flyout menu, collapse Dynamic Island, or clear App Launcher search |
+| **`Up` / `Down` / `Enter`** | Navigate and launch apps in the App Launcher |
 
 ---
 
 ## Changelog
 
+### v0.3.1 (2026-11-16)
+* **Music Dynamic Island**:
+  * Added a companion music pill next to the clock island whenever media is playing, complete with album art and an animated 5-bar audio waveform.
+  * Added a brief hover delay before expanding the music pill to show the song title, avoiding accidental triggers when moving the mouse across the screen.
+  * Clicking the music pill opens a full media card with large album art, song title, artist name, seekable progress bar, and playback controls (Previous, Play/Pause, Next).
+  * Added a toggle in Settings under Dynamic Island to turn the Music Island on or off.
+* **Refined Dynamic Island Animations & Layout**:
+  * **Grow & Shrink from Pill Position**: Clicking either the clock pill or the music pill now animates the card directly from that pill's starting position into the centered expanded card while the other pill smoothly merges behind it. Closing the card shrinks it back to its original spot while the secondary pill unmerges.
+  * Eliminated visual flickering when collapsing the Dynamic Island back into the taskbar or top-center bar.
+  * Matched the Dynamic Island proportions, typography, battery indicator, and compact top-center padding 1:1 with the reference design.
+  * Added an **Island Placement** selector directly on the **Shell** settings page in addition to the Dynamic Island page for quicker access.
+  * Prevented the expanded Dynamic Island card from being clipped when switching between Top Center and Inside Taskbar modes.
+* **Taskbar Window Indicators**:
+  * Cleaned up multi-window app icons on the taskbar so the card highlight and side tab appear only when the app is active or hovered, keeping inactive apps transparent on translucent taskbars.
+
 ### v0.3.0 (2026-11-15)
 * **Dynamic Island System HUD**:
-  * Pitch-black capsule styling (`#000000 !important`) with clean border and zero-shadow aesthetic.
-  * Choreographed expansion & collapse transitions:
-    * Small elements fade out completely within 100ms before expansion starts at 150ms.
-    * Capsule expands smoothly to 400x170 with a 40px radius.
-    * Large elements fade in only after capsule expansion completes.
-    * Reverse choreography for collapse with seamless, flicker-free handoff to taskbar pill.
-  * Multi-slot anchoring support: seamlessly aligns to `left`, `center`, or `right` slots based on taskbar slot configuration.
-  * Clean typography: bold large clock, weekday badge (`SUNDAY`), and calendar date with zero branding watermark or redundant information.
-* **Real-time Sliders & Hardware Synchronization**:
-  * Zero-delay, zero-smoothing real-time updates for volume and brightness sliders.
-  * Direct WMI brightness control with real-time feedback and keyboard hotkey brightness synchronization.
-* **Settings & Shell Enhancements**:
-  * Dynamic Island tab in Settings with slot and appearance controls.
-  * Automatic synchronization of dynamic island settings with running shell state.
+  * Added the pitch-black Dynamic Island capsule with smooth expand and collapse animations.
+  * Supports placement inside the taskbar (left, center, or right) or floating at the top-center of the desktop with optional screen-space reservation.
+  * Expanded card view shows large digital time, battery level, day of the week, and full date.
+* **Instant Volume & Brightness Response**:
+  * Volume and brightness sliders now respond immediately as you drag them or use keyboard brightness keys.
 
 ### v0.2.2 (2026-11-14)
-* **Official Media Player Widget (`community.zen-media-player`)**:
-  * Seamless integration with Windows 10/11 **Global System Media Transport Controls (GSMTC)** via `Windows.Media.Control` and `MediaService.cs`.
-  * Real-time metadata tracking: song title, artist, album art streaming (extracted via `IRandomAccessStreamWithContentType` to base64 data URIs), timeline playback position, and track duration.
-  * Native media controls: Play, Pause, Previous, Next, and interactive timeline seeking/scrubbing (`TryChangePlaybackPositionAsync`).
-  * "No Media is Playing" inactive state: buttons visible and styled but safely disabled and non-clickable when no media session is active.
-  * Comprehensive Control Center layout options:
-    * `1x1`: Compact square card with thumbnail, track info, and playback toggle.
-    * `2x1` & `3x1`: Horizontal media banners with thumbnail, scrolling track metadata, responsive controls, and interactive seekbar.
-    * `2x2`: Spacious album artwork card with full track typography, large playback controls, and interactive seekbar.
-    * `1x2`: Vertical media card with top album art, vertical typography stack, and bottom media controls.
-    * `4x1`: Full-width banner spanning the entire 4-column Control Center width.
-  * Taskbar thumbnail customization:
-    * Option in Settings to show or hide the album thumbnail inside the taskbar media pill.
-    * Ergonomic thumbnail padding inside the taskbar dock (28px height, 4px vertical margin).
-* **Control Center Enhancements**:
-  * Full-page **Add Widget** drawer view replacing height-constrained popovers.
-  * 2D free-placement grid: items can be moved across empty slots without collapsing or pushing sibling widgets into unwanted columns.
-  * Cleaned up Add Widget item labels by removing redundant grid span tags and descriptions for a minimalist Fluent 2 look.
+* **Media Player Widget**:
+  * Added the built-in Media Player widget showing live song title, artist, album art, playback progress, and Play/Pause/Next/Previous controls.
+  * Supports six card sizes in Control Center (`1x1`, `2x1`, `3x1`, `4x1`, `1x2`, `2x2`) plus a compact taskbar pill with optional album art.
+* **Control Center Improvements**:
+  * Replaced the small add-widget popup with a full-page Add Widget drawer.
+  * Allowed widgets to be placed freely across empty grid spots without shifting neighboring cards unexpectedly.
 
 ### v0.2.1 (2026-11-13)
-* **Modular Control Center Grid System & Custom Sizing**:
-  * Redesigned Control Center layout into a flexible 4-column squircle grid (`1x1`, `2x1`, `2x2`, `1x2`, `3x1`, `4x1`).
-  * Empty slot placeholders allowing custom positioning and spacing across the 4-column grid.
-  * Draggable resize handles on cards for fluid span adjustments on the fly.
-  * Exiting the Control Center flyout automatically exits edit mode so the flyout reopens in normal viewing mode.
-  * Control Center editor in the Settings app is fully synchronized with flyout layout configurations.
-* **Responsive Widget Designs**:
-  * **Clock & Date (`zen-clock-pill`)**: Enforces date visibility across all Control Center widget spans (`1x1`, `2x1`, `2x2`, `1x2`, `3x1`, `4x1`), preventing taskbar clock preferences from hiding the date.
-  * **Battery (`zen-battery`)**:
-    * **1x1 Compact**: Clean centered vertical stack featuring battery icon, bold percentage, and mini centered progress bar (hiding truncated status text).
-    * **2x1, 3x1 & 4x1 Horizontal Banners**: 2-row grid structure with battery icon and percentage on top-left, charging status on top-right, and a full-width progress bar spanning 100% across the bottom row.
-  * **System Telemetry (`zen-system-monitor`)**:
-    * Fixed PDH English counter entrypoint (`PdhAddEnglishCounterW`) for robust, localized-independent GPU counter resolution.
-    * Integrated dedicated 1-second background metrics timer in Control Center flyout to continuously stream live CPU, RAM, and GPU utilization without stutter.
-    * Responsive multi-column layout for `1x1`, `2x1`, `2x2`, `1x2`, `4x1` with no flex-overflow clipping.
-  * **Volume & Brightness (`zen-volume`, `zen-brightness`)**:
-    * Ergonomic vertical slider layout for `1x2` vertical slots with slider orientation flipped (high values at top, low values at bottom, icon anchored at bottom).
-    * Synchronized slider handle positions across both orientation states.
-  * **Bluetooth & Devices (`zen-bluetooth`)**:
-    * Official Bluetooth widget powered by native `bthprops.cpl` Win32 APIs for instantaneous radio & paired/connected device detection.
-    * Replaced distorted fill path with pixel-perfect vector Lucide stroke icon rendered crisply across Light and Dark themes.
-    * Native Fluent 2 **Bluetooth Flyout Window** with live Radio On/Off switch, categorized paired devices list (audio headphones, smartphones, tablets, computers, input peripherals) with individual Connect/Disconnect actions, "+ Add device", and direct Windows Settings links.
-    * Full responsive layout support for `1x1`, `2x1`, `3x1`, `4x1`, `1x2`, and `2x2` in Control Center and Taskbar icon/widget modes.
+* **Customizable Control Center Grid**:
+  * Added drag-to-resize handles on Control Center cards and empty slot placeholders for flexible 4-column layouts.
+  * Exiting the Control Center automatically finishes Edit Mode so it reopens cleanly next time.
+* **New Bluetooth Menu & Widget Polish**:
+  * Added a native Bluetooth flyout menu with a main On/Off switch, paired device list with device-type icons, one-click Connect/Disconnect buttons, and quick links to add or manage devices.
+  * Improved responsive layouts for Clock, Battery, System Monitor, Volume, and Brightness cards across all Control Center sizes.
 
 ### v0.2.0 (2026-11-13)
-* **Modular 4-Column Control Center Grid & Sizing Studio**:
-  * Edge-to-edge rounded container with dynamic monitor height clipping and vertical scroll when content overflows.
-  * Modular **4-column squircle grid** supporting `1x1`, `2x1`, `2x2`, `3x1`, and `4x1` widget spans.
-  * Dedicated **Edit Mode** with circular red remove badges (`⊖`), circular resize badges (`⤢`), squircle empty slot placeholders, and bottom "Done" pill button.
-  * Drag-and-drop widget reordering across the 4-column layout in both Control Center flyout and Settings Grid Preview.
-  * Bottom centered pill button toggling between **"Edit Controls"** and **"Done"**.
-  * Android-style **"Add Widget to Control Center"** slide-up drawer with mutual exclusivity (only widgets not currently in Control Center are displayed).
-  * Direct synchronization between Settings and flyout layouts.
-* **Settings UI Modernization**:
-  * Clean two-section sidebar navigation (**Shell** & **Layouts**).
-  * Seamless Fluent 2 sidebar actions (Widgets Folder, Refresh, Restart, Quit) with native icons and hover treatments.
-  * Functional **Restart** button that cleanly disposes the shell, releases single-instance mutex, and re-executes `WinZenShell.exe`.
-  * Collapsible widget configuration cards with grab cursor affordance, clean author tags, and overflow-free width controls.
-  * Standardized window title to `WinZenShell`.
-* **Telemetry & Hardware Monitoring**:
-  * Added DirectX / DXGI GPU usage metrics to SystemMetricsService.
-  * Per-metric toggle visibility for CPU, RAM, and GPU.
-  * Display modes: icon-only, compact, and detailed.
-* **Shell Integration & Stability**:
-  * Wallpaper backdrop blur caching for low-overhead translucency effects.
-  * Enhanced flyout animation transitions (slide & fade).
-  * Bundled vector-based Fluent system icons and native application icon (`winzen.ico`).
+* **Control Center & Settings Redesign**:
+  * Introduced the 4-column Control Center grid with Edit Mode for adding, removing, and rearranging quick-settings cards.
+  * Redesigned the Settings sidebar with quick actions to open the Widgets folder, refresh widgets, restart the shell, or quit.
+  * Added live GPU usage monitoring alongside CPU and RAM in the System Monitor widget.
 
 ### v0.1.0-alpha
-* Initial alpha release:
-  * Full-web taskbar replacement running on .NET 10 + WebView2.
-  * Autohide-first Windows 11 taskbar hiding and desktop work area synchronization (`SPI_SETWORKAREA`).
-  * 4-region drag-and-drop layout system (Left, Center, Right, Inactive).
-  * ChromeOS-style App Launcher, Active Windows Switcher, Virtual Desktop Switcher.
-  * Fluent 2 Light & Dark theme tokens with Shadow DOM distribution.
-  * Emergency restore failsafe shortcut (`Ctrl + Shift + Alt + Z`).
-
----
-
-## Handoff & Session Continuation
-
-For developers or Antigravity AI pair programming sessions picking up this project on another machine, see:
-📄 [**ANTIGRAVITY_SESSION_HANDOFF.md**](ANTIGRAVITY_SESSION_HANDOFF.md)
+* **Initial Alpha Release**:
+  * Custom Windows 11 taskbar powered by .NET 10 and WebView2.
+  * Automatic hiding of the default Windows taskbar and desktop work area adjustment.
+  * Four-zone drag-and-drop widget layout, App Launcher, Active Window Switcher, Virtual Desktop Switcher, Light/Dark themes, and the `Ctrl + Shift + Alt + Z` emergency restore shortcut.
 
 ---
 

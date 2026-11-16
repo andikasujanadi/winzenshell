@@ -437,7 +437,7 @@ public partial class App : System.Windows.Application
                     if (_dynamicIslandWindow == null)
                     {
                         System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] Creating DynamicIslandWindow...\n");
-                        _dynamicIslandWindow = new DynamicIslandWindow(_shellStateService);
+                        _dynamicIslandWindow = new DynamicIslandWindow(_shellStateService, _taskbarWindow?.MediaService);
                         System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] DynamicIslandWindow created\n");
                     }
                     if (_taskbarWindow != null)
@@ -454,8 +454,7 @@ public partial class App : System.Windows.Application
                         _dynamicIslandWindow.Topmost = true;
                         if (!_dynamicIslandWindow.IsOverlayOpen && !_dynamicIslandWindow.IsExpanded)
                         {
-                            _dynamicIslandWindow.Width = 260;
-                            _dynamicIslandWindow.Height = 44;
+                            _dynamicIslandWindow.EnsureWindowSize(440, 44);
                         }
                         _dynamicIslandWindow.Show();
                         _dynamicIslandWindow.UpdatePosition();

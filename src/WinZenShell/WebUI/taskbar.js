@@ -21,13 +21,62 @@ function initTaskbar() {
     timeFormat: '24h',
     showSeconds: false,
     showDate: true,
-    enableAnimation: true
+    enableAnimation: true,
+    enableMusicIsland: true
   };
   let dynamicIslandEl = null;
   let dynamicIslandClockTimer = null;
   let isDynamicIslandExpanded = false;
+  let lastMediaSnapshot = null;
+
+  function updateDynamicIslandMedia(media) {
+    const musicEl = document.getElementById('shell-dynamic-island-music');
+    if (!musicEl) return;
+    const isEnabled = currentDynamicIslandConfig.enabled &&
+                      currentDynamicIslandConfig.enableMusicIsland !== false &&
+                      currentDynamicIslandConfig.placement !== 'top-center';
+
+    if (!isEnabled || !media || !media.hasMedia) {
+      musicEl.style.display = 'none';
+      return;
+    }
+
+    musicEl.style.display = 'inline-flex';
+
+    const thumbImg = document.getElementById('tbDiMusicThumb');
+    const thumbPlaceholder = document.getElementById('tbDiMusicThumbPlaceholder');
+    if (thumbImg && thumbPlaceholder) {
+      if (media.thumbnailBase64 && media.thumbnailBase64.length > 30) {
+        thumbImg.src = media.thumbnailBase64;
+        thumbImg.style.display = 'block';
+        thumbPlaceholder.style.display = 'none';
+      } else {
+        thumbImg.style.display = 'none';
+        thumbPlaceholder.style.display = 'block';
+      }
+    }
+
+    const titleEl = document.getElementById('tbDiMusicTitle');
+    if (titleEl) {
+      titleEl.textContent = media.title || 'Playing';
+    }
+
+    const waveEl = document.getElementById('tbDiMusicWaveform');
+    if (waveEl) {
+      if (media.isPlaying) {
+        waveEl.classList.add('playing');
+      } else {
+        waveEl.classList.remove('playing');
+      }
+    }
+  }
 
   function createDynamicIslandElement() {
+    const wrapper = document.createElement('div');
+    wrapper.id = 'shell-dynamic-island-wrapper';
+    wrapper.className = 'shell-dynamic-island-wrapper';
+
+    // 1. Clock Pill
     const el = document.createElement('div');
     el.id = 'shell-dynamic-island';
     el.className = 'shell-dynamic-island pitch-black';
@@ -36,9 +85,8 @@ function initTaskbar() {
     }
     el.setAttribute('role', 'button');
     el.setAttribute('tabindex', '0');
-    el.title = 'Dynamic Island (Click to expand)';
+    el.setAttribute('aria-label', 'Dynamic Island Clock');
 
-    // 1. Collapsed Content
     const colDiv = document.createElement('div');
     colDiv.className = 'di-collapsed-content';
 
@@ -62,83 +110,136 @@ function initTaskbar() {
     colDiv.appendChild(secSpan);
     colDiv.appendChild(sepSpan);
     colDiv.appendChild(dateSpan);
-
-    // 2. Expanded Content: Clock + Date
-    const expDiv = document.createElement('div');
-    expDiv.className = 'di-expanded-content';
-
-    const timeGrp = document.createElement('div');
-    timeGrp.className = 'di-exp-time-group';
-
-    const expTime = document.createElement('span');
-    expTime.className = 'di-exp-time';
-    expTime.id = 'tbDiExpTime';
-
-    const expSec = document.createElement('span');
-    expSec.className = 'di-exp-seconds';
-    expSec.id = 'tbDiExpSeconds';
-
-    timeGrp.appendChild(expTime);
-    timeGrp.appendChild(expSec);
-
-    const divider = document.createElement('span');
-    divider.className = 'di-exp-divider';
-
-    const dateGrp = document.createElement('div');
-    dateGrp.className = 'di-exp-date-group';
-
-    const expDate = document.createElement('span');
-    expDate.className = 'di-exp-date';
-    expDate.id = 'tbDiExpDate';
-
-    const expBadge = document.createElement('span');
-    expBadge.className = 'di-exp-badge';
-    expBadge.id = 'tbDiExpBadge';
-
-    dateGrp.appendChild(expDate);
-    dateGrp.appendChild(expBadge);
-
-    expDiv.appendChild(timeGrp);
-    expDiv.appendChild(divider);
-    expDiv.appendChild(dateGrp);
-
     el.appendChild(colDiv);
-    el.appendChild(expDiv);
 
-    el.addEventListener('click', (ev) => {
-      ev.stopPropagation();
-      el.classList.add('island-hidden');
-      const rect = el.getBoundingClientRect();
+    let musicHoverTimer = null;
+
+    function triggerExpand(target) {
+      clearTimeout(musicHoverTimer);
+      musicEl.style.transition = 'none';
+      musicEl.classList.remove('is-hovered');
+      void musicEl.offsetWidth;
+      musicEl.style.transition = '';
+
+      const hasMusicPill = musicEl.style.display !== 'none';
+      const clockRect = el.getBoundingClientRect();
+      const wrapRect = wrapper.getBoundingClientRect();
+      const clockW = Math.round(clockRect.width) || 78;
+      const musicW = 68;
+      const effectiveW = hasMusicPill ? (clockW + 8 + musicW) : clockW;
+
       if (window.winzen && typeof window.winzen.send === 'function') {
         window.winzen.send('toggle_dynamic_island_expand', {
-          x: rect.left,
-          y: rect.top,
-          width: rect.width,
-          height: rect.height,
+          target,
+          x: wrapRect.left,
+          y: clockRect.top,
+          width: effectiveW,
+          height: clockRect.height,
+          clockWidth: clockW,
+          musicWidth: hasMusicPill ? musicW : 0,
+          hasMusicPill: hasMusicPill,
           slot: currentDynamicIslandConfig.taskbarSlot || 'center'
         });
       }
+    }
+
+    window.winzenUnmergeDynamicIsland = () => {
+      wrapper.classList.remove('merging');
+    };
+
+    el.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      triggerExpand('clock');
     });
 
     el.addEventListener('keydown', (ev) => {
       if (ev.key === 'Enter' || ev.key === ' ') {
         ev.preventDefault();
         ev.stopPropagation();
-        el.classList.add('island-hidden');
-        const rect = el.getBoundingClientRect();
-        if (window.winzen && typeof window.winzen.send === 'function') {
-          window.winzen.send('toggle_dynamic_island_expand', {
-            x: rect.left,
-            y: rect.top,
-            width: rect.width,
-            height: rect.height,
-            slot: currentDynamicIslandConfig.taskbarSlot || 'center'
-          });
-        }
+        triggerExpand('clock');
       }
     });
 
-    return el;
+    wrapper.appendChild(el);
+
+    // 2. Music Pill
+    const musicEl = document.createElement('div');
+    musicEl.id = 'shell-dynamic-island-music';
+    musicEl.className = 'shell-dynamic-island-music pitch-black';
+    musicEl.setAttribute('role', 'button');
+    musicEl.setAttribute('tabindex', '0');
+    musicEl.setAttribute('aria-label', 'Now Playing');
+    musicEl.style.display = 'none';
+
+    const thumbContainer = document.createElement('div');
+    thumbContainer.className = 'di-music-thumb-container';
+
+    const thumbImg = document.createElement('img');
+    thumbImg.id = 'tbDiMusicThumb';
+    thumbImg.className = 'di-music-thumb';
+    thumbImg.alt = 'Album Art';
+    thumbImg.style.display = 'none';
+
+    const thumbPlaceholder = document.createElement('div');
+    thumbPlaceholder.id = 'tbDiMusicThumbPlaceholder';
+    thumbPlaceholder.className = 'di-music-thumb-placeholder';
+
+    thumbContainer.appendChild(thumbImg);
+    thumbContainer.appendChild(thumbPlaceholder);
+
+    const titleSpan = document.createElement('span');
+    titleSpan.id = 'tbDiMusicTitle';
+    titleSpan.className = 'di-music-title';
+    titleSpan.textContent = 'Song Title';
+
+    const waveDiv = document.createElement('div');
+    waveDiv.id = 'tbDiMusicWaveform';
+    waveDiv.className = 'di-music-waveform';
+    for (let i = 0; i < 5; i++) {
+      const bar = document.createElement('span');
+      bar.className = 'di-wave-bar';
+      waveDiv.appendChild(bar);
+    }
+
+    musicEl.appendChild(thumbContainer);
+    musicEl.appendChild(titleSpan);
+    musicEl.appendChild(waveDiv);
+
+    musicEl.addEventListener('mouseenter', () => {
+      if (wrapper.classList.contains('island-hidden')) return;
+      clearTimeout(musicHoverTimer);
+      musicHoverTimer = setTimeout(() => {
+        if (!wrapper.classList.contains('island-hidden')) {
+          musicEl.classList.add('is-hovered');
+        }
+      }, 260);
+    });
+
+    musicEl.addEventListener('mouseleave', () => {
+      clearTimeout(musicHoverTimer);
+      musicEl.classList.remove('is-hovered');
+    });
+
+    musicEl.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      triggerExpand('music');
+    });
+
+    musicEl.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter' || ev.key === ' ') {
+        ev.preventDefault();
+        ev.stopPropagation();
+        triggerExpand('music');
+      }
+    });
+
+    wrapper.appendChild(musicEl);
+
+    if (lastMediaSnapshot) {
+      updateDynamicIslandMedia(lastMediaSnapshot);
+    }
+
+    return wrapper;
   }
 
   function toggleDynamicIslandExpand(force) {
@@ -155,11 +256,9 @@ function initTaskbar() {
 
     if (shouldExpand) {
       dynamicIslandEl.classList.add('expanded');
-      dynamicIslandEl.title = 'Dynamic Island (Click to collapse)';
       updateDynamicIslandClock();
     } else {
       dynamicIslandEl.classList.remove('expanded');
-      dynamicIslandEl.title = 'Dynamic Island (Click to expand)';
     }
   }
 
@@ -313,7 +412,8 @@ function initTaskbar() {
       timeFormat: '24h',
       showSeconds: false,
       showDate: true,
-      enableAnimation: true
+      enableAnimation: true,
+      enableMusicIsland: true
     };
     currentDynamicIslandConfig = diConfig;
     if (dynamicIslandEl) {
@@ -322,6 +422,9 @@ function initTaskbar() {
       } else {
         dynamicIslandEl.classList.remove('no-anim');
       }
+    }
+    if (lastMediaSnapshot) {
+      updateDynamicIslandMedia(lastMediaSnapshot);
     }
 
     document.body.classList.toggle('winzen-no-anim', !currentAnimations);
@@ -546,10 +649,9 @@ function initTaskbar() {
       if (!dynamicIslandEl) {
         dynamicIslandEl = createDynamicIslandElement();
       }
-      updateDynamicIslandClock();
-      if (!dynamicIslandClockTimer) {
-        dynamicIslandClockTimer = setInterval(updateDynamicIslandClock, 1000);
-      }
+      dynamicIslandEl.classList.remove('island-hidden');
+      const innerClock = dynamicIslandEl.querySelector('#shell-dynamic-island');
+      if (innerClock) innerClock.classList.remove('island-hidden');
 
       if (diSlot === 'center') {
         // Exclusively occupies center
@@ -561,6 +663,14 @@ function initTaskbar() {
       } else if (diSlot === 'right') {
         // RULE 3: If on the right, Dynamic Island should be the LAST item!
         slotRight.appendChild(dynamicIslandEl);
+      }
+
+      updateDynamicIslandClock();
+      if (lastMediaSnapshot) {
+        updateDynamicIslandMedia(lastMediaSnapshot);
+      }
+      if (!dynamicIslandClockTimer) {
+        dynamicIslandClockTimer = setInterval(updateDynamicIslandClock, 1000);
       }
     } else {
       if (dynamicIslandClockTimer) {
@@ -574,6 +684,13 @@ function initTaskbar() {
       window.dispatchEvent(new CustomEvent('winzen:metrics', { detail: window.winzen.metrics }));
     }
   }
+
+  window.addEventListener('winzen:metrics', (e) => {
+    if (e.detail && e.detail.media) {
+      lastMediaSnapshot = e.detail.media;
+      updateDynamicIslandMedia(e.detail.media);
+    }
+  });
 
   window.winzen.send('request_state');
 }

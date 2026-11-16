@@ -38,6 +38,7 @@ public partial class TaskbarWebWindow : Window
     private BatteryFlyoutWindow? _batteryFlyout;
     private TrayOverflowFlyoutWindow? _trayOverflowFlyout;
     public DynamicIslandWindow? DynamicIslandOverlayWindow { get; set; }
+    public MediaService MediaService => _mediaService;
     private readonly NetworkService _networkService;
     private readonly BluetoothService _bluetoothService;
     private readonly TrayIconService _trayIconService;
@@ -51,6 +52,10 @@ public partial class TaskbarWebWindow : Window
     private bool _isFullscreenActive;
     private string _lastDockEdge = "";
     private string _lastBackdropSig = "";
+    private double _taskbarDipLeft;
+    private double _taskbarDipTop;
+    private double _taskbarDipWidth;
+    private double _taskbarDipHeight;
 
     public IntPtr Handle => _hwnd;
 
@@ -206,7 +211,8 @@ public partial class TaskbarWebWindow : Window
                 _metricsTimer.Start();
                 _fullscreenTimer.Start();
                 _trayOverflowFlyout ??= new TrayOverflowFlyoutWindow(_trayIconService, _openSettingsCallback, () => Dispatcher.Invoke(BroadcastMetrics));
-                DynamicIslandOverlayWindow ??= new DynamicIslandWindow(_shellState) { Owner = this };
+                DynamicIslandOverlayWindow ??= new DynamicIslandWindow(_shellState, _mediaService);
+                DynamicIslandOverlayWindow.TaskbarWindow = this;
             };
 
             core.Navigate($"https://app.winzenshell.local/taskbar.html?v={DateTimeOffset.UtcNow.ToUnixTimeSeconds()}");
@@ -787,12 +793,24 @@ public partial class TaskbarWebWindow : Window
             double targetWidth = rect.Width / dpiX;
             double targetHeight = rect.Height / dpiY;
 
+            _taskbarDipLeft = targetLeft;
+            _taskbarDipTop = targetTop;
+            _taskbarDipWidth = targetWidth;
+            _taskbarDipHeight = targetHeight;
+
+            if (flippedEdge)
+            {
+                BeginAnimation(Window.TopProperty, null);
+                DynamicIslandOverlayWindow?.ResetOverlayImmediate();
+            }
+
             bool changed = Math.Abs(Left - targetLeft) > 0.5 ||
                            Math.Abs(Top - targetTop) > 0.5 ||
                            Math.Abs(Width - targetWidth) > 0.5 ||
                            Math.Abs(Height - targetHeight) > 0.5;
             if (!changed && !flippedEdge) return;
 
+            BeginAnimation(Window.TopProperty, null);
             Left = targetLeft;
             Top = targetTop;
             Width = targetWidth;
@@ -815,7 +833,7 @@ public partial class TaskbarWebWindow : Window
             if (flippedEdge && IsVisible && !_isFullscreenActive)
             {
                 bool isTopNow = string.Equals(currentEdge, "Top", StringComparison.OrdinalIgnoreCase);
-                FlyoutAnimationHelper.AnimateTaskbarFlip(this, rect.Top, isTopNow);
+                FlyoutAnimationHelper.AnimateTaskbarFlip(this, targetTop, isTopNow);
             }
         });
     }
@@ -1389,7 +1407,11 @@ public partial class TaskbarWebWindow : Window
                     double diY = root.TryGetProperty("y", out var diYProp) && diYProp.TryGetDouble(out double diYd) ? diYd : 0;
                     double diH = root.TryGetProperty("height", out var diHProp) && diHProp.TryGetDouble(out double diHd) ? diHd : Height;
                     string diSlot = root.TryGetProperty("slot", out var sProp) ? sProp.GetString() ?? "center" : "center";
-                    ToggleDynamicIslandOverlay(diX, diW, diY, diH, diSlot);
+                    string diTarget = root.TryGetProperty("target", out var tProp) ? tProp.GetString() ?? "clock" : "clock";
+                    double diClockW = root.TryGetProperty("clockWidth", out var diCwProp) && diCwProp.TryGetDouble(out double diCwd) ? diCwd : diW;
+                    double diMusicW = root.TryGetProperty("musicWidth", out var diMwProp) && diMwProp.TryGetDouble(out double diMwd) ? diMwd : 0;
+                    bool diHasMusic = root.TryGetProperty("hasMusicPill", out var diHmProp) && diHmProp.GetBoolean();
+                    ToggleDynamicIslandOverlay(diX, diW, diY, diH, diSlot, diTarget, diClockW, diMusicW, diHasMusic);
                     break;
 
                 case "taskbar_clicked_outside":
@@ -1645,12 +1667,13 @@ public partial class TaskbarWebWindow : Window
         }
     }
 
-    public void ToggleDynamicIslandOverlay(double x, double w, double y, double h, string slot = "center")
+    public void ToggleDynamicIslandOverlay(double x, double w, double y, double h, string slot = "center", string target = "clock", double clockW = 0, double musicW = 0, bool hasMusic = false)
     {
         Dispatcher.Invoke(() =>
         {
-            DynamicIslandOverlayWindow ??= new DynamicIslandWindow(_shellState);
-            DynamicIslandOverlayWindow.Owner = this;
+            DynamicIslandOverlayWindow ??= new DynamicIslandWindow(_shellState, _mediaService);
+            DynamicIslandOverlayWindow.TaskbarWindow = this;
+            DynamicIslandOverlayWindow.Owner = null;
             if (DynamicIslandOverlayWindow.IsVisible && DynamicIslandOverlayWindow.IsOverlayOpen)
             {
                 DynamicIslandOverlayWindow.CloseOverlay();
@@ -1658,7 +1681,10 @@ public partial class TaskbarWebWindow : Window
             else
             {
                 CloseAllFlyouts();
-                DynamicIslandOverlayWindow.ShowAsOverlay(Left + x, w, Top, Height, _shellState.Settings.DockEdge, slot);
+                double tbLeft = _taskbarDipWidth > 0 ? _taskbarDipLeft : Left;
+                double tbTop = _taskbarDipHeight > 0 ? _taskbarDipTop : Top;
+                double tbHeight = _taskbarDipHeight > 0 ? _taskbarDipHeight : Height;
+                DynamicIslandOverlayWindow.ShowAsOverlay(tbLeft + x, w, tbTop, tbHeight, _shellState.Settings.DockEdge, slot, target, clockW > 0 ? clockW : w, musicW, hasMusic, y, h);
                 BroadcastMetrics();
             }
         });
