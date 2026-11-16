@@ -1642,10 +1642,7 @@ public partial class TaskbarWebWindow : Window
         Dispatcher.Invoke(() =>
         {
             DynamicIslandOverlayWindow ??= new DynamicIslandWindow(_shellState);
-            if (DynamicIslandOverlayWindow.Owner == null)
-            {
-                DynamicIslandOverlayWindow.Owner = this;
-            }
+            DynamicIslandOverlayWindow.Owner = this;
             if (DynamicIslandOverlayWindow.IsVisible && DynamicIslandOverlayWindow.IsOverlayOpen)
             {
                 DynamicIslandOverlayWindow.CloseOverlay();

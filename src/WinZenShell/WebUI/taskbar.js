@@ -107,6 +107,7 @@ function initTaskbar() {
 
     el.addEventListener('click', (ev) => {
       ev.stopPropagation();
+      el.classList.add('island-hidden');
       const rect = el.getBoundingClientRect();
       if (window.winzen && typeof window.winzen.send === 'function') {
         window.winzen.send('toggle_dynamic_island_expand', {
@@ -123,6 +124,7 @@ function initTaskbar() {
       if (ev.key === 'Enter' || ev.key === ' ') {
         ev.preventDefault();
         ev.stopPropagation();
+        el.classList.add('island-hidden');
         const rect = el.getBoundingClientRect();
         if (window.winzen && typeof window.winzen.send === 'function') {
           window.winzen.send('toggle_dynamic_island_expand', {

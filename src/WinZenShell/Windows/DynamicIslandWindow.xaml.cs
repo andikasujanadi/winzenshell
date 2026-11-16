@@ -165,11 +165,11 @@ public partial class DynamicIslandWindow : Window
 
         if (string.Equals(dockEdge, "Top", StringComparison.OrdinalIgnoreCase))
         {
-            Top = taskbarScreenY + taskbarH; // Floats directly below top taskbar
+            Top = taskbarScreenY;
         }
         else
         {
-            Top = taskbarScreenY - Height; // Floats directly above bottom taskbar
+            Top = taskbarScreenY + taskbarH - Height;
         }
 
         if (_webViewReady && DiWebView?.CoreWebView2 != null)
@@ -191,8 +191,9 @@ public partial class DynamicIslandWindow : Window
         if (_hwnd != IntPtr.Zero)
         {
             Win32Api.SetWindowPos(_hwnd, Win32Api.HWND_TOPMOST, 0, 0, 0, 0,
-                Win32Api.SWP_NOMOVE | Win32Api.SWP_NOSIZE | Win32Api.SWP_NOACTIVATE);
+                Win32Api.SWP_NOMOVE | Win32Api.SWP_NOSIZE);
         }
+        Activate();
 
         var tb = Owner as TaskbarWebWindow ?? System.Windows.Application.Current.Windows.OfType<TaskbarWebWindow>().FirstOrDefault();
         if (tb?.TaskbarWebView?.CoreWebView2 != null)
