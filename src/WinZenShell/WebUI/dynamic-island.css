@@ -88,7 +88,7 @@ html, body {
   color: #ffffff;
   width: var(--di-collapsed-width, 80px);
   min-width: 76px;
-  max-width: 260px;
+  max-width: none;
   height: var(--di-collapsed-height, 30px);
   padding: 0;
   border-radius: var(--di-collapsed-radius, 15px);
