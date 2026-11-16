@@ -114,8 +114,8 @@
 .win-pill.combined {
   position: relative;
   overflow: visible;
-  background: rgba(255, 255, 255, 0.045);
-  border-color: rgba(255, 255, 255, 0.07);
+  background: transparent;
+  border: 1px solid transparent;
   box-shadow: none !important;
   margin-right: 4px;
 }
@@ -134,10 +134,17 @@
   border-left: none !important;
   background: rgba(255, 255, 255, 0.05);
   pointer-events: none;
-  transition: background-color 0.1s ease, border-color 0.1s ease;
+  opacity: 0;
+  transition: opacity 0.1s ease, background-color 0.1s ease, border-color 0.1s ease;
+}
+
+.win-pill.combined:hover {
+  background: var(--winzen-surface-hover, rgba(255, 255, 255, 0.0605));
+  border-color: var(--winzen-border, rgba(255, 255, 255, 0.06));
 }
 
 .win-pill.combined:hover::before {
+  opacity: 1;
   background: rgba(255, 255, 255, 0.07);
   border-color: rgba(255, 255, 255, 0.22);
 }
@@ -148,6 +155,7 @@
 }
 
 .win-pill.combined.active::before {
+  opacity: 1;
   background: rgba(255, 255, 255, 0.08);
   border-color: rgba(255, 255, 255, 0.20);
 }
@@ -257,9 +265,18 @@ body.theme-light .win-pill:active {
 .theme-light .win-pill.combined,
 [data-theme="light"] .win-pill.combined,
 body.theme-light .win-pill.combined {
-  background: rgba(0, 0, 0, 0.04);
-  border-color: rgba(0, 0, 0, 0.08);
+  background: transparent;
+  border: 1px solid transparent;
   box-shadow: none !important;
+}
+
+:host([data-theme="light"]) .win-pill.combined:hover,
+:host(.theme-light) .win-pill.combined:hover,
+.theme-light .win-pill.combined:hover,
+[data-theme="light"] .win-pill.combined:hover,
+body.theme-light .win-pill.combined:hover {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 0, 0, 0.08);
 }
 
 :host([data-theme="light"]) .win-pill.combined::before,
@@ -272,6 +289,7 @@ body.theme-light .win-pill.combined::before {
   border-top: 1px solid rgba(0, 0, 0, 0.14);
   border-bottom: 1px solid rgba(0, 0, 0, 0.14);
   border-left: none !important;
+  opacity: 0;
 }
 
 :host([data-theme="light"]) .win-pill.combined:hover::before,
@@ -279,6 +297,7 @@ body.theme-light .win-pill.combined::before {
 .theme-light .win-pill.combined:hover::before,
 [data-theme="light"] .win-pill.combined:hover::before,
 body.theme-light .win-pill.combined:hover::before {
+  opacity: 1;
   background: rgba(0, 0, 0, 0.06);
   border-color: rgba(0, 0, 0, 0.20);
   border-left: none !important;
@@ -298,6 +317,7 @@ body.theme-light .win-pill.combined.active {
 .theme-light .win-pill.combined.active::before,
 [data-theme="light"] .win-pill.combined.active::before,
 body.theme-light .win-pill.combined.active::before {
+  opacity: 1;
   background: rgba(0, 0, 0, 0.06);
   border-color: rgba(0, 0, 0, 0.16);
 }
