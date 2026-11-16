@@ -25,6 +25,7 @@ const PATH_MUTE = 'M6.717 3.55A.5.5 0 0 1 7 4v8a.5.5 0 0 1-.812.39L3.825 10.5H1.
 
 let currentVolume = 50;
 let isCurrentlyMuted = false;
+let isPointerDragging = false;
 
 function updateVisuals(val, isMuted) {
   currentVolume = val;
@@ -73,7 +74,13 @@ if (viewWidget) {
 }
 
 if (slider) {
-  updateVisuals(Number(slider.value || 50), false);
+  const initVol = (window.winzen && window.winzen.metrics && typeof window.winzen.metrics.volumePercent === 'number')
+    ? window.winzen.metrics.volumePercent
+    : Number(slider.value || 50);
+  const initMuted = (window.winzen && window.winzen.metrics && typeof window.winzen.metrics.isMuted === 'boolean')
+    ? window.winzen.metrics.isMuted
+    : false;
+  updateVisuals(initVol, initMuted);
 
   slider.addEventListener('input', (ev) => {
     ev.stopPropagation();
@@ -98,7 +105,6 @@ if (slider) {
   window.addEventListener('pointercancel', () => { isPointerDragging = false; });
 
   // Vertical drag support for 1x2 mode
-  let isPointerDragging = false;
   const handleVerticalPointer = (ev) => {
     const isVertical = (typeof widgetConfig !== 'undefined' && widgetConfig && (widgetConfig.aspectRatio === '1x2' || (widgetConfig.colSpan === 1 && widgetConfig.rowSpan === 2)));
     if (!isVertical) return;

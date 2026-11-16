@@ -61,21 +61,6 @@ internal interface IAudioEndpointVolume
     int GetVolumeRange(out float pflVolumeMindB, out float pflVolumeMaxdB, out float pflVolumeIncrementdB);
 }
 
-[Guid("79912236-000E-486A-8730-45433DD6782C"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-internal interface IMMNotificationClient
-{
-    [PreserveSig]
-    int OnDeviceStateChanged([MarshalAs(UnmanagedType.LPWStr)] string pwstrDeviceId, int dwNewState);
-    [PreserveSig]
-    int OnDeviceAdded([MarshalAs(UnmanagedType.LPWStr)] string pwstrDeviceId);
-    [PreserveSig]
-    int OnDeviceRemoved([MarshalAs(UnmanagedType.LPWStr)] string pwstrDeviceId);
-    [PreserveSig]
-    int OnDefaultDeviceChanged(int dataFlow, int role, [MarshalAs(UnmanagedType.LPWStr)] string pwstrDefaultDeviceId);
-    [PreserveSig]
-    int OnPropertyValueChanged([MarshalAs(UnmanagedType.LPWStr)] string pwstrDeviceId, IntPtr key);
-}
-
 [Guid("D666063F-1587-4E43-81F1-B948E807363F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface IMMDevice
 {
@@ -98,10 +83,6 @@ internal interface IMMDeviceEnumerator
     int GetDefaultAudioEndpoint(int dataFlow, int role, out IMMDevice ppDevice);
     [PreserveSig]
     int GetDevice([MarshalAs(UnmanagedType.LPWStr)] string pwstrId, out IMMDevice ppDevice);
-    [PreserveSig]
-    int RegisterEndpointNotificationCallback(IMMNotificationClient pClient);
-    [PreserveSig]
-    int UnregisterEndpointNotificationCallback(IMMNotificationClient pClient);
 }
 
 [ComImport, Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")]
@@ -131,31 +112,6 @@ internal class AudioEndpointVolumeCallback : IAudioEndpointVolumeCallback
     }
 }
 
-internal class AudioDeviceNotificationClient : IMMNotificationClient
-{
-    private readonly AudioService _service;
-
-    public AudioDeviceNotificationClient(AudioService service)
-    {
-        _service = service;
-    }
-
-    public int OnDeviceStateChanged(string pwstrDeviceId, int dwNewState) => 0;
-    public int OnDeviceAdded(string pwstrDeviceId) => 0;
-    public int OnDeviceRemoved(string pwstrDeviceId) => 0;
-
-    public int OnDefaultDeviceChanged(int dataFlow, int role, string pwstrDefaultDeviceId)
-    {
-        if (dataFlow == 0 && role == 1) // eRender = 0, eMultimedia = 1
-        {
-            _service.HandleDefaultDeviceChanged();
-        }
-        return 0;
-    }
-
-    public int OnPropertyValueChanged(string pwstrDeviceId, IntPtr key) => 0;
-}
-
 public class AudioService : IDisposable
 {
     private int _cachedVolume = 50;
@@ -163,7 +119,6 @@ public class AudioService : IDisposable
     private IMMDeviceEnumerator? _enumerator;
     private IAudioEndpointVolume? _cachedEndpoint;
     private readonly AudioEndpointVolumeCallback _volumeCallback;
-    private readonly AudioDeviceNotificationClient _deviceClient;
     private System.Windows.Threading.DispatcherTimer? _pollTimer;
     private readonly object _lock = new();
     private bool _isDisposed;
@@ -173,14 +128,6 @@ public class AudioService : IDisposable
     public AudioService()
     {
         _volumeCallback = new AudioEndpointVolumeCallback(this);
-        _deviceClient = new AudioDeviceNotificationClient(this);
-
-        try
-        {
-            _enumerator = (IMMDeviceEnumerator)new MMDeviceEnumeratorComObject();
-            _enumerator.RegisterEndpointNotificationCallback(_deviceClient);
-        }
-        catch { }
 
         GetVolume();
         GetMute();
@@ -258,15 +205,12 @@ public class AudioService : IDisposable
         try
         {
             var dispatcher = System.Windows.Application.Current?.Dispatcher ?? System.Windows.Threading.Dispatcher.CurrentDispatcher;
-            dispatcher.InvokeAsync(() =>
-            {
-                _pollTimer = new System.Windows.Threading.DispatcherTimer(
-                    TimeSpan.FromMilliseconds(200),
-                    System.Windows.Threading.DispatcherPriority.Background,
-                    (_, _) => CheckVolumeChange(),
-                    dispatcher);
-                _pollTimer.Start();
-            });
+            _pollTimer = new System.Windows.Threading.DispatcherTimer(
+                TimeSpan.FromMilliseconds(200),
+                System.Windows.Threading.DispatcherPriority.Normal,
+                (_, _) => CheckVolumeChange(),
+                dispatcher);
+            _pollTimer.Start();
         }
         catch { }
     }
@@ -428,11 +372,7 @@ public class AudioService : IDisposable
                 try { _cachedEndpoint.UnregisterControlChangeNotify(_volumeCallback); } catch { }
                 _cachedEndpoint = null;
             }
-            if (_enumerator != null)
-            {
-                try { _enumerator.UnregisterEndpointNotificationCallback(_deviceClient); } catch { }
-                _enumerator = null;
-            }
+            _enumerator = null;
         }
     }
 }
