@@ -64,6 +64,7 @@
   let currentClockWidth = 78;
   let currentDockEdge = 'top';
   let lastMediaSnapshot = null;
+  let isScrubbingSeek = false;
   let musicHoverTimer = null;
   let closeTimeout = null;
 
@@ -216,12 +217,14 @@
 
     const pos = media.positionSeconds || 0;
     const dur = media.durationSeconds || 0;
-    if (musicPosition) musicPosition.textContent = formatTime(pos);
-    if (musicDuration) musicDuration.textContent = formatTime(dur);
+    if (!isScrubbingSeek) {
+      if (musicPosition) musicPosition.textContent = formatTime(pos);
+      if (musicDuration) musicDuration.textContent = formatTime(dur);
 
-    if (musicSeekFill) {
-      const pct = dur > 0 ? Math.min(100, Math.max(0, (pos / dur) * 100)) : 0;
-      musicSeekFill.style.width = `${pct}%`;
+      if (musicSeekFill) {
+        const pct = dur > 0 ? Math.min(100, Math.max(0, (pos / dur) * 100)) : 0;
+        musicSeekFill.style.width = `${pct}%`;
+      }
     }
 
     if (iconPlay && iconPause) {
@@ -249,17 +252,56 @@
     }
   }
 
-  // Seekbar click handler
+  // Seekbar click & pointer drag handler
+  let lastScrubRatio = 0;
+
+  function applySeekFromClientX(clientX, sendToHost) {
+    if (!musicSeekTrack) return;
+    const rect = musicSeekTrack.getBoundingClientRect();
+    if (rect.width <= 0) return;
+    const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    lastScrubRatio = ratio;
+    const dur = (lastMediaSnapshot && lastMediaSnapshot.durationSeconds) || 0;
+    const targetPos = dur > 0 ? ratio * dur : 0;
+
+    if (musicSeekFill) musicSeekFill.style.width = `${ratio * 100}%`;
+    if (musicPosition && dur > 0) musicPosition.textContent = formatTime(targetPos);
+    if (lastMediaSnapshot && dur > 0) lastMediaSnapshot.positionSeconds = targetPos;
+
+    if (sendToHost && dur > 0 && window.winzen && typeof window.winzen.send === 'function') {
+      window.winzen.send('media_seek', { position: targetPos });
+    }
+  }
+
   if (musicSeekTrack) {
+    musicSeekTrack.addEventListener('pointerdown', (ev) => {
+      ev.stopPropagation();
+      ev.preventDefault();
+      isScrubbingSeek = true;
+      musicSeekTrack.classList.add('scrubbing');
+      try { musicSeekTrack.setPointerCapture(ev.pointerId); } catch { }
+      applySeekFromClientX(ev.clientX, false);
+    });
+
+    musicSeekTrack.addEventListener('pointermove', (ev) => {
+      if (!isScrubbingSeek) return;
+      ev.stopPropagation();
+      applySeekFromClientX(ev.clientX, false);
+    });
+
+    const endScrub = (ev) => {
+      if (!isScrubbingSeek) return;
+      ev.stopPropagation();
+      isScrubbingSeek = false;
+      musicSeekTrack.classList.remove('scrubbing');
+      try { musicSeekTrack.releasePointerCapture(ev.pointerId); } catch { }
+      applySeekFromClientX(ev.clientX, true);
+    };
+
+    musicSeekTrack.addEventListener('pointerup', endScrub);
+    musicSeekTrack.addEventListener('pointercancel', endScrub);
     musicSeekTrack.addEventListener('click', (ev) => {
       ev.stopPropagation();
-      const rect = musicSeekTrack.getBoundingClientRect();
-      const clickX = ev.clientX - rect.left;
-      const ratio = Math.max(0, Math.min(1, clickX / rect.width));
-      const dur = (lastMediaSnapshot && lastMediaSnapshot.durationSeconds) || 0;
-      if (dur > 0 && window.winzen && typeof window.winzen.send === 'function') {
-        window.winzen.send('media_seek', { position: ratio * dur });
-      }
     });
   }
 
@@ -530,7 +572,20 @@
     }
   }
 
-  setInterval(updateClock, 1000);
+  setInterval(() => {
+    updateClock();
+    if (isExpanded && currentTarget === 'music' && !isScrubbingSeek &&
+        lastMediaSnapshot && lastMediaSnapshot.hasMedia &&
+        lastMediaSnapshot.isPlaying && lastMediaSnapshot.durationSeconds > 0) {
+      const nextPos = Math.min(lastMediaSnapshot.durationSeconds, (lastMediaSnapshot.positionSeconds || 0) + 1);
+      lastMediaSnapshot.positionSeconds = nextPos;
+      if (musicPosition) musicPosition.textContent = formatTime(nextPos);
+      if (musicSeekFill) {
+        const pct = Math.min(100, Math.max(0, (nextPos / lastMediaSnapshot.durationSeconds) * 100));
+        musicSeekFill.style.width = `${pct}%`;
+      }
+    }
+  }, 1000);
   updateClock();
 
   function applyState(state) {
@@ -635,6 +690,9 @@
   if (capsule) {
     capsule.addEventListener('click', (ev) => {
       ev.stopPropagation();
+      if (isExpanded && ev.target && ev.target.closest('.di-music-timeline-row, .di-music-controls-row')) {
+        return;
+      }
       if (isExpanded) {
         toggleExpand(false);
       } else {

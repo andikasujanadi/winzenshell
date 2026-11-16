@@ -29,6 +29,9 @@ public class MediaService
     private GlobalSystemMediaTransportControlsSession? _currentSession;
     private MediaPlaybackSnapshot _cachedSnapshot = new();
     private readonly object _lock = new();
+    private double _timelineBasePositionSeconds;
+    private DateTimeOffset _timelineBaseUtc = DateTimeOffset.UtcNow;
+    private DateTimeOffset _lastManualSeekUtc = DateTimeOffset.MinValue;
 
     public event Action<MediaPlaybackSnapshot>? MediaChanged;
 
@@ -38,6 +41,11 @@ public class MediaService
         {
             lock (_lock)
             {
+                if (_cachedSnapshot.HasMedia && _cachedSnapshot.IsPlaying && _cachedSnapshot.DurationSeconds > 0)
+                {
+                    double elapsed = Math.Max(0, (DateTimeOffset.UtcNow - _timelineBaseUtc).TotalSeconds);
+                    _cachedSnapshot.PositionSeconds = Math.Clamp(_timelineBasePositionSeconds + elapsed, 0, _cachedSnapshot.DurationSeconds);
+                }
                 return _cachedSnapshot;
             }
         }
@@ -156,13 +164,21 @@ public class MediaService
             };
 
             // Timeline
+            DateTimeOffset timelineUpdatedUtc = DateTimeOffset.UtcNow;
             try
             {
                 var timeline = session.GetTimelineProperties();
                 if (timeline != null)
                 {
-                    snapshot.PositionSeconds = timeline.Position.TotalSeconds;
-                    snapshot.DurationSeconds = timeline.EndTime.TotalSeconds;
+                    double dur = Math.Max(0, (timeline.EndTime - timeline.StartTime).TotalSeconds);
+                    double pos = Math.Max(0, (timeline.Position - timeline.StartTime).TotalSeconds);
+                    if (dur > 0) pos = Math.Clamp(pos, 0, dur);
+                    snapshot.DurationSeconds = dur;
+                    snapshot.PositionSeconds = pos;
+                    if (timeline.LastUpdatedTime != default && timeline.LastUpdatedTime != DateTimeOffset.MinValue)
+                    {
+                        timelineUpdatedUtc = timeline.LastUpdatedTime.ToUniversalTime();
+                    }
                 }
             }
             catch { }
@@ -191,9 +207,11 @@ public class MediaService
             lock (_lock)
             {
                 _cachedSnapshot = snapshot;
+                _timelineBasePositionSeconds = snapshot.PositionSeconds;
+                _timelineBaseUtc = timelineUpdatedUtc;
             }
 
-            MediaChanged?.Invoke(snapshot);
+            MediaChanged?.Invoke(CurrentSnapshot);
         }
         catch (Exception ex)
         {
@@ -216,15 +234,36 @@ public class MediaService
                 var timeline = session.GetTimelineProperties();
                 if (timeline != null)
                 {
+                    DateTimeOffset updatedUtc = (timeline.LastUpdatedTime != default && timeline.LastUpdatedTime != DateTimeOffset.MinValue)
+                        ? timeline.LastUpdatedTime.ToUniversalTime()
+                        : DateTimeOffset.UtcNow;
+                    double dur = Math.Max(0, (timeline.EndTime - timeline.StartTime).TotalSeconds);
+                    double pos = Math.Max(0, (timeline.Position - timeline.StartTime).TotalSeconds);
+                    if (dur > 0) pos = Math.Clamp(pos, 0, dur);
+
+                    bool ignored = false;
                     lock (_lock)
                     {
                         if (_cachedSnapshot.HasMedia)
                         {
-                            _cachedSnapshot.PositionSeconds = timeline.Position.TotalSeconds;
-                            _cachedSnapshot.DurationSeconds = timeline.EndTime.TotalSeconds;
+                            // Ignore stale timeline updates right after a manual seek
+                            if ((DateTimeOffset.UtcNow - _lastManualSeekUtc).TotalMilliseconds < 600 && updatedUtc < _lastManualSeekUtc)
+                            {
+                                ignored = true;
+                            }
+                            else
+                            {
+                                _cachedSnapshot.PositionSeconds = pos;
+                                _cachedSnapshot.DurationSeconds = dur;
+                                _timelineBasePositionSeconds = pos;
+                                _timelineBaseUtc = updatedUtc;
+                            }
                         }
                     }
-                    MediaChanged?.Invoke(CurrentSnapshot);
+                    if (!ignored)
+                    {
+                        MediaChanged?.Invoke(CurrentSnapshot);
+                    }
                 }
             }
         }
@@ -381,8 +420,27 @@ public class MediaService
             }
             if (session != null)
             {
-                long ticks = (long)(positionSeconds * TimeSpan.TicksPerSecond);
+                var timeline = session.GetTimelineProperties();
+                long baseTicks = timeline != null ? timeline.StartTime.Ticks : 0;
+                long ticks = baseTicks + (long)(Math.Max(0, positionSeconds) * TimeSpan.TicksPerSecond);
+                if (timeline != null && timeline.MaxSeekTime > timeline.MinSeekTime)
+                {
+                    ticks = Math.Clamp(ticks, timeline.MinSeekTime.Ticks, timeline.MaxSeekTime.Ticks);
+                }
+                double clampedSeconds = Math.Max(0, (ticks - baseTicks) / (double)TimeSpan.TicksPerSecond);
                 bool res = await session.TryChangePlaybackPositionAsync(ticks);
+                lock (_lock)
+                {
+                    if (_cachedSnapshot.HasMedia)
+                    {
+                        _cachedSnapshot.PositionSeconds = clampedSeconds;
+                        _timelineBasePositionSeconds = clampedSeconds;
+                        _timelineBaseUtc = DateTimeOffset.UtcNow;
+                        _lastManualSeekUtc = _timelineBaseUtc;
+                    }
+                }
+                MediaChanged?.Invoke(CurrentSnapshot);
+                await Task.Delay(250);
                 await RefreshTimelineAsync();
                 return res;
             }

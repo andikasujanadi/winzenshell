@@ -373,10 +373,22 @@ html, body {
   border-radius: 3px;
   position: relative;
   cursor: pointer;
+  touch-action: none;
   transition: height 0.15s ease;
 }
 
-.di-music-seek-track:hover {
+.di-music-seek-track::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  bottom: -10px;
+  left: -4px;
+  right: -4px;
+  cursor: pointer;
+}
+
+.di-music-seek-track:hover,
+.di-music-seek-track.scrubbing {
   height: 6px;
 }
 
