@@ -334,10 +334,11 @@ public partial class TaskbarWebWindow : Window
                 {
                     try
                     {
-                        if (DynamicIslandOverlayWindow?.DiWebView?.CoreWebView2 != null)
+                        var diWin = DynamicIslandOverlayWindow ?? System.Windows.Application.Current.Windows.OfType<DynamicIslandWindow>().FirstOrDefault();
+                        if (diWin?.DiWebView?.CoreWebView2 != null)
                         {
                             using var fs = new FileStream(outPath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite);
-                            await DynamicIslandOverlayWindow.DiWebView.CoreWebView2.CapturePreviewAsync(
+                            await diWin.DiWebView.CoreWebView2.CapturePreviewAsync(
                                 Microsoft.Web.WebView2.Core.CoreWebView2CapturePreviewImageFormat.Png,
                                 fs);
                             await fs.FlushAsync();

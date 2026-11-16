@@ -140,31 +140,36 @@ public partial class DynamicIslandWindow : Window
         }
         catch { }
         if (dpi <= 0) dpi = 1.0;
+        double monLeft = mon.Left / dpi;
         double monW = mon.Width / dpi;
 
+        double targetLeft;
         const double xOffset = 24.0; // Matches --di-slot-offset in dynamic-island.css
 
         if (string.Equals(slot, "left", StringComparison.OrdinalIgnoreCase))
         {
-            Left = anchorScreenX - xOffset;
+            targetLeft = anchorScreenX - xOffset;
         }
         else if (string.Equals(slot, "right", StringComparison.OrdinalIgnoreCase))
         {
-            Left = (anchorScreenX + anchorW + xOffset) - Width;
+            targetLeft = (anchorScreenX + anchorW + xOffset) - Width;
         }
         else
         {
-            double targetLeft = anchorScreenX + (anchorW - Width) / 2.0;
-            Left = targetLeft;
+            targetLeft = anchorScreenX + (anchorW - Width) / 2.0;
         }
+
+        // Clamp within monitor bounds with 12px margin
+        targetLeft = Math.Max(monLeft + 12, Math.Min(monLeft + monW - Width - 12, targetLeft));
+        Left = targetLeft;
 
         if (string.Equals(dockEdge, "Top", StringComparison.OrdinalIgnoreCase))
         {
-            Top = taskbarScreenY; // Overlaps taskbar downward into work area
+            Top = taskbarScreenY + taskbarH; // Floats directly below top taskbar
         }
         else
         {
-            Top = taskbarScreenY + taskbarH - Height; // Overlaps taskbar upward
+            Top = taskbarScreenY - Height; // Floats directly above bottom taskbar
         }
 
         if (_webViewReady && DiWebView?.CoreWebView2 != null)
@@ -183,10 +188,16 @@ public partial class DynamicIslandWindow : Window
 
         Show();
         Topmost = true;
-
-        if (Owner is TaskbarWebWindow tb)
+        if (_hwnd != IntPtr.Zero)
         {
-            tb.TaskbarWebView?.CoreWebView2?.ExecuteScriptAsync("document.getElementById('shell-dynamic-island')?.classList.add('island-hidden');");
+            Win32Api.SetWindowPos(_hwnd, Win32Api.HWND_TOPMOST, 0, 0, 0, 0,
+                Win32Api.SWP_NOMOVE | Win32Api.SWP_NOSIZE | Win32Api.SWP_NOACTIVATE);
+        }
+
+        var tb = Owner as TaskbarWebWindow ?? System.Windows.Application.Current.Windows.OfType<TaskbarWebWindow>().FirstOrDefault();
+        if (tb?.TaskbarWebView?.CoreWebView2 != null)
+        {
+            tb.TaskbarWebView.CoreWebView2.ExecuteScriptAsync("document.getElementById('shell-dynamic-island')?.classList.add('island-hidden');");
         }
     }
 
@@ -393,10 +404,7 @@ public partial class DynamicIslandWindow : Window
                 if (isExp)
                 {
                     _lastExpandTime = DateTime.UtcNow;
-                }
-                Dispatcher.Invoke(() =>
-                {
-                    if (isExp)
+                    Dispatcher.Invoke(() =>
                     {
                         Width = 560;
                         Height = 260;
@@ -404,17 +412,8 @@ public partial class DynamicIslandWindow : Window
                         {
                             UpdatePosition();
                         }
-                    }
-                    else
-                    {
-                        if (!_isTaskbarOverlay)
-                        {
-                            Width = 260;
-                            Height = 44;
-                            UpdatePosition();
-                        }
-                    }
-                });
+                    });
+                }
             }
         }
         catch { }
