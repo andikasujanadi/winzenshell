@@ -12,7 +12,7 @@
         ResizeMode="NoResize"
         SnapsToDevicePixels="True"
         UseLayoutRounding="True">
-    <Grid Background="Transparent">
+    <Grid Background="#01000000" MouseLeftButtonDown="OnGridMouseLeftButtonDown">
         <wpf:WebView2 x:Name="DiWebView" DefaultBackgroundColor="Transparent"/>
     </Grid>
 </Window>

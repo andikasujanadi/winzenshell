@@ -91,6 +91,9 @@ function initSettingsPage() {
   const selectDiPlacement = document.getElementById('selectDiPlacement');
   const rowDiPlacement = document.getElementById('rowDiPlacement');
   const subtextDiPlacement = document.getElementById('subtextDiPlacement');
+  const rowDiReserveWorkArea = document.getElementById('rowDiReserveWorkArea');
+  const toggleDiReserveWorkArea = document.getElementById('toggleDiReserveWorkArea');
+  const stateDiReserveWorkArea = document.getElementById('stateDiReserveWorkArea');
   const rowDiSlot = document.getElementById('rowDiSlot');
   const selectDiSlot = document.getElementById('selectDiSlot');
   const selectDiTimeFormat = document.getElementById('selectDiTimeFormat');
@@ -351,6 +354,7 @@ function initSettingsPage() {
     const payload = {
       enabled: toggleDynamicIsland.checked,
       placement: placement,
+      reserveWorkArea: toggleDiReserveWorkArea ? toggleDiReserveWorkArea.checked : true,
       taskbarSlot: selectDiSlot ? selectDiSlot.value : 'center',
       timeFormat: selectDiTimeFormat ? selectDiTimeFormat.value : '24h',
       showSeconds: toggleDiSeconds ? toggleDiSeconds.checked : false,
@@ -368,6 +372,7 @@ function initSettingsPage() {
     const isEnabled = toggleDynamicIsland ? toggleDynamicIsland.checked : false;
 
     if (stateDynamicIsland) stateDynamicIsland.textContent = isEnabled ? 'On' : 'Off';
+    if (stateDiReserveWorkArea) stateDiReserveWorkArea.textContent = toggleDiReserveWorkArea && toggleDiReserveWorkArea.checked ? 'On' : 'Off';
     if (stateDiSeconds) stateDiSeconds.textContent = toggleDiSeconds && toggleDiSeconds.checked ? 'On' : 'Off';
     if (stateDiDate) stateDiDate.textContent = toggleDiDate && toggleDiDate.checked ? 'On' : 'Off';
     if (stateDiAnimation) stateDiAnimation.textContent = toggleDiAnimation && toggleDiAnimation.checked ? 'On' : 'Off';
@@ -384,7 +389,11 @@ function initSettingsPage() {
     if (subtextDiPlacement) {
       subtextDiPlacement.textContent = isDockTop
         ? 'Taskbar is at the top of the screen. Dynamic Island is docked inside the taskbar.'
-        : 'Place inside the taskbar or floating at top center with desktop work area reservation';
+        : 'Place inside the taskbar or floating at top center';
+    }
+
+    if (rowDiReserveWorkArea) {
+      rowDiReserveWorkArea.style.display = (isEnabled && selectDiPlacement && selectDiPlacement.value === 'top-center' && !isDockTop) ? 'flex' : 'none';
     }
 
     if (rowDiSlot) {
@@ -394,6 +403,7 @@ function initSettingsPage() {
 
   if (toggleDynamicIsland) toggleDynamicIsland.addEventListener('change', sendDynamicIslandConfig);
   if (selectDiPlacement) selectDiPlacement.addEventListener('change', sendDynamicIslandConfig);
+  if (toggleDiReserveWorkArea) toggleDiReserveWorkArea.addEventListener('change', sendDynamicIslandConfig);
   if (selectDiSlot) selectDiSlot.addEventListener('change', sendDynamicIslandConfig);
   if (selectDiTimeFormat) selectDiTimeFormat.addEventListener('change', () => { sendDynamicIslandConfig(); updateDynamicIslandPreview(); });
   if (toggleDiSeconds) toggleDiSeconds.addEventListener('change', () => { sendDynamicIslandConfig(); updateDynamicIslandPreview(); });
@@ -474,7 +484,11 @@ function initSettingsPage() {
 
   const btnRestart = document.getElementById('btnRestartShell') || document.getElementById('btnRefreshState');
   btnRestart?.addEventListener('click', () => {
-    window.winzen.shell.restart();
+    if (window.winzen && window.winzen.shell && typeof window.winzen.shell.restart === 'function') {
+      window.winzen.shell.restart();
+    } else if (window.winzen && typeof window.winzen.send === 'function') {
+      window.winzen.send('restart_app');
+    }
   });
 
   document.getElementById('btnOpenWidgetsFolder').addEventListener('click', () => {
@@ -551,6 +565,10 @@ function initSettingsPage() {
       }
       if (selectDiPlacement) {
         selectDiPlacement.value = di.placement || 'taskbar';
+      }
+      if (toggleDiReserveWorkArea) {
+        toggleDiReserveWorkArea.checked = di.reserveWorkArea !== false;
+        if (stateDiReserveWorkArea) stateDiReserveWorkArea.textContent = di.reserveWorkArea !== false ? 'On' : 'Off';
       }
       if (selectDiSlot) {
         selectDiSlot.value = di.taskbarSlot || 'center';

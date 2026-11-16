@@ -141,6 +141,9 @@ public class DynamicIslandConfig
 
     [JsonPropertyName("enableAnimation")]
     public bool EnableAnimation { get; set; } = true;
+
+    [JsonPropertyName("reserveWorkArea")]
+    public bool ReserveWorkArea { get; set; } = true;
 }
 
 public class ShellSettings
@@ -193,6 +196,7 @@ public class ShellStateService
     public event Action? DynamicIslandVisibilityChanged;
 
     public Func<IntPtr>? GetTaskbarHwnd { get; set; }
+    public Func<IntPtr>? GetDynamicIslandHwnd { get; set; }
 
     public ShellSettings Settings => _settings;
     public NativeTaskbarService NativeTaskbar => _nativeTaskbarService;
@@ -667,7 +671,7 @@ public class ShellStateService
         BroadcastState();
     }
 
-    public void UpdateDynamicIslandConfig(bool enabled, string placement, string slot, string timeFormat, bool showSeconds, bool showDate, bool enableAnimation = true)
+    public void UpdateDynamicIslandConfig(bool enabled, string placement, string slot, string timeFormat, bool showSeconds, bool showDate, bool enableAnimation = true, bool reserveWorkArea = true)
     {
         if (string.Equals(_settings.DockEdge, "Top", StringComparison.OrdinalIgnoreCase) && placement == "top-center")
         {
@@ -681,6 +685,7 @@ public class ShellStateService
         _settings.DynamicIsland.ShowSeconds = showSeconds;
         _settings.DynamicIsland.ShowDate = showDate;
         _settings.DynamicIsland.EnableAnimation = enableAnimation;
+        _settings.DynamicIsland.ReserveWorkArea = reserveWorkArea;
 
         SaveSettings();
         SyncTaskbarAndWorkArea();
@@ -692,7 +697,9 @@ public class ShellStateService
     public void SyncTaskbarAndWorkArea()
     {
         IntPtr taskbarHwnd = GetTaskbarHwnd?.Invoke() ?? IntPtr.Zero;
+        IntPtr dynamicIslandHwnd = GetDynamicIslandHwnd?.Invoke() ?? IntPtr.Zero;
         int topReservedWorkAreaPx = (_settings.DynamicIsland.Enabled &&
+                                     _settings.DynamicIsland.ReserveWorkArea &&
                                      string.Equals(_settings.DynamicIsland.Placement, "top-center", StringComparison.OrdinalIgnoreCase) &&
                                      !string.Equals(_settings.DockEdge, "Top", StringComparison.OrdinalIgnoreCase))
             ? 44
@@ -706,7 +713,8 @@ public class ShellStateService
             _settings.TaskbarHeightPx,
             _settings.FloatingMarginPx,
             _settings.HideNativeTaskbar,
-            topReservedWorkAreaPx);
+            topReservedWorkAreaPx,
+            dynamicIslandHwnd);
         TaskbarBoundsUpdated?.Invoke(rect);
         DynamicIslandVisibilityChanged?.Invoke();
     }

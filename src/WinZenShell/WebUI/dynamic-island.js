@@ -1,6 +1,7 @@
 (() => {
   const capsule = document.getElementById('islandCapsule');
   const collapsedContent = document.getElementById('islandCollapsedContent');
+  const collapsedInner = document.getElementById('islandCollapsedInner');
   const expandedContent = document.getElementById('islandExpandedContent');
 
   const timeEl = document.getElementById('diTime');
@@ -76,6 +77,19 @@
 
     if (cardBadge) cardBadge.textContent = now.toLocaleDateString([], { weekday: 'long' }).toUpperCase();
     if (cardDateShort) cardDateShort.textContent = now.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase();
+
+    updateCollapsedWidth();
+  }
+
+  function updateCollapsedWidth() {
+    if (!capsule || isExpanded) return;
+    if (diConfig.placement === 'top-center') {
+      const innerW = (collapsedInner && collapsedInner.getBoundingClientRect().width > 0)
+        ? collapsedInner.getBoundingClientRect().width
+        : (timeEl && timeEl.getBoundingClientRect().width > 0 ? timeEl.getBoundingClientRect().width : 45);
+      const targetW = Math.max(76, Math.min(220, Math.ceil(innerW + 28))); // 14px padding each side
+      capsule.style.setProperty('--di-collapsed-width', `${targetW}px`);
+    }
   }
 
   let closeTimeout = null;
@@ -103,8 +117,12 @@
 
     if (options.anchorWidth && options.anchorWidth > 40) {
       currentAnchorWidth = Math.round(options.anchorWidth);
+      capsule.style.setProperty('--di-collapsed-width', `${currentAnchorWidth}px`);
+    } else if (diConfig.placement === 'top-center') {
+      updateCollapsedWidth();
+    } else {
+      capsule.style.setProperty('--di-collapsed-width', `${currentAnchorWidth}px`);
     }
-    capsule.style.setProperty('--di-collapsed-width', `${currentAnchorWidth}px`);
 
     const collapsedH = (options.anchorHeight && options.anchorHeight > 10) ? Math.round(options.anchorHeight) : 30;
     capsule.style.setProperty('--di-collapsed-height', `${collapsedH}px`);
@@ -163,11 +181,13 @@
   updateClock();
 
   function applyState(state) {
-    if (!state || !state.Settings) return;
-    if (state.Settings.DynamicIsland) {
+    if (!state) return;
+    const s = state.Settings || state.settings || state;
+    const di = s.DynamicIsland || s.dynamicIsland;
+    if (di) {
       diConfig = {
         ...diConfig,
-        ...state.Settings.DynamicIsland
+        ...di
       };
       if (diConfig.taskbarSlot) {
         currentSlot = diConfig.taskbarSlot.toLowerCase();
@@ -180,6 +200,7 @@
         }
       }
       updateClock();
+      updateCollapsedWidth();
     }
   }
 
@@ -193,6 +214,10 @@
 
   function handleHostMessage(msg) {
     if (!msg) return;
+    if (msg.type === 'state_update' || msg.type === 'state') {
+      applyState(msg.payload || msg.data);
+      return;
+    }
     if (msg.type === 'set_mode') {
       toggleExpand(!!msg.expanded, {
         anchorWidth: msg.anchorWidth,
@@ -212,10 +237,18 @@
     });
   }
 
+  if (capsule) {
+    capsule.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      toggleExpand(!isExpanded);
+    });
+  }
+
   document.addEventListener('click', (ev) => {
-    ev.stopPropagation();
     if (isExpanded) {
-      toggleExpand(false);
+      if (capsule && !capsule.contains(ev.target)) {
+        toggleExpand(false);
+      }
     } else {
       toggleExpand(true);
     }

@@ -26,6 +26,9 @@
       quit() {
         postToNative({ action: 'quit_app' });
       },
+      restart() {
+        postToNative({ action: 'restart_app' });
+      },
       setTheme(theme) {
         postToNative({ action: 'set_theme', theme: String(theme || 'dark') });
       },

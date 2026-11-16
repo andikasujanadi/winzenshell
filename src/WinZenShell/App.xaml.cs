@@ -116,14 +116,31 @@ public partial class App : System.Windows.Application
                 _appLauncherService,
                 ShowAndFocusSettingsWindow);
 
-            _shellStateService.GetTaskbarHwnd = () => _taskbarWindow.Handle;
+            _shellStateService.GetTaskbarHwnd = () => _taskbarWindow != null ? _taskbarWindow.Handle : IntPtr.Zero;
+            _shellStateService.GetDynamicIslandHwnd = () => _dynamicIslandWindow != null ? _dynamicIslandWindow.Handle : IntPtr.Zero;
 
             System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] Creating SettingsWebWindow...\n");
-            _settingsWindow = new SettingsWebWindow(_shellStateService, QuitApplication, RestartApplication);
-            MainWindow = _settingsWindow;
+            try
+            {
+                _settingsWindow = new SettingsWebWindow(_shellStateService, QuitApplication, RestartApplication);
+                MainWindow = _settingsWindow;
+                System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] SettingsWebWindow created successfully\n");
+            }
+            catch (Exception ex)
+            {
+                System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] new SettingsWebWindow exception: {ex}\n");
+                throw;
+            }
 
-            InitializeSystemTray();
-            System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] InitializeSystemTray complete\n");
+            try
+            {
+                InitializeSystemTray();
+                System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] InitializeSystemTray complete\n");
+            }
+            catch (Exception ex)
+            {
+                System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] InitializeSystemTray exception: {ex}\n");
+            }
 
             if (_shellStateService.Settings.EnableWinZenTaskbar)
             {
@@ -140,10 +157,21 @@ public partial class App : System.Windows.Application
             {
                 System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] _settingsWindow.Show() exception: {ex}\n");
             }
-            _shellStateService.DynamicIslandVisibilityChanged += UpdateDynamicIslandVisibility;
-            _shellStateService.SyncTaskbarAndWorkArea();
-            UpdateDynamicIslandVisibility();
-            System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] Shell started successfully!\n");
+            try
+            {
+                System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] Wiring DynamicIslandVisibilityChanged...\n");
+                _shellStateService.DynamicIslandVisibilityChanged += UpdateDynamicIslandVisibility;
+                System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] SyncTaskbarAndWorkArea...\n");
+                _shellStateService.SyncTaskbarAndWorkArea();
+                System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] UpdateDynamicIslandVisibility...\n");
+                UpdateDynamicIslandVisibility();
+                System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] Shell started successfully!\n");
+            }
+            catch (Exception ex)
+            {
+                System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] Exception during shell startup finalization: {ex}\n");
+                throw;
+            }
         }
         catch (Exception ex)
         {
@@ -182,6 +210,24 @@ public partial class App : System.Windows.Application
     {
         Dispatcher.Invoke(() =>
         {
+            try
+            {
+                string? exePath = Environment.ProcessPath;
+                if (!string.IsNullOrEmpty(exePath) && System.IO.File.Exists(exePath))
+                {
+                    var psi = new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = "cmd.exe",
+                        Arguments = $"/c timeout /t 1 /nobreak >nul & start \"\" \"{exePath}\"",
+                        CreateNoWindow = true,
+                        UseShellExecute = false,
+                        WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory
+                    };
+                    System.Diagnostics.Process.Start(psi);
+                }
+            }
+            catch { }
+
             SafeCleanupAndRestore();
             if (_settingsWindow != null)
             {
@@ -198,24 +244,6 @@ public partial class App : System.Windows.Application
                 _singleInstanceMutex?.ReleaseMutex();
                 _singleInstanceMutex?.Dispose();
                 _singleInstanceMutex = null;
-            }
-            catch { }
-
-            try
-            {
-                string? exePath = Environment.ProcessPath;
-                if (!string.IsNullOrEmpty(exePath) && System.IO.File.Exists(exePath))
-                {
-                    var psi = new System.Diagnostics.ProcessStartInfo
-                    {
-                        FileName = "cmd.exe",
-                        Arguments = $"/c timeout /t 1 /nobreak >nul & start \"\" \"{exePath}\"",
-                        CreateNoWindow = true,
-                        UseShellExecute = false,
-                        WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory
-                    };
-                    System.Diagnostics.Process.Start(psi);
-                }
             }
             catch { }
 
@@ -394,33 +422,57 @@ public partial class App : System.Windows.Application
         if (_shellStateService == null) return;
         Dispatcher.Invoke(() =>
         {
-            var di = _shellStateService.Settings.DynamicIsland;
-            bool isDiEnabled = di != null && di.Enabled;
-            bool shouldShowStandalone = isDiEnabled && di != null &&
-                string.Equals(di.Placement, "top-center", StringComparison.OrdinalIgnoreCase) &&
-                !string.Equals(_shellStateService.Settings.DockEdge, "Top", StringComparison.OrdinalIgnoreCase);
-
-            if (isDiEnabled)
+            string logPath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WinZenShell", "startup.log");
+            try
             {
-                _dynamicIslandWindow ??= new DynamicIslandWindow(_shellStateService);
-                if (_taskbarWindow != null)
+                System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] UpdateDynamicIslandVisibility called\n");
+                var di = _shellStateService.Settings.DynamicIsland;
+                bool isDiEnabled = di != null && di.Enabled;
+                bool shouldShowStandalone = isDiEnabled && di != null &&
+                    string.Equals(di.Placement, "top-center", StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(_shellStateService.Settings.DockEdge, "Top", StringComparison.OrdinalIgnoreCase);
+
+                if (isDiEnabled)
                 {
-                    _dynamicIslandWindow.Owner = _taskbarWindow;
-                    _taskbarWindow.DynamicIslandOverlayWindow = _dynamicIslandWindow;
+                    if (_dynamicIslandWindow == null)
+                    {
+                        System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] Creating DynamicIslandWindow...\n");
+                        _dynamicIslandWindow = new DynamicIslandWindow(_shellStateService);
+                        System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] DynamicIslandWindow created\n");
+                    }
+                    if (_taskbarWindow != null)
+                    {
+                        _taskbarWindow.DynamicIslandOverlayWindow = _dynamicIslandWindow;
+                    }
+                }
+
+                if (shouldShowStandalone)
+                {
+                    if (_dynamicIslandWindow != null)
+                    {
+                        _dynamicIslandWindow.Owner = null;
+                        _dynamicIslandWindow.Topmost = true;
+                        if (!_dynamicIslandWindow.IsOverlayOpen && !_dynamicIslandWindow.IsExpanded)
+                        {
+                            _dynamicIslandWindow.Width = 260;
+                            _dynamicIslandWindow.Height = 44;
+                        }
+                        _dynamicIslandWindow.Show();
+                        _dynamicIslandWindow.UpdatePosition();
+                        System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] DynamicIslandWindow shown standalone\n");
+                    }
+                }
+                else
+                {
+                    if (_dynamicIslandWindow != null && !_dynamicIslandWindow.IsOverlayOpen)
+                    {
+                        _dynamicIslandWindow.Hide();
+                    }
                 }
             }
-
-            if (shouldShowStandalone)
+            catch (Exception ex)
             {
-                _dynamicIslandWindow?.UpdatePosition();
-                _dynamicIslandWindow?.Show();
-            }
-            else
-            {
-                if (_dynamicIslandWindow != null && !_dynamicIslandWindow.IsOverlayOpen)
-                {
-                    _dynamicIslandWindow.Hide();
-                }
+                System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] UpdateDynamicIslandVisibility EXCEPTION: {ex}\n");
             }
         });
     }
@@ -434,10 +486,7 @@ public partial class App : System.Windows.Application
                 _dynamicIslandWindow.Close();
                 _dynamicIslandWindow = null;
             }
-            if (_taskbarWindow != null && _taskbarWindow.Handle != IntPtr.Zero)
-            {
-                _workAreaService?.UnregisterAppBar(_taskbarWindow.Handle);
-            }
+            _workAreaService?.UnregisterAllAppBars();
             if (_nativeTaskbarService != null && _nativeTaskbarService.IsHiddenByUs)
             {
                 _nativeTaskbarService.RestoreNativeTaskbar();

@@ -14,12 +14,17 @@ public partial class DynamicIslandWindow : Window
     private IntPtr _hwnd = IntPtr.Zero;
     private bool _webViewReady;
     private bool _isTaskbarOverlay;
+    private bool _isExpanded;
     private bool _isClosing;
     private double _lastAnchorW = 80;
     private string _lastDockEdge = "Top";
     private string _lastSlot = "center";
 
+    private DateTime _lastExpandTime = DateTime.MinValue;
+
+    public IntPtr Handle => _hwnd != IntPtr.Zero ? _hwnd : (_hwnd = new WindowInteropHelper(this).EnsureHandle());
     public bool IsOverlayOpen => _isTaskbarOverlay && IsVisible && !_isClosing;
+    public bool IsExpanded => _isExpanded;
 
     public DynamicIslandWindow(ShellStateService shellState)
     {
@@ -33,9 +38,31 @@ public partial class DynamicIslandWindow : Window
 
     private void OnDeactivated(object? sender, EventArgs e)
     {
+        // Don't close immediately if expanded within the last 600ms (prevents click activation glitch)
+        if ((DateTime.UtcNow - _lastExpandTime).TotalMilliseconds < 600)
+        {
+            return;
+        }
+
         if (_isTaskbarOverlay)
         {
             CloseOverlay();
+        }
+        else if (_isExpanded)
+        {
+            CloseOverlay();
+        }
+    }
+
+    private void OnGridMouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (!_isExpanded)
+        {
+            _lastExpandTime = DateTime.UtcNow;
+            if (_webViewReady && DiWebView?.CoreWebView2 != null)
+            {
+                DiWebView.CoreWebView2.PostWebMessageAsJson("{\"type\":\"set_mode\",\"expanded\":true}");
+            }
         }
     }
 
@@ -44,8 +71,12 @@ public partial class DynamicIslandWindow : Window
         base.OnSourceInitialized(e);
         _hwnd = new WindowInteropHelper(this).Handle;
 
+        var source = HwndSource.FromHwnd(_hwnd);
+        source?.AddHook(WndProc);
+
         int exStyle = Win32Api.GetWindowLong(_hwnd, Win32Api.GWL_EXSTYLE);
         exStyle |= Win32Api.WS_EX_TOOLWINDOW;
+        exStyle |= Win32Api.WS_EX_TOPMOST;
         Win32Api.SetWindowLong(_hwnd, Win32Api.GWL_EXSTYLE, exStyle);
 
         int ncrp = 1; // DWMNCRP_DISABLED
@@ -53,7 +84,20 @@ public partial class DynamicIslandWindow : Window
         int borderColor = unchecked((int)0xFFFFFFFE); // DWMWA_COLOR_NONE
         Win32Api.DwmSetWindowAttribute(_hwnd, 34, ref borderColor, sizeof(int));
 
+        Win32Api.SetWindowPos(_hwnd, Win32Api.HWND_TOPMOST, 0, 0, 0, 0,
+            Win32Api.SWP_NOMOVE | Win32Api.SWP_NOSIZE | Win32Api.SWP_NOACTIVATE);
+
         UpdatePosition();
+    }
+
+    private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        if (msg == (Win32Api.WM_USER + 102))
+        {
+            handled = true;
+            return IntPtr.Zero;
+        }
+        return IntPtr.Zero;
     }
 
     public void UpdatePosition()
@@ -61,7 +105,12 @@ public partial class DynamicIslandWindow : Window
         if (_isTaskbarOverlay) return;
 
         var mon = WorkAreaAppBarService.GetPrimaryMonitorInfo().rcMonitor;
-        double dpi = System.Windows.Media.VisualTreeHelper.GetDpi(this).DpiScaleX;
+        double dpi = 1.0;
+        try
+        {
+            dpi = System.Windows.Media.VisualTreeHelper.GetDpi(this).DpiScaleX;
+        }
+        catch { }
         if (dpi <= 0) dpi = 1.0;
 
         double monLeft = mon.Left / dpi;
@@ -69,13 +118,14 @@ public partial class DynamicIslandWindow : Window
         double monTop = mon.Top / dpi;
 
         Left = monLeft + (monWidth - Width) / 2.0;
-        Top = monTop + 4;
+        Top = monTop + 2;
     }
 
     public void ShowAsOverlay(double anchorScreenX, double anchorW, double taskbarScreenY, double taskbarH, string dockEdge, string slot = "center")
     {
         _isClosing = false;
         _isTaskbarOverlay = true;
+        _isExpanded = true;
         _lastAnchorW = anchorW;
         _lastDockEdge = dockEdge;
         _lastSlot = slot;
@@ -83,7 +133,12 @@ public partial class DynamicIslandWindow : Window
         Height = 260;
 
         var mon = WorkAreaAppBarService.GetPrimaryMonitorInfo().rcMonitor;
-        double dpi = System.Windows.Media.VisualTreeHelper.GetDpi(this).DpiScaleX;
+        double dpi = 1.0;
+        try
+        {
+            dpi = System.Windows.Media.VisualTreeHelper.GetDpi(this).DpiScaleX;
+        }
+        catch { }
         if (dpi <= 0) dpi = 1.0;
         double monW = mon.Width / dpi;
 
@@ -171,12 +226,20 @@ public partial class DynamicIslandWindow : Window
         }
         else
         {
-            Width = 560;
-            Height = 260;
-            UpdatePosition();
-            if (_webViewReady && DiWebView?.CoreWebView2 != null)
+            if (_isExpanded && !_isClosing)
             {
-                DiWebView.CoreWebView2.PostWebMessageAsJson("{\"type\":\"set_mode\",\"expanded\":false}");
+                _isClosing = true;
+                if (_webViewReady && DiWebView?.CoreWebView2 != null)
+                {
+                    DiWebView.CoreWebView2.PostWebMessageAsJson("{\"type\":\"set_mode\",\"expanded\":false}");
+                }
+                _ = System.Threading.Tasks.Task.Delay(650).ContinueWith(_ => Dispatcher.Invoke(() =>
+                {
+                    if (_isClosing)
+                    {
+                        FinishClose();
+                    }
+                }));
             }
         }
     }
@@ -184,36 +247,47 @@ public partial class DynamicIslandWindow : Window
     public async void FinishClose()
     {
         _isClosing = false;
+        bool wasOverlay = _isTaskbarOverlay;
         _isTaskbarOverlay = false;
+        _isExpanded = false;
 
-        TaskbarWebWindow? tbWindow = Owner as TaskbarWebWindow;
-        if (tbWindow == null)
+        if (wasOverlay)
         {
-            foreach (Window win in System.Windows.Application.Current.Windows)
+            TaskbarWebWindow? tbWindow = Owner as TaskbarWebWindow;
+            if (tbWindow == null)
             {
-                if (win is TaskbarWebWindow mainTb)
+                foreach (Window win in System.Windows.Application.Current.Windows)
                 {
-                    tbWindow = mainTb;
-                    break;
+                    if (win is TaskbarWebWindow mainTb)
+                    {
+                        tbWindow = mainTb;
+                        break;
+                    }
                 }
             }
-        }
 
-        if (tbWindow?.TaskbarWebView?.CoreWebView2 != null)
-        {
-            try
+            if (tbWindow?.TaskbarWebView?.CoreWebView2 != null)
             {
-                // Unhide the taskbar pill FIRST and await the IPC execution
-                await tbWindow.TaskbarWebView.CoreWebView2.ExecuteScriptAsync(
-                    "document.getElementById('shell-dynamic-island')?.classList.remove('island-hidden');"
-                );
-                // Wait 1 compositor frame (25ms) so DWM paints the visible taskbar pill behind the overlay
-                await System.Threading.Tasks.Task.Delay(25);
+                try
+                {
+                    // Unhide the taskbar pill FIRST and await the IPC execution
+                    await tbWindow.TaskbarWebView.CoreWebView2.ExecuteScriptAsync(
+                        "document.getElementById('shell-dynamic-island')?.classList.remove('island-hidden');"
+                    );
+                    // Wait 1 compositor frame (25ms) so DWM paints the visible taskbar pill behind the overlay
+                    await System.Threading.Tasks.Task.Delay(25);
+                }
+                catch { }
             }
-            catch { }
-        }
 
-        Hide();
+            Hide();
+        }
+        else
+        {
+            Width = 260;
+            Height = 44;
+            UpdatePosition();
+        }
     }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
@@ -281,8 +355,8 @@ public partial class DynamicIslandWindow : Window
         {
             string json = JsonSerializer.Serialize(new
             {
-                type = "state",
-                data = payload
+                type = "state_update",
+                payload = payload
             });
             DiWebView.CoreWebView2.PostWebMessageAsJson(json);
         }
@@ -314,13 +388,31 @@ public partial class DynamicIslandWindow : Window
             }
             else if (type == "di_expand")
             {
+                bool isExp = !root.TryGetProperty("expanded", out var expProp) || expProp.GetBoolean();
+                _isExpanded = isExp;
+                if (isExp)
+                {
+                    _lastExpandTime = DateTime.UtcNow;
+                }
                 Dispatcher.Invoke(() =>
                 {
-                    Width = 560;
-                    Height = 260;
-                    if (!_isTaskbarOverlay)
+                    if (isExp)
                     {
-                        UpdatePosition();
+                        Width = 560;
+                        Height = 260;
+                        if (!_isTaskbarOverlay)
+                        {
+                            UpdatePosition();
+                        }
+                    }
+                    else
+                    {
+                        if (!_isTaskbarOverlay)
+                        {
+                            Width = 260;
+                            Height = 44;
+                            UpdatePosition();
+                        }
                     }
                 });
             }

@@ -27,55 +27,115 @@ public class WorkAreaTelemetry
 
 public class WorkAreaAppBarService
 {
-    private bool _isRegistered;
-    private int _callbackMessageId;
-    private IntPtr _registeredHwnd = IntPtr.Zero;
+    private bool _isTaskbarAppBarRegistered;
+    private IntPtr _taskbarAppBarHwnd = IntPtr.Zero;
 
-    public bool IsRegistered => _isRegistered;
+    private bool _isTopAppBarRegistered;
+    private IntPtr _topAppBarHwnd = IntPtr.Zero;
 
-    public void RegisterAppBar(IntPtr hwnd)
+    public bool IsRegistered => _isTaskbarAppBarRegistered || _isTopAppBarRegistered;
+
+    public void RegisterTaskbarAppBar(IntPtr hwnd)
     {
         if (hwnd == IntPtr.Zero) return;
-        if (_isRegistered && _registeredHwnd == hwnd) return;
+        if (_isTaskbarAppBarRegistered && _taskbarAppBarHwnd == hwnd) return;
 
-        if (_isRegistered && _registeredHwnd != IntPtr.Zero)
+        if (_isTaskbarAppBarRegistered && _taskbarAppBarHwnd != IntPtr.Zero)
         {
-            UnregisterAppBar(_registeredHwnd);
+            UnregisterTaskbarAppBar();
         }
 
-        _callbackMessageId = Win32Api.WM_USER + 101;
         var abd = new Win32Api.APPBARDATA
         {
             cbSize = Marshal.SizeOf<Win32Api.APPBARDATA>(),
             hWnd = hwnd,
-            uCallbackMessage = (uint)_callbackMessageId
+            uCallbackMessage = (uint)(Win32Api.WM_USER + 101)
         };
 
         Win32Api.SHAppBarMessage(Win32Api.ABM_NEW, ref abd);
-        _isRegistered = true;
-        _registeredHwnd = hwnd;
+        _isTaskbarAppBarRegistered = true;
+        _taskbarAppBarHwnd = hwnd;
     }
 
-    public void UnregisterAppBar(IntPtr hwnd)
+    public void UnregisterTaskbarAppBar()
     {
-        IntPtr target = hwnd != IntPtr.Zero ? hwnd : _registeredHwnd;
-        if (_isRegistered && target != IntPtr.Zero)
+        if (_isTaskbarAppBarRegistered && _taskbarAppBarHwnd != IntPtr.Zero)
         {
             var abd = new Win32Api.APPBARDATA
             {
                 cbSize = Marshal.SizeOf<Win32Api.APPBARDATA>(),
-                hWnd = target
+                hWnd = _taskbarAppBarHwnd
             };
             Win32Api.SHAppBarMessage(Win32Api.ABM_REMOVE, ref abd);
         }
-        _isRegistered = false;
-        _registeredHwnd = IntPtr.Zero;
+        _isTaskbarAppBarRegistered = false;
+        _taskbarAppBarHwnd = IntPtr.Zero;
+    }
+
+    public void RegisterTopAppBar(IntPtr hwnd)
+    {
+        if (hwnd == IntPtr.Zero) return;
+        if (_isTopAppBarRegistered && _topAppBarHwnd == hwnd) return;
+
+        if (_isTopAppBarRegistered && _topAppBarHwnd != IntPtr.Zero)
+        {
+            UnregisterTopAppBar();
+        }
+
+        var abd = new Win32Api.APPBARDATA
+        {
+            cbSize = Marshal.SizeOf<Win32Api.APPBARDATA>(),
+            hWnd = hwnd,
+            uCallbackMessage = (uint)(Win32Api.WM_USER + 102)
+        };
+
+        Win32Api.SHAppBarMessage(Win32Api.ABM_NEW, ref abd);
+        _isTopAppBarRegistered = true;
+        _topAppBarHwnd = hwnd;
+    }
+
+    public void UnregisterTopAppBar()
+    {
+        if (_isTopAppBarRegistered && _topAppBarHwnd != IntPtr.Zero)
+        {
+            var abd = new Win32Api.APPBARDATA
+            {
+                cbSize = Marshal.SizeOf<Win32Api.APPBARDATA>(),
+                hWnd = _topAppBarHwnd
+            };
+            Win32Api.SHAppBarMessage(Win32Api.ABM_REMOVE, ref abd);
+        }
+        _isTopAppBarRegistered = false;
+        _topAppBarHwnd = IntPtr.Zero;
+    }
+
+    public void RegisterAppBar(IntPtr hwnd)
+    {
+        RegisterTaskbarAppBar(hwnd);
+    }
+
+    public void UnregisterAppBar(IntPtr hwnd)
+    {
+        if (hwnd == _taskbarAppBarHwnd || hwnd == IntPtr.Zero)
+        {
+            UnregisterTaskbarAppBar();
+        }
+        if (hwnd == _topAppBarHwnd || hwnd == IntPtr.Zero)
+        {
+            UnregisterTopAppBar();
+        }
+    }
+
+    public void UnregisterAllAppBars()
+    {
+        UnregisterTaskbarAppBar();
+        UnregisterTopAppBar();
     }
 
     /// <summary>
     /// Positions the custom taskbar window and enforces the Respected Desktop Working Area.
     /// Uses both SHAppBarMessage(ABM_QUERYPOS / ABM_SETPOS) and direct SPI_SETWORKAREA so
-    /// maximized windows on Windows 11 always respect the custom taskbar even when Shell_TrayWnd is hidden.
+    /// maximized windows on Windows 11 always respect the custom taskbar and Dynamic Island work area reservation.
     /// </summary>
     private static bool RectsEqual(Win32Api.RECT a, Win32Api.RECT b)
     {
@@ -90,7 +150,8 @@ public class WorkAreaAppBarService
         int taskbarHeightPx,
         int floatingMarginPx,
         bool nativeTaskbarHidden,
-        int topReservedWorkAreaPx = 0)
+        int topReservedWorkAreaPx = 0,
+        IntPtr topAppBarHwnd = default)
     {
         var monitorInfo = GetPrimaryMonitorInfo();
         var monRect = monitorInfo.rcMonitor;
@@ -110,103 +171,60 @@ public class WorkAreaAppBarService
             Bottom = isTop ? (monRect.Top + taskbarHeightPx + floatingMarginPx) : (monRect.Bottom - floatingMarginPx)
         };
 
+        // 1. TOP APPBAR (DYNAMIC ISLAND TOP-CENTER WORK AREA CUT)
+        if (topReservedWorkAreaPx > 0 && topAppBarHwnd != IntPtr.Zero)
+        {
+            RegisterTopAppBar(topAppBarHwnd);
+            var abdTop = new Win32Api.APPBARDATA
+            {
+                cbSize = Marshal.SizeOf<Win32Api.APPBARDATA>(),
+                hWnd = topAppBarHwnd,
+                uEdge = Win32Api.ABE_TOP,
+                rc = new Win32Api.RECT(monRect.Left, monRect.Top, monRect.Right, monRect.Top + topReservedWorkAreaPx)
+            };
+            Win32Api.SHAppBarMessage(Win32Api.ABM_QUERYPOS, ref abdTop);
+            abdTop.rc.Top = monRect.Top;
+            abdTop.rc.Bottom = monRect.Top + topReservedWorkAreaPx;
+            Win32Api.SHAppBarMessage(Win32Api.ABM_SETPOS, ref abdTop);
+        }
+        else
+        {
+            UnregisterTopAppBar();
+        }
+
+        // 2. BOTTOM / TOP TASKBAR APPBAR
         if (taskbarVisible && taskbarHwnd != IntPtr.Zero)
         {
             if (respectWorkArea)
             {
-                var currentWorkArea = new Win32Api.RECT();
-                Win32Api.SystemParametersInfo(Win32Api.SPI_GETWORKAREA, 0, ref currentWorkArea, 0);
-
-                int targetEdgePos = isTop ? (monRect.Top + workAreaFootprint) : (monRect.Bottom - workAreaFootprint);
-                bool dockedEdgeMatches = isTop
-                    ? currentWorkArea.Top == targetEdgePos
-                    : currentWorkArea.Bottom == targetEdgePos;
-
-                // Preserve opposite monitor edge or top reserved work area (e.g. Dynamic Island)
-                int preservedTop = topReservedWorkAreaPx > 0
-                    ? (monRect.Top + topReservedWorkAreaPx)
-                    : (!isTop && !nativeTaskbarHidden && currentWorkArea.Top > monRect.Top
-                        ? currentWorkArea.Top
-                        : monRect.Top);
-                int preservedBottom = isTop && !nativeTaskbarHidden && currentWorkArea.Bottom < monRect.Bottom
-                    ? currentWorkArea.Bottom
-                    : monRect.Bottom;
-
-                var desiredWorkArea = new Win32Api.RECT
+                RegisterTaskbarAppBar(taskbarHwnd);
+                var abd = new Win32Api.APPBARDATA
                 {
-                    Left = monRect.Left,
-                    Right = monRect.Right,
-                    Top = isTop ? targetEdgePos : preservedTop,
-                    Bottom = isTop ? preservedBottom : targetEdgePos
+                    cbSize = Marshal.SizeOf<Win32Api.APPBARDATA>(),
+                    hWnd = taskbarHwnd,
+                    uEdge = isTop ? Win32Api.ABE_TOP : Win32Api.ABE_BOTTOM,
+                    rc = new Win32Api.RECT(
+                        monRect.Left,
+                        isTop ? monRect.Top : monRect.Bottom - workAreaFootprint,
+                        monRect.Right,
+                        isTop ? monRect.Top + workAreaFootprint : monRect.Bottom)
                 };
-
-                bool topEdgeMatches = currentWorkArea.Top == desiredWorkArea.Top;
-
-                // Skip redundant AppBar / SPI_SETWORKAREA broadcasts when docked edge already matches
-                if (!_isRegistered || _registeredHwnd != taskbarHwnd || !dockedEdgeMatches || !topEdgeMatches)
+                Win32Api.SHAppBarMessage(Win32Api.ABM_QUERYPOS, ref abd);
+                if (isTop)
                 {
-                    RegisterAppBar(taskbarHwnd);
-
-                    var abd = new Win32Api.APPBARDATA
-                    {
-                        cbSize = Marshal.SizeOf<Win32Api.APPBARDATA>(),
-                        hWnd = taskbarHwnd,
-                        uEdge = isTop ? Win32Api.ABE_TOP : Win32Api.ABE_BOTTOM,
-                        rc = new Win32Api.RECT(
-                            monRect.Left,
-                            isTop ? monRect.Top : monRect.Bottom - workAreaFootprint,
-                            monRect.Right,
-                            isTop ? monRect.Top + workAreaFootprint : monRect.Bottom)
-                    };
-
-                    Win32Api.SHAppBarMessage(Win32Api.ABM_QUERYPOS, ref abd);
-                    // Maintain exact requested height on the chosen edge
-                    if (isTop)
-                    {
-                        abd.rc.Top = monRect.Top;
-                        abd.rc.Bottom = monRect.Top + workAreaFootprint;
-                    }
-                    else
-                    {
-                        abd.rc.Bottom = monRect.Bottom;
-                        abd.rc.Top = monRect.Bottom - workAreaFootprint;
-                    }
-                    Win32Api.SHAppBarMessage(Win32Api.ABM_SETPOS, ref abd);
-
-                    Win32Api.SystemParametersInfo(Win32Api.SPI_GETWORKAREA, 0, ref currentWorkArea, 0);
-                    bool edgeAfterAppBar = isTop
-                        ? currentWorkArea.Top == targetEdgePos
-                        : currentWorkArea.Bottom == targetEdgePos;
-                    if (!edgeAfterAppBar || topReservedWorkAreaPx > 0)
-                    {
-                        desiredWorkArea.Top = isTop ? targetEdgePos : (topReservedWorkAreaPx > 0 ? (monRect.Top + topReservedWorkAreaPx) : Math.Max(monRect.Top, currentWorkArea.Top));
-                        desiredWorkArea.Bottom = isTop ? Math.Min(monRect.Bottom, currentWorkArea.Bottom) : targetEdgePos;
-                        Win32Api.SystemParametersInfo(
-                            Win32Api.SPI_SETWORKAREA,
-                            0,
-                            ref desiredWorkArea,
-                            Win32Api.SPIF_SENDCHANGE);
-                    }
+                    abd.rc.Top = monRect.Top;
+                    abd.rc.Bottom = monRect.Top + workAreaFootprint;
                 }
+                else
+                {
+                    abd.rc.Bottom = monRect.Bottom;
+                    abd.rc.Top = monRect.Bottom - workAreaFootprint;
+                }
+                Win32Api.SHAppBarMessage(Win32Api.ABM_SETPOS, ref abd);
             }
             else
             {
-                // Taskbar is visible as overlay, do not reserve Desktop Working Area
-                UnregisterAppBar(taskbarHwnd);
-                if (nativeTaskbarHidden)
-                {
-                    var currentWorkArea = new Win32Api.RECT();
-                    Win32Api.SystemParametersInfo(Win32Api.SPI_GETWORKAREA, 0, ref currentWorkArea, 0);
-                    if (!RectsEqual(currentWorkArea, monRect))
-                    {
-                        var fullArea = monRect;
-                        Win32Api.SystemParametersInfo(
-                            Win32Api.SPI_SETWORKAREA,
-                            0,
-                            ref fullArea,
-                            Win32Api.SPIF_SENDCHANGE);
-                    }
-                }
+                UnregisterTaskbarAppBar();
             }
 
             // Position the custom taskbar window at top-most z-order (only move/resize if bounds changed)
@@ -226,22 +244,29 @@ public class WorkAreaAppBarService
         }
         else
         {
-            // Custom taskbar is disabled/hidden
-            if (taskbarHwnd != IntPtr.Zero)
-            {
-                UnregisterAppBar(taskbarHwnd);
-            }
+            UnregisterTaskbarAppBar();
+        }
 
-            if (nativeTaskbarHidden)
-            {
-                // Native taskbar is hidden (and set to autohide), and custom taskbar is off -> full monitor working area
-                var fullArea = monRect;
-                Win32Api.SystemParametersInfo(
-                    Win32Api.SPI_SETWORKAREA,
-                    0,
-                    ref fullArea,
-                    Win32Api.SPIF_SENDCHANGE);
-            }
+        // 3. FINAL DESKTOP WORK AREA ENFORCEMENT
+        int targetTop = topReservedWorkAreaPx > 0
+            ? (monRect.Top + topReservedWorkAreaPx)
+            : (isTop && respectWorkArea && taskbarVisible ? (monRect.Top + workAreaFootprint) : monRect.Top);
+
+        int targetBottom = (!isTop && respectWorkArea && taskbarVisible)
+            ? (monRect.Bottom - workAreaFootprint)
+            : monRect.Bottom;
+
+        var currentWorkArea = new Win32Api.RECT();
+        Win32Api.SystemParametersInfo(Win32Api.SPI_GETWORKAREA, 0, ref currentWorkArea, 0);
+
+        if (currentWorkArea.Top != targetTop || currentWorkArea.Bottom != targetBottom)
+        {
+            var desiredWorkArea = new Win32Api.RECT(monRect.Left, targetTop, monRect.Right, targetBottom);
+            Win32Api.SystemParametersInfo(
+                Win32Api.SPI_SETWORKAREA,
+                0,
+                ref desiredWorkArea,
+                Win32Api.SPIF_SENDCHANGE);
         }
 
         return barRect;
@@ -263,7 +288,7 @@ public class WorkAreaAppBarService
             WorkAreaTop = spiWork.Top,
             WorkAreaRight = spiWork.Right,
             WorkAreaBottom = spiWork.Bottom,
-            IsAppBarRegistered = _isRegistered,
+            IsAppBarRegistered = IsRegistered,
             DockEdge = dockEdge
         };
     }
