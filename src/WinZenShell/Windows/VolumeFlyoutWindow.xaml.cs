@@ -7,7 +7,7 @@ namespace WinZenShell.Windows;
 
 public partial class VolumeFlyoutWindow : Window
 {
-    private readonly AudioService _audioService;
+    private readonly AudioService? _audioService;
     private bool _isUpdatingUi = true;
     private bool _isLightTheme = false;
     public DateTime LastDeactivatedTime { get; private set; } = DateTime.MinValue;
@@ -18,10 +18,34 @@ public partial class VolumeFlyoutWindow : Window
         InitializeComponent();
         _isUpdatingUi = false;
 
+        if (_audioService != null)
+        {
+            _audioService.VolumeChanged += OnAudioVolumeChanged;
+        }
+
+        Closed += (_, _) =>
+        {
+            if (_audioService != null)
+            {
+                _audioService.VolumeChanged -= OnAudioVolumeChanged;
+            }
+        };
+
         Deactivated += (_, _) =>
         {
             FlyoutAnimationHelper.HandleDeactivated(this, () => LastDeactivatedTime = DateTime.UtcNow);
         };
+    }
+
+    private void OnAudioVolumeChanged(int volume, bool isMuted)
+    {
+        Dispatcher.InvokeAsync(() =>
+        {
+            if (IsVisible)
+            {
+                UpdateVolume(volume, isMuted);
+            }
+        });
     }
 
     protected override void OnSourceInitialized(EventArgs e)
@@ -186,7 +210,7 @@ public partial class VolumeFlyoutWindow : Window
 
     private void OnMuteClicked(object sender, RoutedEventArgs e)
     {
-        _audioService.ToggleMute();
+        _audioService?.ToggleMute();
         UpdateVolumeDisplay();
     }
 
@@ -194,9 +218,9 @@ public partial class VolumeFlyoutWindow : Window
     {
         e.Handled = true;
         int step = e.Delta > 0 ? 3 : -3;
-        int current = _audioService.GetVolume();
+        int current = _audioService?.GetVolume() ?? 0;
         int next = Math.Clamp(current + step, 0, 100);
-        _audioService.SetVolume(next);
+        _audioService?.SetVolume(next);
         UpdateVolume(next, false);
     }
 

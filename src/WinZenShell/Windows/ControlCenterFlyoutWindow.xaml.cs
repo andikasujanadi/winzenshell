@@ -63,10 +63,31 @@ public partial class ControlCenterFlyoutWindow : Window
         Loaded += OnLoaded;
 
         _shellState.StateChanged += OnShellStateChanged;
-        _brightnessService.BrightnessChanged += _ => Dispatcher.Invoke(() =>
+        _brightnessService.BrightnessChanged += _ => Dispatcher.InvokeAsync(() =>
         {
             if (IsVisible) BroadcastMetrics();
         });
+
+        if (_audioService != null)
+        {
+            _audioService.VolumeChanged += OnAudioVolumeChanged;
+        }
+
+        Closed += (_, _) =>
+        {
+            if (_audioService != null)
+            {
+                _audioService.VolumeChanged -= OnAudioVolumeChanged;
+            }
+        };
+    }
+
+    private void OnAudioVolumeChanged(int volume, bool isMuted)
+    {
+        if (IsVisible)
+        {
+            Dispatcher.InvokeAsync(BroadcastMetrics);
+        }
     }
 
     protected override void OnSourceInitialized(EventArgs e)

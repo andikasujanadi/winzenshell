@@ -110,7 +110,7 @@ public partial class TaskbarWebWindow : Window
             }
         });
         System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] TaskbarWebWindow: BrightnessChanged...\n");
-        _brightnessService.BrightnessChanged += val => Dispatcher.Invoke(() =>
+        _brightnessService.BrightnessChanged += val => Dispatcher.InvokeAsync(() =>
         {
             if (_brightnessFlyout != null && _brightnessFlyout.IsVisible)
             {
@@ -118,7 +118,7 @@ public partial class TaskbarWebWindow : Window
             }
             BroadcastMetrics();
         });
-        _audioService.VolumeChanged += (_, _) => Dispatcher.Invoke(BroadcastMetrics);
+        _audioService.VolumeChanged += (_, _) => Dispatcher.InvokeAsync(BroadcastMetrics);
 
         _metricsTimer = new DispatcherTimer
         {
