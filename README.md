@@ -21,6 +21,12 @@ It pairs a modern web interface (HTML, CSS, and JavaScript) with a fast native W
 
 ---
 
+## Screenshots
+<img width="1919" height="1079" alt="Screenshot 2026-11-17 112731" src="https://github.com/user-attachments/assets/86f51950-454a-4876-bbc0-9ab2c88b49ad" />
+<img width="1919" height="1079" alt="Screenshot 2026-11-17 112805" src="https://github.com/user-attachments/assets/804c763a-086b-4970-9d89-8142aeb8ab18" />
+<img width="1919" height="1079" alt="Screenshot 2026-11-17 112816" src="https://github.com/user-attachments/assets/8b6699ef-0b6f-40b1-8c8c-d024a59e7b42" />
+<img width="1919" height="1079" alt="Screenshot 2026-11-17 112822" src="https://github.com/user-attachments/assets/9291dcee-b60a-43c8-a659-506d0836f35f" />
+
 ## Key Features
 
 ### Windows 11 Desktop Integration
