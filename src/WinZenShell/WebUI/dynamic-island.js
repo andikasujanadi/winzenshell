@@ -113,10 +113,12 @@
     if (!diConfig.showDate) {
       return diConfig.showSeconds ? 100 : 78;
     }
-    const timeW = timeEl ? timeEl.offsetWidth : 44;
-    const secW = (diConfig.showSeconds && secEl) ? secEl.offsetWidth : 0;
-    const dateW = dateEl ? dateEl.offsetWidth : 80;
-    return Math.max(150, Math.ceil(timeW + secW + dateW + 40));
+    if (!globalDateFormat || globalDateFormat === 'DD-MM-YYYY') {
+      return 196;
+    }
+    const dateLen = (dateEl && dateEl.textContent) ? dateEl.textContent.length : 10;
+    const secAdd = diConfig.showSeconds ? 22 : 0;
+    return Math.max(140, 114 + secAdd + Math.round(dateLen * 8));
   }
 
   function updateClock() {
@@ -214,8 +216,14 @@
     }
   }
 
+  let musicPillHideTimer = null;
+
   function setMusicPillRestingVisible(showPill, instant = false) {
     if (!islandMusicPill) return;
+    if (musicPillHideTimer) {
+      clearTimeout(musicPillHideTimer);
+      musicPillHideTimer = null;
+    }
     if (diConfig.placement !== 'top-center') {
       islandMusicPill.classList.remove('is-hovered');
       islandMusicPill.classList.add('is-music-absent');
@@ -227,8 +235,11 @@
     if (showPill) {
       if (islandMusicPill.style.display === 'none') {
         if (noAnim) {
+          islandMusicPill.style.transition = 'none';
           islandMusicPill.classList.remove('is-music-absent');
           islandMusicPill.style.display = 'inline-flex';
+          void islandMusicPill.offsetWidth;
+          islandMusicPill.style.transition = '';
         } else {
           islandMusicPill.classList.add('is-music-absent');
           islandMusicPill.style.display = 'inline-flex';
@@ -250,10 +261,19 @@
     } else {
       islandMusicPill.classList.remove('is-hovered');
       if (noAnim) {
+        islandMusicPill.style.transition = 'none';
         islandMusicPill.classList.add('is-music-absent');
         islandMusicPill.style.display = 'none';
+        void islandMusicPill.offsetWidth;
+        islandMusicPill.style.transition = '';
       } else if (islandMusicPill.style.display !== 'none') {
         islandMusicPill.classList.add('is-music-absent');
+        musicPillHideTimer = setTimeout(() => {
+          musicPillHideTimer = null;
+          if (islandMusicPill && islandMusicPill.classList.contains('is-music-absent')) {
+            islandMusicPill.style.display = 'none';
+          }
+        }, 320);
       }
     }
   }
@@ -468,7 +488,9 @@
         currentTarget = options.target.toLowerCase();
       }
 
-      if (options.slot) {
+      if (diConfig.placement === 'top-center') {
+        currentSlot = 'center';
+      } else if (options.slot) {
         currentSlot = options.slot.toLowerCase();
       } else if (diConfig.taskbarSlot) {
         currentSlot = diConfig.taskbarSlot.toLowerCase();
@@ -631,7 +653,7 @@
               window.winzen.send('di_close_complete');
             }
           }
-        }, 425);
+        }, 440);
       } else {
         isCollapsing = false;
         restoreTopCenterRestingState();

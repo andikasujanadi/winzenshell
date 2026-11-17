@@ -96,13 +96,13 @@ html, body {
   box-shadow: none !important;
   cursor: pointer;
   transform: translateX(var(--di-pill-offset-x, 0px));
-  /* Collapsing / Shrinking: capsule shrinks and translates back to its pill position simultaneously */
-  transition: width 0.28s cubic-bezier(0.16, 1, 0.3, 1) 0.12s,
-              height 0.28s cubic-bezier(0.16, 1, 0.3, 1) 0.12s,
-              border-radius 0.28s cubic-bezier(0.16, 1, 0.3, 1) 0.12s,
-              padding 0.28s cubic-bezier(0.16, 1, 0.3, 1) 0.12s,
+  /* Collapsing / Shrinking: capsule shrinks and translates back to its pill position simultaneously, finishing last */
+  transition: width 0.30s cubic-bezier(0.16, 1, 0.3, 1) 0.12s,
+              height 0.30s cubic-bezier(0.16, 1, 0.3, 1) 0.12s,
+              border-radius 0.30s cubic-bezier(0.16, 1, 0.3, 1) 0.12s,
+              padding 0.30s cubic-bezier(0.16, 1, 0.3, 1) 0.12s,
               border-color 0.25s ease 0.12s,
-              transform 0.28s cubic-bezier(0.16, 1, 0.3, 1) 0.12s;
+              transform 0.30s cubic-bezier(0.16, 1, 0.3, 1) 0.12s;
   outline: none;
   overflow: hidden;
   position: relative;
@@ -161,9 +161,9 @@ html, body {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
-  /* When collapsing: small elements fade in only after capsule has settled at final size */
-  transition: opacity 0.06s ease-out 0.36s,
-              visibility 0s linear 0.36s;
+  /* When collapsing: small elements fade in before capsule finishes shrinking */
+  transition: opacity 0.06s ease-out 0.30s,
+              visibility 0s linear 0.30s;
 }
 
 .island-collapsed-inner {
@@ -611,9 +611,9 @@ html, body {
   pointer-events: none;
   transform: translateX(var(--di-bg-pill-offset-x, 0px));
   opacity: 1;
-  /* Unmerging during shrink: moves from 0px back to standby offset */
-  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1) 0.12s,
-              opacity 0.22s ease 0.14s;
+  /* Unmerging during shrink: finishes before capsule shrink completes */
+  transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1) 0.10s,
+              opacity 0.20s ease 0.12s;
 }
 
 .island-container.dock-bottom .island-bg-pill {
