@@ -82,7 +82,7 @@ public class AppLauncherService
         var builtins = new[]
         {
             ("File Explorer", "explorer.exe", Environment.GetFolderPath(Environment.SpecialFolder.Windows) + @"\explorer.exe"),
-            ("Settings", "ms-settings:", ""),
+            ("Settings", "ms-settings:", Environment.GetFolderPath(Environment.SpecialFolder.Windows) + @"\ImmersiveControlPanel\SystemSettings.exe"),
             ("Windows Terminal", "wt.exe", ""),
             ("Notepad", "notepad.exe", Environment.GetFolderPath(Environment.SpecialFolder.System) + @"\notepad.exe"),
             ("Calculator", "calc.exe", Environment.GetFolderPath(Environment.SpecialFolder.System) + @"\calc.exe"),
@@ -100,6 +100,10 @@ public class AppLauncherService
                     if (!string.IsNullOrEmpty(iconSource) && File.Exists(iconSource))
                     {
                         iconUrl = ExtractIconDataUrl(iconSource);
+                    }
+                    if (string.IsNullOrEmpty(iconUrl))
+                    {
+                        iconUrl = GetBuiltinFallbackIconDataUrl(name);
                     }
 
                     int count = _launchStats.TryGetValue(name, out int c) ? c : 0;
@@ -130,7 +134,40 @@ public class AppLauncherService
         var ignoredKeywords = new[]
         {
             "uninstall", "help", "readme", "documentation", "release notes",
-            "license", "licence", "website", "manual", "eula", "feedback"
+            "license", "licence", "website", "manual", "eula", "feedback",
+            "administrative tools", "application verifier", "windows app cert",
+            "software development kit", "sample desktop apps", "sample uwp apps",
+            "tools for desktop apps", "tools for uwp apps", "reset preferences",
+            "install additional tools", "module docs", "reload configuration",
+            "steps recorder", "telemetry log", "recording manager",
+            "language preferences", "debuggable package manager",
+            "native tools command prompt", "cross tools command prompt",
+            "developer command prompt", "developer powershell",
+            "recycle bin", "dfrgui", "recoverydrive"
+        };
+
+        var ignoredExactNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "services", "component services", "computer management", "disk cleanup",
+            "event viewer", "iscsi initiator", "memory diagnostics tool",
+            "performance monitor", "registry editor", "resource monitor",
+            "system configuration", "system information", "task scheduler",
+            "windows defender firewall with advanced security",
+            "character map", "vlc media player skinned", "gpuview",
+            "windows performance analyzer", "windows performance recorder",
+            "livecaptions", "magnify", "narrator", "on-screen keyboard", "voiceaccess",
+            "run", "command prompt"
+        };
+
+        var ignoredFolderSegments = new[]
+        {
+            "\\administrative tools\\",
+            "\\windows kits\\",
+            "\\visual studio tools\\",
+            "\\accessibility\\",
+            "\\startup\\",
+            "\\system tools\\",
+            "\\microsoft office tools\\"
         };
 
         var foundItems = new List<AppLauncherItem>();
@@ -146,11 +183,16 @@ public class AppLauncherService
                 {
                     try
                     {
+                        string lowerFullPath = file.ToLowerInvariant();
+                        if (ignoredFolderSegments.Any(seg => lowerFullPath.Contains(seg))) continue;
+
                         string fileName = Path.GetFileNameWithoutExtension(file);
                         if (string.IsNullOrWhiteSpace(fileName)) continue;
 
                         string lowerName = fileName.ToLowerInvariant();
+                        if (ignoredExactNames.Contains(fileName)) continue;
                         if (ignoredKeywords.Any(k => lowerName.Contains(k))) continue;
+                        if (lowerName.Contains("(x86)") || lowerName.Contains("(32-bit)")) continue;
 
                         lock (_lock)
                         {
@@ -193,6 +235,23 @@ public class AppLauncherService
         AppsLoaded?.Invoke();
     }
 
+    private static string GetBuiltinFallbackIconDataUrl(string appName)
+    {
+        if (string.Equals(appName, "Windows Terminal", StringComparison.OrdinalIgnoreCase))
+        {
+            const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'><rect x='4' y='8' width='40' height='32' rx='6' fill='#2b2b2b' stroke='#484848' stroke-width='1.5'/><rect x='4' y='8' width='40' height='8' rx='4' fill='#3a3a3a'/><path d='M13 22l6 5-6 5' fill='none' stroke='#ffffff' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/><line x1='22' y1='32' x2='32' y2='32' stroke='#ffffff' stroke-width='2.6' stroke-linecap='round'/></svg>";
+            return "data:image/svg+xml;base64," + Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg));
+        }
+
+        if (string.Equals(appName, "Snipping Tool", StringComparison.OrdinalIgnoreCase))
+        {
+            const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'><rect x='8' y='10' width='32' height='26' rx='4' fill='none' stroke='#60a5fa' stroke-width='2.4' stroke-dasharray='5 3'/><circle cx='16' cy='34' r='4.5' fill='none' stroke='#e5e7eb' stroke-width='2.4'/><circle cx='32' cy='34' r='4.5' fill='none' stroke='#e5e7eb' stroke-width='2.4'/><path d='M19.5 30.5L31 15M28.5 30.5L17 15' stroke='#e5e7eb' stroke-width='2.4' stroke-linecap='round'/></svg>";
+            return "data:image/svg+xml;base64," + Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg));
+        }
+
+        return "";
+    }
+
     private static string ExtractIconDataUrl(string path)
     {
         try
@@ -220,15 +279,15 @@ public class AppLauncherService
             var recent = _apps
                 .Where(a => a.LaunchCount > 0)
                 .OrderByDescending(a => a.LaunchCount)
-                .Take(5)
+                .Take(6)
                 .ToList();
 
-            if (recent.Count < 5)
+            if (recent.Count < 6)
             {
-                // Fallback top 5 popular apps
+                // Fallback top 6 popular apps
                 var fallback = _apps
                     .Where(a => !recent.Contains(a))
-                    .Take(5 - recent.Count);
+                    .Take(6 - recent.Count);
                 recent.AddRange(fallback);
             }
 

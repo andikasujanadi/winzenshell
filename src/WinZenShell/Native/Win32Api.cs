@@ -506,4 +506,10 @@ public static class Win32Api
         catch { }
         return true;
     }
+
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool LockWorkStation();
+
+    [DllImport("powrprof.dll", SetLastError = true)]
+    public static extern bool SetSuspendState(bool hibernate, bool forceCritical, bool disableWakeEvent);
 }

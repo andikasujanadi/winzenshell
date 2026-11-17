@@ -108,7 +108,7 @@
 
     // Render Recent row
     recentGrid.innerHTML = '';
-    recentApps.slice(0, 5).forEach(app => {
+    recentApps.slice(0, 6).forEach(app => {
       recentGrid.appendChild(renderAppItem(app, false));
     });
 
@@ -142,7 +142,7 @@
   });
 
   searchInput.addEventListener('keydown', (e) => {
-    const cols = 5;
+    const cols = 6;
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       if (visibleApps.length > 0) {

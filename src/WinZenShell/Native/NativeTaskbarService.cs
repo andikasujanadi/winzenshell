@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Threading;
 
 namespace WinZenShell.Native;
 
@@ -18,11 +20,103 @@ public class NativeTaskbarService
 {
     private const string PrimaryTrayClass = "Shell_TrayWnd";
     private const string SecondaryTrayClass = "Shell_SecondaryTrayWnd";
+    private const uint EVENT_OBJECT_SHOW = 0x8002;
+    private const uint WINEVENT_OUTOFCONTEXT = 0x0000;
+    private const uint WINEVENT_SKIPOWNPROCESS = 0x0002;
+    private const int OBJID_WINDOW = 0;
+
+    private delegate void WinEventDelegate(
+        IntPtr hWinEventHook, uint eventType, IntPtr hwnd,
+        int idObject, int idChild, uint dwEventThread, uint dwmsEventTime);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr SetWinEventHook(
+        uint eventMin, uint eventMax, IntPtr hmodWinEventProc,
+        WinEventDelegate lpfnWinEventProc, uint idProcess, uint idThread, uint dwFlags);
+
+    [DllImport("user32.dll")]
+    private static extern bool UnhookWinEvent(IntPtr hWinEventHook);
+
+    [DllImport("user32.dll", CharSet = CharSet.Auto)]
+    private static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName, int nMaxCount);
 
     private bool _isHiddenByUs;
     private string _lastActionLog = "Ready";
+    private IntPtr _showHook = IntPtr.Zero;
+    private WinEventDelegate? _winEventDelegate;
+    private DispatcherTimer? _guardTimer;
 
     public bool IsHiddenByUs => _isHiddenByUs;
+
+    private void StartHideGuard()
+    {
+        if (_showHook == IntPtr.Zero)
+        {
+            _winEventDelegate ??= OnWinEvent;
+            _showHook = SetWinEventHook(
+                EVENT_OBJECT_SHOW, EVENT_OBJECT_SHOW, IntPtr.Zero,
+                _winEventDelegate, 0, 0, WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS);
+        }
+
+        if (_guardTimer == null)
+        {
+            _guardTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
+            _guardTimer.Tick += (_, _) => EnforceHiddenIfNeeded();
+        }
+        if (!_guardTimer.IsEnabled)
+        {
+            _guardTimer.Start();
+        }
+    }
+
+    private void StopHideGuard()
+    {
+        if (_guardTimer != null && _guardTimer.IsEnabled)
+        {
+            _guardTimer.Stop();
+        }
+        if (_showHook != IntPtr.Zero)
+        {
+            UnhookWinEvent(_showHook);
+            _showHook = IntPtr.Zero;
+        }
+    }
+
+    private void OnWinEvent(
+        IntPtr hWinEventHook, uint eventType, IntPtr hwnd,
+        int idObject, int idChild, uint dwEventThread, uint dwmsEventTime)
+    {
+        if (!_isHiddenByUs || idObject != OBJID_WINDOW || hwnd == IntPtr.Zero) return;
+
+        var sb = new StringBuilder(64);
+        if (GetClassName(hwnd, sb, sb.Capacity) > 0)
+        {
+            string cls = sb.ToString();
+            if (cls == PrimaryTrayClass || cls == SecondaryTrayClass)
+            {
+                Win32Api.ShowWindow(hwnd, Win32Api.SW_HIDE);
+            }
+        }
+    }
+
+    private void EnforceHiddenIfNeeded()
+    {
+        if (!_isHiddenByUs) return;
+
+        IntPtr trayHwnd = Win32Api.FindWindow(PrimaryTrayClass, null);
+        if (trayHwnd != IntPtr.Zero && Win32Api.IsWindowVisible(trayHwnd))
+        {
+            Win32Api.ShowWindow(trayHwnd, Win32Api.SW_HIDE);
+        }
+
+        foreach (IntPtr secHwnd in GetSecondaryTaskbarHandles())
+        {
+            if (Win32Api.IsWindowVisible(secHwnd))
+            {
+                Win32Api.ShowWindow(secHwnd, Win32Api.SW_HIDE);
+            }
+        }
+    }
 
     /// <summary>
     /// Hides the Windows 11 native taskbar using the Autohide-First sequence:
@@ -56,6 +150,7 @@ public class NativeTaskbarService
         }
 
         _isHiddenByUs = true;
+        StartHideGuard();
         _lastActionLog = "Hidden (Auto-Hide applied first -> Working Area cleared -> SW_HIDE applied)";
         onStepProgress?.Invoke(_lastActionLog);
 
@@ -69,6 +164,9 @@ public class NativeTaskbarService
     /// </summary>
     public NativeTaskbarStatus RestoreNativeTaskbar()
     {
+        _isHiddenByUs = false;
+        StopHideGuard();
+
         IntPtr trayHwnd = Win32Api.FindWindow(PrimaryTrayClass, null);
         if (trayHwnd != IntPtr.Zero)
         {
@@ -84,7 +182,6 @@ public class NativeTaskbarService
             SetNativeTaskbarAutoHide(trayHwnd, enableAutoHide: false);
         }
 
-        _isHiddenByUs = false;
         _lastActionLog = "Restored (SW_SHOW -> Standard Docked WorkArea restored)";
         return GetCurrentStatus();
     }

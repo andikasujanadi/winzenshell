@@ -1,0 +1,91 @@
+:host {
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  width: 100%;
+}
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+}
+.lock-btn {
+  height: 32px;
+  width: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: var(--winzen-radius-xs, 4px);
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--winzen-text, #ffffff);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.12s cubic-bezier(0.1, 0.9, 0.2, 1);
+}
+:host-context([data-theme="light"]) .lock-btn,
+:host(.theme-light) .lock-btn,
+.theme-light .lock-btn,
+body.theme-light .lock-btn {
+  color: #1b1b1b;
+}
+.lock-btn:hover {
+  background: var(--winzen-surface-hover, rgba(255, 255, 255, 0.08));
+  border-color: var(--winzen-border-subtle, rgba(255, 255, 255, 0.08));
+  color: var(--winzen-text, #ffffff);
+}
+:host-context([data-theme="light"]) .lock-btn:hover,
+:host(.theme-light) .lock-btn:hover,
+.theme-light .lock-btn:hover,
+body.theme-light .lock-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 0, 0, 0.08);
+  color: #1b1b1b;
+}
+.lock-btn:active {
+  background: rgba(255, 255, 255, 0.04);
+  transform: scale(0.95);
+}
+:host-context([data-theme="light"]) .lock-btn:active,
+:host(.theme-light) .lock-btn:active,
+.theme-light .lock-btn:active,
+body.theme-light .lock-btn:active {
+  background: rgba(0, 0, 0, 0.08);
+}
+.lock-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+.lock-label {
+  display: none;
+}
+
+/* Control Center 1:1 and 1:2 tile support */
+[data-aspect-ratio="1:1"] .lock-btn,
+.cc-aspect-1-1 .lock-btn {
+  height: 100%;
+  width: 100%;
+  border-radius: 6px;
+}
+[data-aspect-ratio="1:1"] .lock-icon,
+.cc-aspect-1-1 .lock-icon {
+  width: 24px;
+  height: 24px;
+}
+
+[data-aspect-ratio="1:2"] .lock-btn,
+.cc-aspect-1-2 .lock-btn {
+  height: 100%;
+  width: 100%;
+  padding: 0 12px;
+  border-radius: 6px;
+}
+[data-aspect-ratio="1:2"] .lock-label,
+.cc-aspect-1-2 .lock-label {
+  display: inline;
+}

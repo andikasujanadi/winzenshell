@@ -62,6 +62,12 @@ function initSettingsPage() {
   const toggleEnableAnimations = document.getElementById('toggleEnableAnimations');
   const stateEnableAnimations = document.getElementById('stateEnableAnimations');
 
+  const toggleOverrideWinKey = document.getElementById('toggleOverrideWinKey');
+  const stateOverrideWinKey = document.getElementById('stateOverrideWinKey');
+
+  const toggleAutoStart = document.getElementById('toggleAutoStart');
+  const stateAutoStart = document.getElementById('stateAutoStart');
+
   const hiddenAppsContainer = document.getElementById('hiddenAppsContainer');
   const hiddenAppsSubtitle = document.getElementById('hiddenAppsSubtitle');
   const btnUnhideAllApps = document.getElementById('btnUnhideAllApps');
@@ -71,6 +77,89 @@ function initSettingsPage() {
 
   const selectDockEdge = document.getElementById('selectDockEdge');
   const selectTheme = document.getElementById('selectTheme');
+  const selectDateFormatPreset = document.getElementById('selectDateFormatPreset');
+  const inputDateFormat = document.getElementById('inputDateFormat');
+  const labelDateFormatPreview = document.getElementById('labelDateFormatPreview');
+  let currentDateFormat = 'DD-MM-YYYY';
+
+  function formatDateWithTemplate(date, template) {
+    const tpl = (template && String(template).trim()) ? String(template) : 'DD-MM-YYYY';
+    const d = date instanceof Date ? date : new Date();
+    const year = String(d.getFullYear());
+    const monthIdx = d.getMonth();
+    const dayNum = d.getDate();
+    const map = {
+      YYYY: year,
+      YY: year.slice(-2),
+      MMMM: d.toLocaleDateString('en-US', { month: 'long' }),
+      MMM: d.toLocaleDateString('en-US', { month: 'short' }),
+      MM: String(monthIdx + 1).padStart(2, '0'),
+      M: String(monthIdx + 1),
+      dddd: d.toLocaleDateString('en-US', { weekday: 'long' }),
+      ddd: d.toLocaleDateString('en-US', { weekday: 'short' }),
+      DD: String(dayNum).padStart(2, '0'),
+      D: String(dayNum)
+    };
+    return tpl.replace(/YYYY|YY|MMMM|MMM|MM|M|dddd|ddd|DD|D/g, (m) => map[m] ?? m);
+  }
+
+  function syncDateFormatUI(fmt) {
+    currentDateFormat = (fmt && String(fmt).trim()) ? String(fmt).trim() : 'DD-MM-YYYY';
+    if (inputDateFormat && document.activeElement !== inputDateFormat) {
+      inputDateFormat.value = currentDateFormat;
+    }
+    if (selectDateFormatPreset) {
+      const hasOption = Array.from(selectDateFormatPreset.options).some((opt) => opt.value === currentDateFormat);
+      selectDateFormatPreset.value = hasOption ? currentDateFormat : 'custom';
+    }
+    if (labelDateFormatPreview) {
+      labelDateFormatPreview.textContent = formatDateWithTemplate(new Date(), currentDateFormat);
+    }
+  }
+
+  if (selectDateFormatPreset) {
+    selectDateFormatPreset.addEventListener('change', () => {
+      if (isUpdatingFromHost) return;
+      const val = selectDateFormatPreset.value;
+      if (val !== 'custom') {
+        if (inputDateFormat) inputDateFormat.value = val;
+        syncDateFormatUI(val);
+        updateDynamicIslandPreview();
+        window.winzen.send('set_date_format', { dateFormat: val });
+      } else if (inputDateFormat) {
+        inputDateFormat.focus();
+      }
+    });
+  }
+
+  if (inputDateFormat) {
+    inputDateFormat.addEventListener('input', () => {
+      if (isUpdatingFromHost) return;
+      const val = inputDateFormat.value;
+      if (labelDateFormatPreview) {
+        labelDateFormatPreview.textContent = formatDateWithTemplate(new Date(), val || 'DD-MM-YYYY');
+      }
+      if (selectDateFormatPreset) {
+        const hasOption = Array.from(selectDateFormatPreset.options).some((opt) => opt.value === val.trim());
+        selectDateFormatPreset.value = hasOption ? val.trim() : 'custom';
+      }
+    });
+    const commitDateFormat = () => {
+      if (isUpdatingFromHost) return;
+      const val = inputDateFormat.value.trim() || 'DD-MM-YYYY';
+      syncDateFormatUI(val);
+      updateDynamicIslandPreview();
+      window.winzen.send('set_date_format', { dateFormat: val });
+    };
+    inputDateFormat.addEventListener('change', commitDateFormat);
+    inputDateFormat.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        commitDateFormat();
+        inputDateFormat.blur();
+      }
+    });
+  }
   const inputTaskbarHeight = document.getElementById('inputTaskbarHeight');
   const labelHeightVal = document.getElementById('labelHeightVal');
   const inputFloatingMargin = document.getElementById('inputFloatingMargin');
@@ -304,6 +393,24 @@ function initSettingsPage() {
     });
   }
 
+  if (toggleOverrideWinKey) {
+    toggleOverrideWinKey.addEventListener('change', () => {
+      if (isUpdatingFromHost) return;
+      const enabled = toggleOverrideWinKey.checked;
+      if (stateOverrideWinKey) stateOverrideWinKey.textContent = enabled ? 'On' : 'Off';
+      window.winzen.send('toggle_override_windows_key', { enable: enabled });
+    });
+  }
+
+  if (toggleAutoStart) {
+    toggleAutoStart.addEventListener('change', () => {
+      if (isUpdatingFromHost) return;
+      const enabled = toggleAutoStart.checked;
+      if (stateAutoStart) stateAutoStart.textContent = enabled ? 'On' : 'Off';
+      window.winzen.send('toggle_auto_start', { enable: enabled });
+    });
+  }
+
   btnUnhideAllApps.addEventListener('click', () => {
     window.winzen.tasks.unhideAllApps();
   });
@@ -329,10 +436,7 @@ function initSettingsPage() {
     const hrStr = is12h ? String(hours) : String(hours).padStart(2, '0');
     diPreviewTime.textContent = `${hrStr}:${minStr}${ampm}`;
 
-    const dayStr = String(now.getDate()).padStart(2, '0');
-    const monthStr = String(now.getMonth() + 1).padStart(2, '0');
-    const yearStr = String(now.getFullYear());
-    const formattedDate = `${dayStr}-${monthStr}-${yearStr}`;
+    const formattedDate = formatDateWithTemplate(now, currentDateFormat);
 
     const showSec = toggleDiSeconds ? toggleDiSeconds.checked : false;
     if (diPreviewSeconds) {
@@ -527,6 +631,158 @@ function initSettingsPage() {
     window.winzen.send('reload_widgets');
   });
 
+  const inputLayoutPresetName = document.getElementById('inputLayoutPresetName');
+  const btnSaveLayoutPreset = document.getElementById('btnSaveLayoutPreset');
+  const layoutPresetsList = document.getElementById('layoutPresetsList');
+
+  function handleSaveLayoutPreset() {
+    if (!window.winzen || typeof window.winzen.send !== 'function') return;
+    const name = inputLayoutPresetName ? inputLayoutPresetName.value.trim() : '';
+    window.winzen.send('save_layout_preset', { name });
+    if (inputLayoutPresetName) inputLayoutPresetName.value = '';
+  }
+
+  if (btnSaveLayoutPreset) {
+    btnSaveLayoutPreset.addEventListener('click', handleSaveLayoutPreset);
+  }
+  if (inputLayoutPresetName) {
+    inputLayoutPresetName.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleSaveLayoutPreset();
+      }
+    });
+  }
+
+  function renderLayoutPresets(presets, activeId) {
+    if (!layoutPresetsList) return;
+    layoutPresetsList.innerHTML = '';
+
+    const list = Array.isArray(presets) ? presets : [];
+    if (list.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'layout-preset-empty';
+      empty.textContent = 'No saved layout presets yet. Arrange your taskbar and Control Center below, then click Save Current.';
+      layoutPresetsList.appendChild(empty);
+      return;
+    }
+
+    list.forEach((preset) => {
+      const isActive = !!(activeId && preset.id === activeId);
+      const row = document.createElement('div');
+      row.className = 'layout-preset-row' + (isActive ? ' is-active' : '');
+
+      const info = document.createElement('div');
+      info.className = 'layout-preset-info';
+
+      const titleLine = document.createElement('div');
+      titleLine.className = 'layout-preset-title-line';
+
+      const nameEl = document.createElement('span');
+      nameEl.className = 'layout-preset-name';
+      nameEl.textContent = preset.name || 'Untitled Layout';
+      titleLine.appendChild(nameEl);
+
+      if (isActive) {
+        const badge = document.createElement('span');
+        badge.className = 'layout-preset-badge';
+        badge.textContent = 'Active';
+        titleLine.appendChild(badge);
+      }
+
+      info.appendChild(titleLine);
+
+      const actions = document.createElement('div');
+      actions.className = 'layout-preset-actions';
+
+      const btnApply = document.createElement('button');
+      btnApply.type = 'button';
+      btnApply.className = 'win11-btn';
+      btnApply.textContent = 'Apply';
+      btnApply.addEventListener('click', () => {
+        window.winzen.send('apply_layout_preset', { id: preset.id });
+      });
+
+      const btnRename = document.createElement('button');
+      btnRename.type = 'button';
+      btnRename.className = 'win11-btn';
+      btnRename.textContent = 'Rename';
+
+      const btnUpdate = document.createElement('button');
+      btnUpdate.type = 'button';
+      btnUpdate.className = 'win11-btn';
+      btnUpdate.textContent = 'Update';
+      btnUpdate.title = 'Overwrite this preset with the current layout';
+      btnUpdate.addEventListener('click', () => {
+        window.winzen.send('update_layout_preset', { id: preset.id });
+      });
+
+      const btnDelete = document.createElement('button');
+      btnDelete.type = 'button';
+      btnDelete.className = 'win11-btn-danger';
+      btnDelete.textContent = 'Delete';
+      btnDelete.addEventListener('click', () => {
+        window.winzen.send('delete_layout_preset', { id: preset.id });
+      });
+
+      btnRename.addEventListener('click', () => {
+        titleLine.innerHTML = '';
+        const renameInput = document.createElement('input');
+        renameInput.type = 'text';
+        renameInput.className = 'win11-input layout-preset-rename-input';
+        renameInput.value = preset.name || '';
+        renameInput.maxLength = 40;
+        titleLine.appendChild(renameInput);
+
+        actions.innerHTML = '';
+        const btnSaveRename = document.createElement('button');
+        btnSaveRename.type = 'button';
+        btnSaveRename.className = 'win11-btn-accent';
+        btnSaveRename.textContent = 'Save';
+
+        const btnCancelRename = document.createElement('button');
+        btnCancelRename.type = 'button';
+        btnCancelRename.className = 'win11-btn';
+        btnCancelRename.textContent = 'Cancel';
+
+        const commitRename = () => {
+          const nextName = renameInput.value.trim();
+          if (nextName) {
+            window.winzen.send('rename_layout_preset', { id: preset.id, name: nextName });
+          } else {
+            renderLayoutPresets(list, activeId);
+          }
+        };
+
+        btnSaveRename.addEventListener('click', commitRename);
+        btnCancelRename.addEventListener('click', () => renderLayoutPresets(list, activeId));
+        renameInput.addEventListener('keydown', (ev) => {
+          if (ev.key === 'Enter') {
+            ev.preventDefault();
+            commitRename();
+          } else if (ev.key === 'Escape') {
+            ev.preventDefault();
+            renderLayoutPresets(list, activeId);
+          }
+        });
+
+        actions.appendChild(btnSaveRename);
+        actions.appendChild(btnCancelRename);
+        renameInput.focus();
+        renameInput.select();
+      });
+
+      actions.appendChild(btnApply);
+      actions.appendChild(btnRename);
+      actions.appendChild(btnUpdate);
+      actions.appendChild(btnDelete);
+
+      row.appendChild(info);
+      row.appendChild(actions);
+      layoutPresetsList.appendChild(row);
+    });
+  }
+
 
 
 
@@ -552,12 +808,25 @@ function initSettingsPage() {
         if (stateEnableAnimations) stateEnableAnimations.textContent = animOn ? 'On' : 'Off';
       }
 
+      if (toggleOverrideWinKey) {
+        const ovWinKey = !!s.overrideWindowsKey;
+        toggleOverrideWinKey.checked = ovWinKey;
+        if (stateOverrideWinKey) stateOverrideWinKey.textContent = ovWinKey ? 'On' : 'Off';
+      }
+
+      if (toggleAutoStart) {
+        const autoStart = !!s.autoStartOnLogon;
+        toggleAutoStart.checked = autoStart;
+        if (stateAutoStart) stateAutoStart.textContent = autoStart ? 'On' : 'Off';
+      }
+
       selectDockEdge.value = s.dockEdge || 'Bottom';
       if (selectTheme) {
         selectTheme.value = s.theme || 'dark';
         document.documentElement.setAttribute('data-theme', selectTheme.value);
         document.body.className = selectTheme.value === 'light' ? 'theme-light' : 'theme-dark';
       }
+      syncDateFormatUI(s.dateFormat || 'DD-MM-YYYY');
       inputTaskbarHeight.value = s.taskbarHeightPx || 48;
       labelHeightVal.textContent = `${s.taskbarHeightPx || 48}px`;
       updateSliderTrackFill(inputTaskbarHeight);
@@ -687,6 +956,7 @@ function initSettingsPage() {
         previewBottomBar.textContent = `WinZenShell (Bottom · ${s.taskbarHeightPx}px)`;
       }
 
+      renderLayoutPresets(s.layoutPresets, s.activeLayoutPresetId);
       renderWidgetsByRegion(latestWidgets);
       latestCcWidgets = (data.controlCenterWidgets || []).slice().sort((a, b) => (a.order ?? 10) - (b.order ?? 10));
       renderControlCenterSettings(latestCcWidgets, latestWidgets);

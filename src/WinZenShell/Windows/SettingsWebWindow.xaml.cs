@@ -196,6 +196,16 @@ public partial class SettingsWebWindow : Window
                     _shellState.ToggleAnimations(animEnable);
                     break;
 
+                case "toggle_override_windows_key":
+                    bool ovWinKey = root.TryGetProperty("enable", out var owkProp) && owkProp.GetBoolean();
+                    _shellState.UpdateOverrideWindowsKey(ovWinKey);
+                    break;
+
+                case "toggle_auto_start":
+                    bool autoStart = root.TryGetProperty("enable", out var asProp) && asProp.GetBoolean();
+                    _shellState.UpdateAutoStartOnLogon(autoStart);
+                    break;
+
                 case "update_workarea_config":
                     bool respect = !root.TryGetProperty("respectWorkArea", out var rProp) || rProp.GetBoolean();
                     string dockEdge = root.TryGetProperty("dockEdge", out var dProp) ? dProp.GetString() ?? "Bottom" : "Bottom";
@@ -222,6 +232,11 @@ public partial class SettingsWebWindow : Window
                 case "set_theme":
                     string newTheme = root.TryGetProperty("theme", out var nthProp) ? nthProp.GetString() ?? "dark" : "dark";
                     _shellState.UpdateTheme(newTheme);
+                    break;
+
+                case "set_date_format":
+                    string? newDateFormat = root.TryGetProperty("dateFormat", out var ndfProp) ? ndfProp.GetString() : null;
+                    _shellState.UpdateDateFormat(newDateFormat);
                     break;
 
                 case "update_widget_state":
@@ -335,6 +350,43 @@ public partial class SettingsWebWindow : Window
                         {
                             _shellState.UpdateControlCenterWidgets(ccUpdates);
                         }
+                    }
+                    break;
+
+                case "save_layout_preset":
+                    {
+                        string? presetName = root.TryGetProperty("name", out var lpNameProp) ? lpNameProp.GetString() : null;
+                        _shellState.SaveLayoutPreset(presetName);
+                    }
+                    break;
+
+                case "apply_layout_preset":
+                    if (root.TryGetProperty("id", out var lpApplyId) && !string.IsNullOrWhiteSpace(lpApplyId.GetString()))
+                    {
+                        _shellState.ApplyLayoutPreset(lpApplyId.GetString());
+                    }
+                    break;
+
+                case "update_layout_preset":
+                    if (root.TryGetProperty("id", out var lpUpdateId) && !string.IsNullOrWhiteSpace(lpUpdateId.GetString()))
+                    {
+                        string? newName = root.TryGetProperty("name", out var lpNewName) ? lpNewName.GetString() : null;
+                        _shellState.UpdateLayoutPreset(lpUpdateId.GetString(), newName);
+                    }
+                    break;
+
+                case "rename_layout_preset":
+                    if (root.TryGetProperty("id", out var lpRenameId) && !string.IsNullOrWhiteSpace(lpRenameId.GetString()))
+                    {
+                        string? renamed = root.TryGetProperty("name", out var lpRenameName) ? lpRenameName.GetString() : null;
+                        _shellState.RenameLayoutPreset(lpRenameId.GetString(), renamed);
+                    }
+                    break;
+
+                case "delete_layout_preset":
+                    if (root.TryGetProperty("id", out var lpDeleteId) && !string.IsNullOrWhiteSpace(lpDeleteId.GetString()))
+                    {
+                        _shellState.DeleteLayoutPreset(lpDeleteId.GetString());
                     }
                     break;
 

@@ -1,0 +1,14 @@
+{
+  "id": "community.zen-lock-button",
+  "name": "Lock Screen",
+  "version": "1.0.0",
+  "author": "Official",
+  "description": "Quickly lock your Windows workstation (equivalent to Win + L).",
+  "slot": "right",
+  "order": 19,
+  "entry": "index.html",
+  "width": 34,
+  "autoWidth": true,
+  "supportedModes": ["icon"],
+  "enabled": true
+}

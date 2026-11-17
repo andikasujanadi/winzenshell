@@ -149,6 +149,29 @@ public class DynamicIslandConfig
     public bool EnableMusicIsland { get; set; } = true;
 }
 
+public class LayoutPreset
+{
+    public string Id { get; set; } = "";
+    public string Name { get; set; } = "";
+    public string UpdatedAt { get; set; } = "";
+    public Dictionary<string, WidgetStateOverride> WidgetOverrides { get; set; } = new();
+    public List<ControlCenterItemConfig> ControlCenterWidgets { get; set; } = new();
+
+    // Shell layout & appearance settings
+    public bool? HideNativeTaskbar { get; set; }
+    public string? DockEdge { get; set; }
+    public int? TaskbarHeightPx { get; set; }
+    public int? FloatingMarginPx { get; set; }
+    public int? TaskbarCornerRadiusPx { get; set; }
+    public int? BackgroundOpacity { get; set; }
+    public int? BackgroundBlurStrength { get; set; }
+
+    // Dynamic Island placement settings
+    public bool? DynamicIslandEnabled { get; set; }
+    public string? DynamicIslandPlacement { get; set; }
+    public string? DynamicIslandTaskbarSlot { get; set; }
+}
+
 public class ShellSettings
 {
     public bool HideNativeTaskbar { get; set; } = false;
@@ -162,11 +185,16 @@ public class ShellSettings
     public int BackgroundBlurStrength { get; set; } = 60;
     public string AccentColor { get; set; } = "#3684E3";
     public string Theme { get; set; } = "dark"; // "dark" or "light"
+    public string DateFormat { get; set; } = "DD-MM-YYYY";
     public bool EnableAnimations { get; set; } = true;
+    public bool OverrideWindowsKey { get; set; } = false;
+    public bool AutoStartOnLogon { get; set; } = false;
     public Dictionary<string, WidgetStateOverride> WidgetOverrides { get; set; } = new();
     public List<ControlCenterItemConfig> ControlCenterWidgets { get; set; } = new();
     public List<PinnedAppEntry> PinnedApps { get; set; } = new();
     public DynamicIslandConfig DynamicIsland { get; set; } = new();
+    public List<LayoutPreset> LayoutPresets { get; set; } = new();
+    public string? ActiveLayoutPresetId { get; set; }
 }
 
 public class ShellFullStatePayload
@@ -189,6 +217,7 @@ public class ShellStateService
     private readonly WidgetManagerService _widgetManager;
     private readonly SystemMetricsService? _systemMetricsService;
     private readonly string _settingsFilePath;
+    private readonly string _portableSettingsFilePath;
 
     private ShellSettings _settings = new();
     private string _statusBanner = "WinZenShell Active — Ready";
@@ -197,6 +226,7 @@ public class ShellStateService
     public event Action<bool>? TaskbarVisibilityRequested;
     public event Action<Win32Api.RECT>? TaskbarBoundsUpdated;
     public event Action? DynamicIslandVisibilityChanged;
+    public event Action<bool>? WinKeyOverrideChanged;
 
     public Func<IntPtr>? GetTaskbarHwnd { get; set; }
     public Func<IntPtr>? GetDynamicIslandHwnd { get; set; }
@@ -222,6 +252,7 @@ public class ShellStateService
             "WinZenShell");
         Directory.CreateDirectory(configDir);
         _settingsFilePath = Path.Combine(configDir, "settings.json");
+        _portableSettingsFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json");
 
         LoadSettings();
     }
@@ -230,15 +261,17 @@ public class ShellStateService
     {
         try
         {
-            if (File.Exists(_settingsFilePath))
+            string? pathToLoad = File.Exists(_settingsFilePath)
+                ? _settingsFilePath
+                : (File.Exists(_portableSettingsFilePath) ? _portableSettingsFilePath : null);
+
+            if (pathToLoad != null)
             {
-                string json = File.ReadAllText(_settingsFilePath);
+                string json = File.ReadAllText(pathToLoad);
                 var loaded = JsonSerializer.Deserialize<ShellSettings>(json);
                 if (loaded != null)
                 {
                     _settings = loaded;
-                    // On fresh app start, always start with native taskbar visible until user toggles or we apply safely
-                    _settings.HideNativeTaskbar = false;
                 }
             }
         }
@@ -262,12 +295,18 @@ public class ShellStateService
         {
             _settings.DynamicIsland = new();
         }
+        if (string.IsNullOrWhiteSpace(_settings.DateFormat))
+        {
+            _settings.DateFormat = "DD-MM-YYYY";
+        }
+        _settings.LayoutPresets ??= new();
         if (string.Equals(_settings.DockEdge, "Top", StringComparison.OrdinalIgnoreCase) && _settings.DynamicIsland.Placement == "top-center")
         {
             _settings.DynamicIsland.Placement = "taskbar";
         }
 
         FlyoutAnimationHelper.AnimationsEnabled = _settings.EnableAnimations;
+        SyncAutoStartRegistry(_settings.AutoStartOnLogon);
     }
 
     public void SaveSettings()
@@ -276,6 +315,11 @@ public class ShellStateService
         {
             string json = JsonSerializer.Serialize(_settings, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(_settingsFilePath, json);
+            try
+            {
+                File.WriteAllText(_portableSettingsFilePath, json);
+            }
+            catch { }
         }
         catch
         {
@@ -390,6 +434,60 @@ public class ShellStateService
         SaveSettings();
         _statusBanner = $"Theme changed to {_settings.Theme}";
         BroadcastState();
+    }
+
+    public void UpdateDateFormat(string? dateFormat)
+    {
+        _settings.DateFormat = string.IsNullOrWhiteSpace(dateFormat) ? "DD-MM-YYYY" : dateFormat.Trim();
+        SaveSettings();
+        _statusBanner = "Date format saved";
+        BroadcastState();
+    }
+
+    public void UpdateOverrideWindowsKey(bool enabled)
+    {
+        _settings.OverrideWindowsKey = enabled;
+        SaveSettings();
+        _statusBanner = enabled ? "Windows key opens App Launcher" : "Windows key restored";
+        WinKeyOverrideChanged?.Invoke(enabled);
+        BroadcastState();
+    }
+
+    public void UpdateAutoStartOnLogon(bool enable)
+    {
+        _settings.AutoStartOnLogon = enable;
+        SyncAutoStartRegistry(enable);
+        SaveSettings();
+        _statusBanner = enable ? "Auto-start on logon enabled" : "Auto-start on logon disabled";
+        BroadcastState();
+    }
+
+    private static void SyncAutoStartRegistry(bool enable)
+    {
+        try
+        {
+            using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(
+                @"Software\Microsoft\Windows\CurrentVersion\Run", writable: true);
+            if (key == null) return;
+
+            const string appName = "WinZenShell";
+            if (enable)
+            {
+                string? exePath = Environment.ProcessPath;
+                if (!string.IsNullOrWhiteSpace(exePath) && File.Exists(exePath))
+                {
+                    key.SetValue(appName, $"\"{exePath}\" --autostart");
+                }
+            }
+            else
+            {
+                if (key.GetValue(appName) != null)
+                {
+                    key.DeleteValue(appName, throwOnMissingValue: false);
+                }
+            }
+        }
+        catch { }
     }
 
     public void UpdateWidgetState(
@@ -752,6 +850,149 @@ public class ShellStateService
         _settings.ControlCenterWidgets = items;
         SaveSettings();
         _statusBanner = "Control Center saved";
+        BroadcastState();
+    }
+
+    private static T DeepClone<T>(T value) where T : new()
+    {
+        try
+        {
+            string json = JsonSerializer.Serialize(value);
+            return JsonSerializer.Deserialize<T>(json) ?? new T();
+        }
+        catch
+        {
+            return new T();
+        }
+    }
+
+    private void CaptureCurrentStateIntoPreset(LayoutPreset preset)
+    {
+        preset.UpdatedAt = DateTimeOffset.UtcNow.ToString("o");
+        preset.WidgetOverrides = DeepClone(_settings.WidgetOverrides ?? new());
+        preset.ControlCenterWidgets = DeepClone(_settings.ControlCenterWidgets ?? new());
+        preset.HideNativeTaskbar = _settings.HideNativeTaskbar;
+        preset.DockEdge = _settings.DockEdge;
+        preset.TaskbarHeightPx = _settings.TaskbarHeightPx;
+        preset.FloatingMarginPx = _settings.FloatingMarginPx;
+        preset.TaskbarCornerRadiusPx = _settings.TaskbarCornerRadiusPx;
+        preset.BackgroundOpacity = _settings.BackgroundOpacity;
+        preset.BackgroundBlurStrength = _settings.BackgroundBlurStrength;
+        preset.DynamicIslandEnabled = _settings.DynamicIsland?.Enabled;
+        preset.DynamicIslandPlacement = _settings.DynamicIsland?.Placement;
+        preset.DynamicIslandTaskbarSlot = _settings.DynamicIsland?.TaskbarSlot;
+    }
+
+    public void SaveLayoutPreset(string? name)
+    {
+        _settings.LayoutPresets ??= new();
+        string cleanName = string.IsNullOrWhiteSpace(name)
+            ? $"Layout {_settings.LayoutPresets.Count + 1}"
+            : name.Trim();
+
+        var preset = new LayoutPreset
+        {
+            Id = Guid.NewGuid().ToString("N")[..8],
+            Name = cleanName
+        };
+        CaptureCurrentStateIntoPreset(preset);
+
+        _settings.LayoutPresets.Add(preset);
+        _settings.ActiveLayoutPresetId = preset.Id;
+        SaveSettings();
+        _statusBanner = $"Saved layout '{preset.Name}'";
+        BroadcastState();
+    }
+
+    public void ApplyLayoutPreset(string? id)
+    {
+        if (string.IsNullOrWhiteSpace(id) || _settings.LayoutPresets == null) return;
+        var preset = _settings.LayoutPresets.Find(p => p.Id == id);
+        if (preset == null) return;
+
+        _settings.WidgetOverrides = DeepClone(preset.WidgetOverrides ?? new());
+        _settings.ControlCenterWidgets = DeepClone(preset.ControlCenterWidgets ?? new());
+
+        if (preset.HideNativeTaskbar.HasValue && preset.HideNativeTaskbar.Value != _settings.HideNativeTaskbar)
+        {
+            _ = ToggleHideNativeTaskbarAsync(preset.HideNativeTaskbar.Value);
+        }
+        if (!string.IsNullOrWhiteSpace(preset.DockEdge))
+            _settings.DockEdge = preset.DockEdge;
+        if (preset.TaskbarHeightPx.HasValue)
+            _settings.TaskbarHeightPx = Math.Clamp(preset.TaskbarHeightPx.Value, 36, 96);
+        if (preset.FloatingMarginPx.HasValue)
+            _settings.FloatingMarginPx = Math.Clamp(preset.FloatingMarginPx.Value, 0, 32);
+        if (preset.TaskbarCornerRadiusPx.HasValue)
+            _settings.TaskbarCornerRadiusPx = Math.Clamp(preset.TaskbarCornerRadiusPx.Value, 0, 120);
+        if (preset.BackgroundOpacity.HasValue)
+            _settings.BackgroundOpacity = Math.Clamp(preset.BackgroundOpacity.Value, 0, 100);
+        if (preset.BackgroundBlurStrength.HasValue)
+            _settings.BackgroundBlurStrength = Math.Clamp(preset.BackgroundBlurStrength.Value, 0, 100);
+
+        _settings.DynamicIsland ??= new();
+        if (preset.DynamicIslandEnabled.HasValue)
+            _settings.DynamicIsland.Enabled = preset.DynamicIslandEnabled.Value;
+        if (!string.IsNullOrWhiteSpace(preset.DynamicIslandPlacement))
+            _settings.DynamicIsland.Placement = preset.DynamicIslandPlacement;
+        if (!string.IsNullOrWhiteSpace(preset.DynamicIslandTaskbarSlot))
+            _settings.DynamicIsland.TaskbarSlot = preset.DynamicIslandTaskbarSlot;
+
+        if (string.Equals(_settings.DockEdge, "Top", StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(_settings.DynamicIsland.Placement, "top-center", StringComparison.OrdinalIgnoreCase))
+        {
+            _settings.DynamicIsland.Placement = "taskbar";
+        }
+
+        _settings.ActiveLayoutPresetId = preset.Id;
+        SaveSettings();
+        SyncTaskbarAndWorkArea();
+        _statusBanner = $"Applied layout '{preset.Name}'";
+        BroadcastState();
+        DynamicIslandVisibilityChanged?.Invoke();
+    }
+
+    public void UpdateLayoutPreset(string? id, string? name = null)
+    {
+        if (string.IsNullOrWhiteSpace(id) || _settings.LayoutPresets == null) return;
+        var preset = _settings.LayoutPresets.Find(p => p.Id == id);
+        if (preset == null) return;
+
+        if (!string.IsNullOrWhiteSpace(name))
+        {
+            preset.Name = name.Trim();
+        }
+        CaptureCurrentStateIntoPreset(preset);
+        _settings.ActiveLayoutPresetId = preset.Id;
+        SaveSettings();
+        _statusBanner = $"Updated layout '{preset.Name}'";
+        BroadcastState();
+    }
+
+    public void RenameLayoutPreset(string? id, string? name)
+    {
+        if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(name) || _settings.LayoutPresets == null) return;
+        var preset = _settings.LayoutPresets.Find(p => p.Id == id);
+        if (preset == null) return;
+
+        preset.Name = name.Trim();
+        SaveSettings();
+        _statusBanner = $"Renamed layout to '{preset.Name}'";
+        BroadcastState();
+    }
+
+    public void DeleteLayoutPreset(string? id)
+    {
+        if (string.IsNullOrWhiteSpace(id) || _settings.LayoutPresets == null) return;
+        int removed = _settings.LayoutPresets.RemoveAll(p => p.Id == id);
+        if (removed == 0) return;
+
+        if (_settings.ActiveLayoutPresetId == id)
+        {
+            _settings.ActiveLayoutPresetId = null;
+        }
+        SaveSettings();
+        _statusBanner = "Layout preset deleted";
         BroadcastState();
     }
 

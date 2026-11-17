@@ -36,6 +36,7 @@ public partial class TaskbarWebWindow : Window
     private NetworkFlyoutWindow? _networkFlyout;
     private BluetoothFlyoutWindow? _bluetoothFlyout;
     private BatteryFlyoutWindow? _batteryFlyout;
+    private PowerFlyoutWindow? _powerFlyout;
     private TrayOverflowFlyoutWindow? _trayOverflowFlyout;
     public DynamicIslandWindow? DynamicIslandOverlayWindow { get; set; }
     public MediaService MediaService => _mediaService;
@@ -1017,6 +1018,11 @@ public partial class TaskbarWebWindow : Window
                 _batteryFlyout.ApplyAccentColor(accent);
                 _batteryFlyout.ApplyTheme(theme);
             }
+            if (_powerFlyout != null)
+            {
+                _powerFlyout.ApplyAccentColor(accent);
+                _powerFlyout.ApplyTheme(theme);
+            }
             if (_trayOverflowFlyout != null)
             {
                 _trayOverflowFlyout.ApplyAccentColor(accent);
@@ -1515,6 +1521,25 @@ public partial class TaskbarWebWindow : Window
                     });
                     break;
 
+                case "toggle_power_flyout":
+                    double pwrX = root.TryGetProperty("x", out var pwrXProp) && pwrXProp.TryGetDouble(out double pwrXd) ? pwrXd : 0;
+                    double pwrW = root.TryGetProperty("width", out var pwrWProp) && pwrWProp.TryGetDouble(out double pwrWd) ? pwrWd : 34;
+
+                    Dispatcher.Invoke(() =>
+                    {
+                        _powerFlyout ??= new PowerFlyoutWindow();
+                        bool wasJustOpen = _powerFlyout.IsVisible ||
+                            (DateTime.UtcNow - _powerFlyout.LastDeactivatedTime).TotalMilliseconds < 350;
+
+                        CloseAllFlyouts();
+
+                        if (!wasJustOpen)
+                        {
+                            _powerFlyout.ShowAt(Left + pwrX, pwrW, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
+                        }
+                    });
+                    break;
+
                 case "toggle_tray_overflow":
                     double trX = root.TryGetProperty("x", out var trXProp) && trXProp.TryGetDouble(out double trXd) ? trXd : 0;
                     double trW = root.TryGetProperty("width", out var trWProp) && trWProp.TryGetDouble(out double trWd) ? trWd : 24;
@@ -1614,6 +1639,10 @@ public partial class TaskbarWebWindow : Window
                 case "toggle_mute":
                     _audioService.ToggleMute();
                     BroadcastMetrics();
+                    break;
+
+                case "lock_workstation":
+                    Win32Api.LockWorkStation();
                     break;
 
                 case "switch_desktop":
@@ -2295,7 +2324,7 @@ public partial class TaskbarWebWindow : Window
                     if (ccLeft > 0 && ccTop > 0)
                     {
                         double targetLeft = ccLeft + (ccWidth - _networkFlyout.Width);
-                        _networkFlyout.ShowAtExact(targetLeft, ccTop, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
+                        _networkFlyout.ShowAt(targetLeft, _networkFlyout.Width, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
                     }
                     else
                     {
@@ -2316,12 +2345,33 @@ public partial class TaskbarWebWindow : Window
                     if (ccLeft > 0 && ccTop > 0)
                     {
                         double targetLeft = ccLeft + (ccWidth - _batteryFlyout.Width);
-                        _batteryFlyout.ShowAtExact(targetLeft, ccTop, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
+                        _batteryFlyout.ShowAt(targetLeft, _batteryFlyout.Width, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
                     }
                     else
                     {
                         var mon = WorkAreaAppBarService.GetPrimaryMonitorInfo().rcMonitor;
                         _batteryFlyout.ShowAt(mon.Right - 220, 48, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
+                    }
+                });
+            }
+            else if (action == "toggle_power_flyout")
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    double ccLeft = _controlCenterFlyout != null && _controlCenterFlyout.Left > 0 ? _controlCenterFlyout.Left : -1;
+                    double ccTop = _controlCenterFlyout != null && _controlCenterFlyout.Top > 0 ? _controlCenterFlyout.Top : -1;
+                    double ccWidth = _controlCenterFlyout?.Width ?? 368;
+                    _powerFlyout ??= new PowerFlyoutWindow();
+                    CloseAllFlyouts();
+                    if (ccLeft > 0 && ccTop > 0)
+                    {
+                        double targetLeft = ccLeft + (ccWidth - _powerFlyout.Width);
+                        _powerFlyout.ShowAt(targetLeft, _powerFlyout.Width, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
+                    }
+                    else
+                    {
+                        var mon = WorkAreaAppBarService.GetPrimaryMonitorInfo().rcMonitor;
+                        _powerFlyout.ShowAt(mon.Right - 140, 34, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
                     }
                 });
             }
@@ -2337,7 +2387,7 @@ public partial class TaskbarWebWindow : Window
                     if (ccLeft > 0 && ccTop > 0)
                     {
                         double targetLeft = ccLeft + (ccWidth - _bluetoothFlyout.Width);
-                        _bluetoothFlyout.ShowAtExact(targetLeft, ccTop, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
+                        _bluetoothFlyout.ShowAt(targetLeft, _bluetoothFlyout.Width, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
                     }
                     else
                     {
@@ -2385,6 +2435,31 @@ public partial class TaskbarWebWindow : Window
         catch { }
     }
 
+    public void ToggleAppLauncherFromWinKey()
+    {
+        Dispatcher.Invoke(() =>
+        {
+            _appLauncherFlyout ??= new AppLauncherFlyoutWindow(_appLauncherService, _openSettingsCallback, _shellState);
+            bool wasJustOpen = _appLauncherFlyout.IsVisible ||
+                (DateTime.UtcNow - _appLauncherFlyout.LastDeactivatedTime).TotalMilliseconds < 350;
+
+            CloseAllFlyouts();
+
+            if (!wasJustOpen)
+            {
+                string alRegion = "center";
+                if (_shellState.Settings.WidgetOverrides.TryGetValue("community.zen-start-button", out var ov) && !string.IsNullOrWhiteSpace(ov.Slot))
+                {
+                    alRegion = ov.Slot;
+                }
+                double screenX = alRegion == "left"
+                    ? Left + 24
+                    : (alRegion == "right" ? Left + Width - 68 : Left + (Width / 2.0) - 17);
+                _appLauncherFlyout.ShowAt(screenX, 34, Top, Height, _shellState.Settings.DockEdge, alRegion);
+            }
+        });
+    }
+
     private void CloseAllFlyouts(Window? except = null)
     {
         if (_brightnessFlyout != null && _brightnessFlyout != except && _brightnessFlyout.IsVisible)
@@ -2405,6 +2480,8 @@ public partial class TaskbarWebWindow : Window
             FlyoutAnimationHelper.AnimateHide(_bluetoothFlyout);
         if (_batteryFlyout != null && _batteryFlyout != except && _batteryFlyout.IsVisible)
             FlyoutAnimationHelper.AnimateHide(_batteryFlyout);
+        if (_powerFlyout != null && _powerFlyout != except && _powerFlyout.IsVisible)
+            FlyoutAnimationHelper.AnimateHide(_powerFlyout);
         if (_trayOverflowFlyout != null && _trayOverflowFlyout != except && _trayOverflowFlyout.IsVisible)
             FlyoutAnimationHelper.AnimateHide(_trayOverflowFlyout);
         if (_windowSelectorFlyout != null && _windowSelectorFlyout != except && _windowSelectorFlyout.IsVisible)

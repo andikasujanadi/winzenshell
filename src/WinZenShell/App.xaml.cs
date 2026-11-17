@@ -22,6 +22,7 @@ public partial class App : System.Windows.Application
     private TaskbarWebWindow? _taskbarWindow;
     private SettingsWebWindow? _settingsWindow;
     private DynamicIslandWindow? _dynamicIslandWindow;
+    private WinKeyHookService? _winKeyHookService;
     private Forms.NotifyIcon? _trayIcon;
     private static System.Threading.Mutex? _singleInstanceMutex;
 
@@ -148,21 +149,33 @@ public partial class App : System.Windows.Application
                 System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] _taskbarWindow.Show() complete\n");
             }
 
-            try
+            bool isAutoStart = Array.Exists(e.Args, a => string.Equals(a, "--autostart", StringComparison.OrdinalIgnoreCase));
+            if (!isAutoStart)
             {
-                _settingsWindow.Show();
-                System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] _settingsWindow.Show() complete\n");
-            }
-            catch (Exception ex)
-            {
-                System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] _settingsWindow.Show() exception: {ex}\n");
+                try
+                {
+                    _settingsWindow.Show();
+                    System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] _settingsWindow.Show() complete\n");
+                }
+                catch (Exception ex)
+                {
+                    System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] _settingsWindow.Show() exception: {ex}\n");
+                }
             }
             try
             {
                 System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] Wiring DynamicIslandVisibilityChanged...\n");
                 _shellStateService.DynamicIslandVisibilityChanged += UpdateDynamicIslandVisibility;
+                _winKeyHookService = new WinKeyHookService();
+                _winKeyHookService.WinKeySoloPressed += () => Dispatcher.BeginInvoke(() => _taskbarWindow?.ToggleAppLauncherFromWinKey());
+                _shellStateService.WinKeyOverrideChanged += enabled => Dispatcher.BeginInvoke(() => _winKeyHookService?.SetEnabled(enabled));
+                _winKeyHookService.SetEnabled(_shellStateService.Settings.OverrideWindowsKey);
                 System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] SyncTaskbarAndWorkArea...\n");
                 _shellStateService.SyncTaskbarAndWorkArea();
+                if (_shellStateService.Settings.HideNativeTaskbar)
+                {
+                    _ = _shellStateService.ToggleHideNativeTaskbarAsync(true);
+                }
                 System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] UpdateDynamicIslandVisibility...\n");
                 UpdateDynamicIslandVisibility();
                 System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] Shell started successfully!\n");
@@ -400,6 +413,7 @@ public partial class App : System.Windows.Application
         }
         catch { }
         SafeCleanupAndRestore();
+        _winKeyHookService?.Dispose();
         if (_trayIcon != null)
         {
             _trayIcon.Visible = false;

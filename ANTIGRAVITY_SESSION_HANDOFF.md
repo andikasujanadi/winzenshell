@@ -1,6 +1,6 @@
 # WinZenShell — Antigravity Session Handoff & Architecture Guide
 
-> **Current State**: `v0.3.0`  
+> **Current State**: `v0.3.2`  
 > **Platform**: Windows 11 (64-bit)  
 > **Framework**: .NET 10 (WPF) + Microsoft.Web.WebView2 + Native Win32 APIs  
 > **Frontend**: Vanilla Web Components (Custom Elements v1, Shadow DOM, CSS Custom Properties)
@@ -109,6 +109,8 @@ This document serves as the complete handoff for another Antigravity AI pair pro
 | `zen-control-center` | `right` | Authentic 2-switch toggle icon (SF Symbols `switch.2`) | `ControlCenterFlyoutWindow` (modular grid) |
 | `zen-bluetooth` | `right` | Fluent 2 Bluetooth device manager & radio toggle | `BluetoothFlyoutWindow` |
 | `zen-media-player` | `right/center` | Windows GSMTC media playback, album art, seekbar & controls | Multi-layout Control Center card (`1x1` to `4x1`) |
+| `zen-power` | `right` | Power menu button (taskbar & Control Center) | `PowerFlyoutWindow` (Sleep, Lock, Restart, Shutdown) |
+| `zen-lock-button` | `right` | Workstation lock button (`Win + L`) | Immediate `LockWorkStation()` action |
 
 ### 3.5 Battery & Power Studio (`zen-battery`)
 - **Precision Vector SVG Geometry**:

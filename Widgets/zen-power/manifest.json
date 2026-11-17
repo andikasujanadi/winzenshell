@@ -1,0 +1,14 @@
+{
+  "id": "community.zen-power",
+  "name": "Power",
+  "version": "1.0.0",
+  "author": "Official",
+  "description": "Power menu flyout with Sleep, Lock, Restart, and Shutdown actions.",
+  "slot": "right",
+  "order": 20,
+  "entry": "index.html",
+  "width": 34,
+  "autoWidth": true,
+  "supportedModes": ["icon"],
+  "enabled": true
+}

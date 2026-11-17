@@ -79,6 +79,29 @@
     enableMusicIsland: true
   };
 
+  let globalDateFormat = 'DD-MM-YYYY';
+
+  function formatDateWithTemplate(date, template) {
+    const tpl = (template && String(template).trim()) ? String(template) : 'DD-MM-YYYY';
+    const d = date instanceof Date ? date : new Date();
+    const year = String(d.getFullYear());
+    const monthIdx = d.getMonth();
+    const dayNum = d.getDate();
+    const map = {
+      YYYY: year,
+      YY: year.slice(-2),
+      MMMM: d.toLocaleDateString('en-US', { month: 'long' }),
+      MMM: d.toLocaleDateString('en-US', { month: 'short' }),
+      MM: String(monthIdx + 1).padStart(2, '0'),
+      M: String(monthIdx + 1),
+      dddd: d.toLocaleDateString('en-US', { weekday: 'long' }),
+      ddd: d.toLocaleDateString('en-US', { weekday: 'short' }),
+      DD: String(dayNum).padStart(2, '0'),
+      D: String(dayNum)
+    };
+    return tpl.replace(/YYYY|YY|MMMM|MMM|MM|M|dddd|ddd|DD|D/g, (m) => map[m] ?? m);
+  }
+
   function formatTime(sec) {
     if (typeof sec !== 'number' || isNaN(sec) || sec < 0) sec = 0;
     const m = Math.floor(sec / 60);
@@ -87,7 +110,13 @@
   }
 
   function getStandardClockWidth() {
-    return diConfig.showDate ? 196 : (diConfig.showSeconds ? 100 : 78);
+    if (!diConfig.showDate) {
+      return diConfig.showSeconds ? 100 : 78;
+    }
+    const timeW = timeEl ? timeEl.offsetWidth : 44;
+    const secW = (diConfig.showSeconds && secEl) ? secEl.offsetWidth : 0;
+    const dateW = dateEl ? dateEl.offsetWidth : 80;
+    return Math.max(150, Math.ceil(timeW + secW + dateW + 40));
   }
 
   function updateClock() {
@@ -107,10 +136,7 @@
     const rawSec = String(now.getSeconds()).padStart(2, '0');
     const secStr = `.${rawSec}`;
 
-    const dayStr = String(now.getDate()).padStart(2, '0');
-    const monthStr = String(now.getMonth() + 1).padStart(2, '0');
-    const yearStr = String(now.getFullYear());
-    const formattedDate = `${dayStr}-${monthStr}-${yearStr}`;
+    const formattedDate = formatDateWithTemplate(now, globalDateFormat);
     const weekdayStr = now.toLocaleDateString('en-US', { weekday: 'long' });
 
     const timeText = `${hrStr}:${minStr}${ampm}`;
@@ -188,6 +214,50 @@
     }
   }
 
+  function setMusicPillRestingVisible(showPill, instant = false) {
+    if (!islandMusicPill) return;
+    if (diConfig.placement !== 'top-center') {
+      islandMusicPill.classList.remove('is-hovered');
+      islandMusicPill.classList.add('is-music-absent');
+      islandMusicPill.style.display = 'none';
+      return;
+    }
+
+    const noAnim = instant || diConfig.enableAnimation === false;
+    if (showPill) {
+      if (islandMusicPill.style.display === 'none') {
+        if (noAnim) {
+          islandMusicPill.classList.remove('is-music-absent');
+          islandMusicPill.style.display = 'inline-flex';
+        } else {
+          islandMusicPill.classList.add('is-music-absent');
+          islandMusicPill.style.display = 'inline-flex';
+          void islandMusicPill.offsetWidth;
+          requestAnimationFrame(() => {
+            islandMusicPill.classList.remove('is-music-absent');
+          });
+        }
+      } else {
+        if (noAnim) {
+          islandMusicPill.style.transition = 'none';
+          islandMusicPill.classList.remove('is-music-absent');
+          void islandMusicPill.offsetWidth;
+          islandMusicPill.style.transition = '';
+        } else {
+          islandMusicPill.classList.remove('is-music-absent');
+        }
+      }
+    } else {
+      islandMusicPill.classList.remove('is-hovered');
+      if (noAnim) {
+        islandMusicPill.classList.add('is-music-absent');
+        islandMusicPill.style.display = 'none';
+      } else if (islandMusicPill.style.display !== 'none') {
+        islandMusicPill.classList.add('is-music-absent');
+      }
+    }
+  }
+
   function updateMusicView(media) {
     if (!media) return;
     lastMediaSnapshot = media;
@@ -248,7 +318,7 @@
       const showPill = diConfig.placement === 'top-center' &&
                        diConfig.enableMusicIsland !== false &&
                        media.hasMedia;
-      islandMusicPill.style.display = showPill ? 'inline-flex' : 'none';
+      setMusicPillRestingVisible(showPill, false);
     }
   }
 
@@ -355,7 +425,7 @@
       const showPill = diConfig.placement === 'top-center' &&
                        diConfig.enableMusicIsland !== false &&
                        !!(lastMediaSnapshot && lastMediaSnapshot.hasMedia);
-      islandMusicPill.style.display = showPill ? 'inline-flex' : 'none';
+      setMusicPillRestingVisible(showPill, true);
     }
 
     void capsule.offsetWidth;
@@ -593,6 +663,7 @@
     const s = state.Settings || state.settings || state;
     const di = s.DynamicIsland || s.dynamicIsland;
     const edge = (s.DockEdge || s.dockEdge || 'bottom').toLowerCase();
+    globalDateFormat = s.DateFormat || s.dateFormat || globalDateFormat;
 
     if (di) {
       diConfig = {

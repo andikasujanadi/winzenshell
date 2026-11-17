@@ -28,6 +28,28 @@ function initTaskbar() {
   let dynamicIslandClockTimer = null;
   let isDynamicIslandExpanded = false;
   let lastMediaSnapshot = null;
+  let globalDateFormat = 'DD-MM-YYYY';
+
+  function formatDateWithTemplate(date, template) {
+    const tpl = (template && String(template).trim()) ? String(template) : 'DD-MM-YYYY';
+    const d = date instanceof Date ? date : new Date();
+    const year = String(d.getFullYear());
+    const monthIdx = d.getMonth();
+    const dayNum = d.getDate();
+    const map = {
+      YYYY: year,
+      YY: year.slice(-2),
+      MMMM: d.toLocaleDateString('en-US', { month: 'long' }),
+      MMM: d.toLocaleDateString('en-US', { month: 'short' }),
+      MM: String(monthIdx + 1).padStart(2, '0'),
+      M: String(monthIdx + 1),
+      dddd: d.toLocaleDateString('en-US', { weekday: 'long' }),
+      ddd: d.toLocaleDateString('en-US', { weekday: 'short' }),
+      DD: String(dayNum).padStart(2, '0'),
+      D: String(dayNum)
+    };
+    return tpl.replace(/YYYY|YY|MMMM|MMM|MM|M|dddd|ddd|DD|D/g, (m) => map[m] ?? m);
+  }
 
   function updateDynamicIslandMedia(media) {
     const musicEl = document.getElementById('shell-dynamic-island-music');
@@ -35,13 +57,34 @@ function initTaskbar() {
     const isEnabled = currentDynamicIslandConfig.enabled &&
                       currentDynamicIslandConfig.enableMusicIsland !== false &&
                       currentDynamicIslandConfig.placement !== 'top-center';
+    const noAnim = currentDynamicIslandConfig.enableAnimation === false || !currentAnimations;
 
     if (!isEnabled || !media || !media.hasMedia) {
-      musicEl.style.display = 'none';
+      musicEl.classList.remove('is-hovered');
+      if (noAnim || !isEnabled) {
+        musicEl.classList.add('is-music-absent');
+        musicEl.style.display = 'none';
+      } else if (musicEl.style.display !== 'none') {
+        musicEl.classList.add('is-music-absent');
+      }
       return;
     }
 
-    musicEl.style.display = 'inline-flex';
+    if (musicEl.style.display === 'none') {
+      if (noAnim) {
+        musicEl.classList.remove('is-music-absent');
+        musicEl.style.display = 'inline-flex';
+      } else {
+        musicEl.classList.add('is-music-absent');
+        musicEl.style.display = 'inline-flex';
+        void musicEl.offsetWidth;
+        requestAnimationFrame(() => {
+          musicEl.classList.remove('is-music-absent');
+        });
+      }
+    } else {
+      musicEl.classList.remove('is-music-absent');
+    }
 
     const thumbImg = document.getElementById('tbDiMusicThumb');
     const thumbPlaceholder = document.getElementById('tbDiMusicThumbPlaceholder');
@@ -121,7 +164,7 @@ function initTaskbar() {
       void musicEl.offsetWidth;
       musicEl.style.transition = '';
 
-      const hasMusicPill = musicEl.style.display !== 'none';
+      const hasMusicPill = musicEl.style.display !== 'none' && !musicEl.classList.contains('is-music-absent');
       const clockRect = el.getBoundingClientRect();
       const wrapRect = wrapper.getBoundingClientRect();
       const clockW = Math.round(clockRect.width) || 78;
@@ -304,10 +347,7 @@ function initTaskbar() {
     const hrStr = is12h ? String(hours) : String(hours).padStart(2, '0');
     const secStr = `.${String(now.getSeconds()).padStart(2, '0')}`;
 
-    const dayStr = String(now.getDate()).padStart(2, '0');
-    const monthStr = String(now.getMonth() + 1).padStart(2, '0');
-    const yearStr = String(now.getFullYear());
-    const formattedDate = `${dayStr}-${monthStr}-${yearStr}`;
+    const formattedDate = formatDateWithTemplate(now, globalDateFormat);
 
     // Collapsed view clock
     if (timeSpan) timeSpan.textContent = `${hrStr}:${minStr}${ampm}`;
@@ -404,6 +444,7 @@ function initTaskbar() {
     const isTop = (settings.dockEdge || 'Bottom').toLowerCase() === 'top';
     currentDockEdge = isTop ? 'top' : 'bottom';
     currentAnimations = settings.enableAnimations !== false;
+    globalDateFormat = settings.dateFormat || settings.DateFormat || globalDateFormat;
 
     const diConfig = settings.dynamicIsland || settings.DynamicIsland || {
       enabled: false,

@@ -42,7 +42,7 @@ body {
   gap: 12px;
   height: 46px;
   background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: none;
   border-radius: 23px;
   padding: 0 18px;
   transition: all 0.2s ease;
@@ -50,8 +50,8 @@ body {
 
 .search-box:focus-within {
   background: rgba(255, 255, 255, 0.12);
-  border-color: var(--winzen-accent, #3684e3);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--winzen-accent, #3684e3) 28%, transparent);
+  border: none;
+  box-shadow: none;
 }
 
 .search-icon {
@@ -160,7 +160,7 @@ body.theme-light .launcher-content::-webkit-scrollbar-thumb:hover {
 /* Recent Row (ChromeOS style horizontal pills/circles) */
 .recent-row {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 8px;
   background: rgba(255, 255, 255, 0.03);
   padding: 10px 8px;
@@ -201,17 +201,17 @@ body.theme-light .launcher-content::-webkit-scrollbar-thumb:hover {
   width: 48px;
   height: 48px;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.06);
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 8px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+  box-shadow: none;
   transition: transform 0.16s ease;
 }
 
 .app-item:hover .app-icon-wrap {
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
+  box-shadow: none;
 }
 
 .app-icon-img {
@@ -243,7 +243,7 @@ body.theme-light .launcher-content::-webkit-scrollbar-thumb:hover {
 /* All Apps Grid */
 .apps-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 6px;
 }
 
@@ -318,8 +318,8 @@ body.theme-light {
 html[data-theme="light"] .search-box,
 body.theme-light .search-box {
   background: #ffffff;
-  border-color: rgba(0, 0, 0, 0.1);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: none;
+  box-shadow: none;
 }
 
 html[data-theme="light"] .search-input,
@@ -350,9 +350,9 @@ body.theme-light .app-name {
 
 html[data-theme="light"] .app-icon-wrap,
 body.theme-light .app-icon-wrap {
-  background: #ffffff;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: transparent;
+  box-shadow: none;
+  border: none;
 }
 
 html[data-theme="light"] .recent-row,

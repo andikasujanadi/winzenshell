@@ -2310,3 +2310,117 @@ body.winzen-no-anim *:active {
   color: var(--win11-text-secondary, #a1a1aa);
 }
 
+/* Layout Presets */
+.layout-presets-card {
+  border-radius: 6px;
+  border: 1px solid var(--win11-stroke-card);
+  background: var(--win11-bg-card);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.layout-preset-create-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.layout-preset-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.layout-presets-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.layout-preset-empty {
+  font-size: 12px;
+  color: var(--win11-text-secondary);
+  padding: 6px 2px 2px;
+}
+
+.layout-preset-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 5px;
+  border: 1px solid var(--win11-stroke-card);
+  background: var(--win11-bg-control);
+  transition: border-color 0.12s ease, background-color 0.12s ease;
+}
+
+.layout-preset-row.is-active {
+  border-color: var(--win11-accent);
+  background: rgba(54, 132, 227, 0.1);
+}
+
+.layout-preset-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.layout-preset-title-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.layout-preset-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--win11-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.layout-preset-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--win11-accent);
+  color: var(--win11-accent-ink);
+  flex-shrink: 0;
+}
+
+.layout-preset-meta {
+  font-size: 11.5px;
+  color: var(--win11-text-secondary);
+}
+
+.layout-preset-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.layout-preset-actions .win11-btn,
+.layout-preset-actions .win11-btn-accent,
+.layout-preset-actions .win11-btn-danger {
+  height: 28px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.layout-preset-rename-input {
+  height: 28px;
+  font-size: 13px;
+  padding: 0 8px;
+  flex: 1;
+  min-width: 120px;
+  max-width: 240px;
+}
+

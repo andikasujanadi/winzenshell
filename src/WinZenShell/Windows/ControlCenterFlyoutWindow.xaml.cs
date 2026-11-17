@@ -299,6 +299,12 @@ public partial class ControlCenterFlyoutWindow : Window
                     FlyoutAnimationHelper.AnimateHide(this);
                     break;
 
+                case "lock_workstation":
+                    ExitEditMode();
+                    FlyoutAnimationHelper.AnimateHide(this);
+                    Win32Api.LockWorkStation();
+                    break;
+
                 case "resize_control_center":
                     if (root.TryGetProperty("height", out var hProp) && hProp.TryGetDouble(out double reqH) && reqH > 50)
                     {
@@ -310,6 +316,7 @@ public partial class ControlCenterFlyoutWindow : Window
                 case "activate_tray_icon":
                 case "toggle_network_flyout":
                 case "toggle_battery_flyout":
+                case "toggle_power_flyout":
                 case "toggle_bluetooth":
                 case "toggle_bluetooth_flyout":
                 case "open_bluetooth_settings":

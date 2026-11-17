@@ -22,7 +22,7 @@
         </div>
         <div class="pane-profile-text">
           <span class="pane-title">WinZenShell</span>
-          <span class="pane-sub">v0.3.1</span>
+          <span class="pane-sub">v0.3.2</span>
         </div>
       </div>
 
@@ -154,6 +154,36 @@
               </div>
             </div>
 
+            <!-- 4b. Override Windows Key -->
+            <div class="expander-subrow setting-subrow">
+              <div class="card-titles">
+                <label class="card-title" for="toggleOverrideWinKey">Override Windows Key</label>
+                <span class="card-subtitle">Pressing the Windows key opens the WinZen App Launcher instead of the Windows Start Menu</span>
+              </div>
+              <div class="card-right">
+                <span class="toggle-state-text" id="stateOverrideWinKey">Off</span>
+                <label class="win11-toggle">
+                  <input type="checkbox" id="toggleOverrideWinKey" />
+                  <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                </label>
+              </div>
+            </div>
+
+            <!-- 4c. Auto Start on Logon -->
+            <div class="expander-subrow setting-subrow">
+              <div class="card-titles">
+                <label class="card-title" for="toggleAutoStart">Auto Start on Logon</label>
+                <span class="card-subtitle">Automatically start WinZenShell in the background when you sign in to Windows</span>
+              </div>
+              <div class="card-right">
+                <span class="toggle-state-text" id="stateAutoStart">Off</span>
+                <label class="win11-toggle">
+                  <input type="checkbox" id="toggleAutoStart" />
+                  <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                </label>
+              </div>
+            </div>
+
             <!-- 5. Theme, Shell Position & Island Placement -->
             <div class="expander-subrow controls-subrow">
               <div class="subrow-field">
@@ -280,6 +310,28 @@
               <div class="card-right" style="gap: 10px; min-width: 240px;">
                 <input type="range" id="inputAppIconSize" class="win11-slider" min="12" max="32" step="1" value="18" style="flex: 1;" />
                 <button type="button" id="btnResetAppIconSize" class="win11-btn secondary-btn" style="padding: 5px 10px; font-size: 12px; white-space: nowrap;">Reset size</button>
+              </div>
+            </div>
+
+            <!-- 10. Global Date Format -->
+            <div class="expander-subrow setting-subrow">
+              <div class="card-titles">
+                <label class="card-title" for="inputDateFormat">Date Format (<span id="labelDateFormatPreview">17-11-2026</span>)</label>
+                <span class="card-subtitle">Global date template for Dynamic Island &amp; Clock widgets (tokens: YYYY, YY, MMMM, MMM, MM, M, dddd, ddd, DD, D)</span>
+              </div>
+              <div class="card-right" style="gap: 8px;">
+                <select id="selectDateFormatPreset" class="win11-select">
+                  <option value="DD-MM-YYYY">DD-MM-YYYY</option>
+                  <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+                  <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                  <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                  <option value="ddd, MMM D">ddd, MMM D</option>
+                  <option value="ddd, D MMM">ddd, D MMM</option>
+                  <option value="D MMM YYYY">D MMM YYYY</option>
+                  <option value="dddd, D MMMM">dddd, D MMMM</option>
+                  <option value="custom">Custom</option>
+                </select>
+                <input type="text" id="inputDateFormat" class="win11-input" style="width: 140px;" value="DD-MM-YYYY" placeholder="DD-MM-YYYY" maxlength="40" />
               </div>
             </div>
 
@@ -500,7 +552,20 @@
 
         <!-- TAB 2: COMMUNITY WIDGETS & REGION ARRANGEMENT -->
         <section id="tab-widgets" class="tab-view">
+          <!-- SECTION 0: LAYOUT PRESETS -->
           <div class="section-label-row">
+            <div class="section-label no-margin">Layout Presets</div>
+          </div>
+
+          <div class="layout-presets-card">
+            <div class="layout-preset-create-row">
+              <input type="text" id="inputLayoutPresetName" class="win11-input layout-preset-input" placeholder="Preset name (e.g. Work, Minimal, Media)" maxlength="40" />
+              <button type="button" id="btnSaveLayoutPreset" class="win11-btn-accent">Save Current</button>
+            </div>
+            <div class="layout-presets-list" id="layoutPresetsList"></div>
+          </div>
+
+          <div class="section-label-row" style="margin-top: 28px;">
             <div class="section-label no-margin">Taskbar Content</div>
             <span class="rp-drag-hint">Drag &amp; drop widgets between regions to reorder</span>
           </div>

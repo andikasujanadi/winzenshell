@@ -606,65 +606,81 @@ public class TrayIconService
             return true;
         }
 
-        // Modern Windows 11 registry-matched running tray app: locate its main or hidden window and restore/activate
-        if (item.ProcessId > 0)
+        // Modern Windows 11 registry-matched running tray app:
+        // Open the app's real main window if one exists, otherwise launch the app executable normally
+        // instead of forcing hidden/internal background process windows to show.
+        if (!rightClick)
         {
-            IntPtr windowToShow = FindBestWindowForProcess(item.ProcessId);
+            var (windowToShow, targetPid) = FindMainAppWindow(item.ProcessId, item.ExecutablePath);
             if (windowToShow != IntPtr.Zero)
             {
-                AllowSetForegroundWindow(item.ProcessId);
+                if (targetPid > 0) AllowSetForegroundWindow(targetPid);
                 ShowWindow(windowToShow, IsIconic(windowToShow) ? 9 : 5); // SW_RESTORE : SW_SHOW
                 SetForegroundWindow(windowToShow);
                 return true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(item.ExecutablePath) && File.Exists(item.ExecutablePath))
+            {
+                try
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = item.ExecutablePath,
+                        UseShellExecute = true
+                    });
+                    return true;
+                }
+                catch { }
             }
         }
 
         return false;
     }
 
-    private static IntPtr FindBestWindowForProcess(int pid)
+    private static (IntPtr hWnd, int pid) FindMainAppWindow(int pid, string? executablePath)
     {
-        try
+        if (pid > 0)
         {
-            using var p = Process.GetProcessById(pid);
-            if (p.MainWindowHandle != IntPtr.Zero)
-                return p.MainWindowHandle;
+            try
+            {
+                using var p = Process.GetProcessById(pid);
+                if (p.MainWindowHandle != IntPtr.Zero && !string.IsNullOrWhiteSpace(p.MainWindowTitle))
+                {
+                    return (p.MainWindowHandle, p.Id);
+                }
+            }
+            catch { }
         }
-        catch { }
 
-        IntPtr bestWithTitle = IntPtr.Zero;
-        IntPtr fallbackWindow = IntPtr.Zero;
-
-        EnumWindows((hWnd, _) =>
+        if (!string.IsNullOrWhiteSpace(executablePath))
         {
-            GetWindowThreadProcessId(hWnd, out uint winPid);
-            if (winPid != (uint)pid) return true;
-
-            var clsSb = new StringBuilder(128);
-            GetClassName(hWnd, clsSb, clsSb.Capacity);
-            string cls = clsSb.ToString();
-
-            if (cls == "IME" || cls.StartsWith("MSCTFIME", StringComparison.OrdinalIgnoreCase) ||
-                cls.Contains("GDI+ Hook", StringComparison.OrdinalIgnoreCase) ||
-                cls == "tooltips_class32")
+            try
             {
-                return true;
+                string procName = Path.GetFileNameWithoutExtension(executablePath);
+                if (!string.IsNullOrWhiteSpace(procName))
+                {
+                    foreach (var proc in Process.GetProcessesByName(procName))
+                    {
+                        try
+                        {
+                            if (proc.MainWindowHandle != IntPtr.Zero && !string.IsNullOrWhiteSpace(proc.MainWindowTitle))
+                            {
+                                return (proc.MainWindowHandle, proc.Id);
+                            }
+                        }
+                        catch { }
+                        finally
+                        {
+                            proc.Dispose();
+                        }
+                    }
+                }
             }
+            catch { }
+        }
 
-            var titleSb = new StringBuilder(256);
-            GetWindowText(hWnd, titleSb, titleSb.Capacity);
-            if (titleSb.Length > 0 && bestWithTitle == IntPtr.Zero)
-            {
-                bestWithTitle = hWnd;
-            }
-            else if (fallbackWindow == IntPtr.Zero)
-            {
-                fallbackWindow = hWnd;
-            }
-            return true;
-        }, IntPtr.Zero);
-
-        return bestWithTitle != IntPtr.Zero ? bestWithTitle : fallbackWindow;
+        return (IntPtr.Zero, 0);
     }
 
     private static string ResolveKnownFolderPath(string rawPath)

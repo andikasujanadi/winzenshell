@@ -5,7 +5,7 @@
 [![Platform: Windows 11](https://img.shields.io/badge/Platform-Windows%2011%20(64--bit)-0078D4?logo=windows11&logoColor=white)](https://microsoft.com/windows)
 [![Runtime: .NET 10](https://img.shields.io/badge/Runtime-.NET%2010%20(WPF)-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 [![Frontend: WebView2](https://img.shields.io/badge/Frontend-WebView2%20%7C%20Web%20Components-008080?logo=microsoftedge&logoColor=white)](https://developer.microsoft.com/microsoft-edge/webview2/)
-[![Release: v0.3.1](https://img.shields.io/badge/Release-v0.3.1-0078D4)](README.md#changelog)
+[![Release: v0.3.2](https://img.shields.io/badge/Release-v0.3.2-0078D4)](README.md#changelog)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 **WinZenShell** is a customizable, lightweight Windows 11 taskbar and widget studio.  
@@ -16,15 +16,17 @@ It pairs a modern web interface (HTML, CSS, and JavaScript) with a fast native W
 ---
 
 > [!IMPORTANT]
-> **Release Notice (`v0.3.1`)**:  
-> WinZenShell v0.3.1 adds the **Music Dynamic Island** with live album art, animated audio waveform, hover track preview, and an expanded media player card. Expanding or collapsing an island now smoothly animates directly from the clicked pill's position while the secondary pill merges and unmerges in the background.
+> **Release Notice (`v0.3.2`)**:  
+> WinZenShell v0.3.2 introduces **Layout Presets** (save, apply, rename, update, and delete complete shell, Dynamic Island, and widget layouts), a global **Date Format** template, new **Power** and **Lock Screen** widgets, **Windows Key Override** for the App Launcher, persistent **Hide Windows Taskbar** and **Auto Start on Logon** settings, and a single-file portable build.
 
 ---
 
 ## Key Features
 
 ### Windows 11 Desktop Integration
-* **Clean Taskbar Replacement**: Hides the default Windows 11 taskbar cleanly without leaving empty gaps at the bottom of your screen.
+* **Clean Taskbar Replacement**: Hides the default Windows 11 taskbar cleanly without leaving empty gaps at the bottom of your screen, and remembers your preference across app restarts.
+* **Auto Start on Logon**: Optionally start WinZenShell quietly in the background whenever you sign in to Windows.
+* **Windows Key Override**: Optionally open the WinZen App Launcher with a single tap of the Windows key while preserving all standard `Win + key` shortcuts.
 * **Smart Screen Space Management**: Automatically adjusts your desktop work area so maximized windows fit neatly against the WinZenShell taskbar (or top-center Dynamic Island) without overlapping.
 * **Automatic Fullscreen Hiding**: Hides the taskbar automatically when you play fullscreen games, watch fullscreen videos, or present slides, and brings it right back when you exit.
 * **Emergency Restore Shortcut**: Press **`Ctrl + Shift + Alt + Z`** at any time to immediately bring back the standard Windows 11 taskbar.
@@ -38,7 +40,8 @@ It pairs a modern web interface (HTML, CSS, and JavaScript) with a fast native W
 * **Natural Grow, Shrink & Merge Motion**: Clicking either pill expands the card directly from that pill's position toward the center while the other pill smoothly merges behind it. Closing the card shrinks it back to its spot while the secondary pill unmerges into standby position.
 * **Flexible Placement**: Dock the Dynamic Island inside the taskbar (left, center, or right) or float it at the top-center of your desktop.
 
-### Drag-and-Drop Taskbar Layout
+### Drag-and-Drop Taskbar Layout & Presets
+* **Layout Presets**: Save, apply, rename, update, and delete complete layout presets that store your taskbar regions, Control Center grid, Shell appearance/geometry, and Dynamic Island placement.
 * **Four Layout Zones**: Arrange items across **Left**, **Center**, **Right**, and **Unused** sections.
 * **Live Visual Editor**: Drag and drop widgets in Settings to reorder your taskbar in real time.
 * **Unused Drawer**: Temporarily disable widgets you do not need without deleting them.
@@ -72,6 +75,10 @@ It pairs a modern web interface (HTML, CSS, and JavaScript) with a fast native W
     * Shows battery percentage, charging status, and estimated remaining time.
 12. **Media Player Widget (`zen-media-player`)**:
     * Controls your currently playing music or video from any app (Spotify, browser, media players) with album art, track scrubbing, and multiple card sizes in Control Center.
+13. **Power Menu (`zen-power`)**:
+    * Opens a compact power flyout with Sleep, Lock, Restart, and Shutdown actions.
+14. **Lock Screen (`zen-lock-button`)**:
+    * One-click button to lock your Windows workstation (`Win + L`).
 
 ---
 
@@ -116,8 +123,8 @@ cd winzenshell
 # Run in development mode
 dotnet run --project src\WinZenShell\WinZenShell.csproj
 
-# Or publish a standalone release build
-dotnet publish src\WinZenShell\WinZenShell.csproj -c Release -r win-x64 --self-contained true -o publish\WinZenShell
+# Or publish a standalone release + single-file portable package
+powershell -ExecutionPolicy Bypass -File .\build-portable.ps1
 Start-Process "publish\WinZenShell\WinZenShell.exe"
 ```
 
@@ -189,6 +196,22 @@ window.winzen.shell.onMetricsUpdate((metrics) => {
 ---
 
 ## Changelog
+
+### v0.3.2 (2026-11-17)
+* **Layout Presets**:
+  * Save, apply, rename, update, and delete layout presets directly from the **Layouts** tab.
+  * Presets store taskbar and Control Center widget arrangements along with Shell settings (position, height, corner radius, floating margin, opacity, blur, app labels, window combining, icon size, and native taskbar hiding) and Dynamic Island placement.
+* **Shell & Startup Improvements**:
+  * **Remember Hide Windows Taskbar**: Your preference to hide the default Windows 11 taskbar is now saved across app restarts and reinforced so system overlays such as Snipping Tool (`Win + Shift + S`) do not cause the native taskbar to reappear.
+  * **Auto Start on Logon**: Added a toggle in Shell settings to launch WinZenShell automatically in the background when signing in to Windows.
+  * **Override Windows Key**: Added a toggle in Shell settings to open the WinZen App Launcher when pressing the Windows key while keeping `Win + key` shortcuts working normally.
+  * **Global Date Format**: Added a customizable date template in Shell settings (`YYYY`, `YY`, `MMMM`, `MMM`, `MM`, `M`, `dddd`, `ddd`, `DD`, `D`) shared by Dynamic Island and Clock widgets.
+* **Power & Lock Widgets**:
+  * Added a **Power** widget with a flyout menu for Sleep, Lock, Restart, and Shutdown.
+  * Added a **Lock Screen** widget (`Win + L` equivalent).
+* **App Launcher & Dynamic Island Refinements**:
+  * Resized the App Launcher to `728 × 800` with a 6-column icon grid, cleaner borderless search bar and icon tiles, restored built-in app icons, and filtered out administrative and SDK utility clutter.
+  * Added smooth appear and disappear transitions for the Music Island pill and synced the media seeker timeline with active audio and video playback.
 
 ### v0.3.1 (2026-11-16)
 * **Music Dynamic Island**:

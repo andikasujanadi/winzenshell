@@ -1,0 +1,52 @@
+<Window x:Class="WinZenShell.Windows.PowerFlyoutWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="WinZen Power"
+        Width="236"
+        SizeToContent="Height"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ResizeMode="NoResize"
+        SnapsToDevicePixels="True"
+        UseLayoutRounding="True">
+
+    <Window.Resources>
+        <SolidColorBrush x:Key="AccentBrush" Color="#3684E3"/>
+        <SolidColorBrush x:Key="BtnFg" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="BtnHover" Color="#2E2E2E"/>
+        <SolidColorBrush x:Key="MutedFg" Color="#A0A0A0"/>
+        <SolidColorBrush x:Key="DangerFg" Color="#FF8A95"/>
+    </Window.Resources>
+
+    <Border x:Name="OuterBorder"
+            Background="#1E1E1E"
+            BorderBrush="#3E3E3E"
+            BorderThickness="1"
+            CornerRadius="14"
+            Padding="10,10,10,10">
+        <StackPanel>
+            <!-- Header -->
+            <DockPanel Margin="6,2,6,8" LastChildFill="False">
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center">
+                    <Path x:Name="HeaderIcon"
+                          Data="M11 2V11H13V2H11ZM16.95 4.05L15.53 5.47C17.06 6.76 18 8.67 18 10.8C18 14.78 14.78 18 10.8 18C6.82 18 3.6 14.78 3.6 10.8C3.6 8.67 4.54 6.76 6.07 5.47L4.65 4.05C2.77 5.7 1.6 8.11 1.6 10.8C1.6 15.88 5.72 20 10.8 20C15.88 20 20 15.88 20 10.8C20 8.11 18.83 5.7 16.95 4.05Z"
+                          Fill="{DynamicResource AccentBrush}"
+                          Width="14" Height="14"
+                          Stretch="Uniform"
+                          Margin="0,0,8,0"/>
+                    <TextBlock x:Name="TxtHeaderTitle"
+                               Text="Power"
+                               Foreground="#FFFFFF"
+                               FontSize="12.5"
+                               FontWeight="SemiBold"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+            </DockPanel>
+
+            <StackPanel x:Name="PowerActionsPanel"/>
+        </StackPanel>
+    </Border>
+</Window>
