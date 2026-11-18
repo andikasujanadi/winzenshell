@@ -34,6 +34,7 @@ public partial class AppLauncherFlyoutWindow : Window
         {
             FlyoutAnimationHelper.HandleDeactivated(this, () => LastDeactivatedTime = DateTime.UtcNow);
         };
+        Activated += (_, _) => FocusSearchInput();
         Loaded += OnLoaded;
 
         _appLauncherService.AppsLoaded += OnAppsLoaded;
@@ -101,9 +102,9 @@ public partial class AppLauncherFlyoutWindow : Window
 
         if (LauncherWebView != null)
         {
-            var bgCol = isLight
-                ? System.Drawing.Color.FromArgb(0xF3, 0xF3, 0xF3)
-                : System.Drawing.Color.FromArgb(0x1E, 0x1E, 0x1E);
+            var bgCol = FlyoutAnimationHelper.FlyoutBackgroundOpacity < 100
+                ? System.Drawing.Color.Transparent
+                : (isLight ? System.Drawing.Color.FromArgb(0xF3, 0xF3, 0xF3) : System.Drawing.Color.FromArgb(0x1E, 0x1E, 0x1E));
             if (LauncherWebView.DefaultBackgroundColor != bgCol)
                 LauncherWebView.DefaultBackgroundColor = bgCol;
         }
@@ -306,8 +307,26 @@ public partial class AppLauncherFlyoutWindow : Window
         if (_webViewReady && LauncherWebView.CoreWebView2 != null)
         {
             PushAppsData();
-            LauncherWebView.CoreWebView2.PostWebMessageAsJson("{\"type\":\"focus_search\"}");
         }
+        FocusSearchInput();
+    }
+
+    private void FocusSearchInput()
+    {
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input, () =>
+        {
+            try
+            {
+                if (!IsVisible) return;
+                LauncherWebView.Focus();
+                System.Windows.Input.Keyboard.Focus(LauncherWebView);
+                if (_webViewReady && LauncherWebView.CoreWebView2 != null)
+                {
+                    LauncherWebView.CoreWebView2.PostWebMessageAsJson("{\"type\":\"focus_search\"}");
+                }
+            }
+            catch { }
+        });
     }
 
     protected override void OnClosing(System.ComponentModel.CancelEventArgs e)

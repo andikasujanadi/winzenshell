@@ -22,7 +22,7 @@
         </div>
         <div class="pane-profile-text">
           <span class="pane-title">WinZenShell</span>
-          <span class="pane-sub">v0.3.2</span>
+          <span class="pane-sub">v0.3.3</span>
         </div>
       </div>
 
@@ -254,6 +254,13 @@
                 <label for="inputBgBlur">Blur Strength (<span id="labelBgBlurVal">60%</span>)</label>
                 <input type="range" id="inputBgBlur" class="win11-slider" min="0" max="100" step="5" value="60" />
               </div>
+              <div class="subrow-field" id="blurEngineField">
+                <label for="selectBlurEngine">Blur Engine</label>
+                <select id="selectBlurEngine" class="win11-select">
+                  <option value="wallpaper">Wallpaper (Static)</option>
+                  <option value="realtime">Realtime GPU (Kawase)</option>
+                </select>
+              </div>
             </div>
 
             <!-- 6. Show Label -->
@@ -344,6 +351,21 @@
               </div>
               <div class="card-right">
                 <button id="btnUnhideAllApps" class="win11-btn" style="display:none;">Restore all hidden</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-label">Flyouts</div>
+
+          <div class="win11-expander">
+            <div class="expander-subrow controls-subrow" style="border-top: none;">
+              <div class="subrow-field">
+                <label for="inputFlyoutBgOpacity">Opacity (<span id="labelFlyoutBgOpacityVal">100%</span>)</label>
+                <input type="range" id="inputFlyoutBgOpacity" class="win11-slider" min="0" max="100" step="2" value="100" />
+              </div>
+              <div class="subrow-field" id="flyoutBgBlurField">
+                <label for="inputFlyoutBgBlur">Blur Strength (<span id="labelFlyoutBgBlurVal">60%</span>)</label>
+                <input type="range" id="inputFlyoutBgBlur" class="win11-slider" min="0" max="100" step="5" value="60" />
               </div>
             </div>
           </div>

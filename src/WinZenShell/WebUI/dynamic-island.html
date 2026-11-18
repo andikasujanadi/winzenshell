@@ -21,6 +21,7 @@
             <img id="diBgThumb" class="di-music-thumb" src="" alt="" style="display: none;" />
             <div id="diBgThumbPlaceholder" class="di-music-thumb-placeholder"></div>
           </div>
+          <span id="diBgTitle" class="di-music-title">Song Title</span>
           <div class="di-music-waveform" id="diBgWaveform">
             <span class="di-wave-bar"></span>
             <span class="di-wave-bar"></span>
@@ -44,6 +45,7 @@
               <img id="diColMusicThumb" class="di-music-thumb" src="" alt="" style="display: none;" />
               <div id="diColMusicThumbPlaceholder" class="di-music-thumb-placeholder"></div>
             </div>
+            <span id="diColMusicTitle" class="di-music-title">Song Title</span>
             <div class="di-music-waveform" id="diColMusicWaveform">
               <span class="di-wave-bar"></span>
               <span class="di-wave-bar"></span>
@@ -62,9 +64,7 @@
             </div>
             <div class="di-card-battery-group" id="diCardBattery">
               <span class="di-card-battery-pct" id="diCardBatteryPct">100%</span>
-              <div class="di-card-battery-icon" id="diCardBatteryIcon">
-                <div class="di-card-battery-fill" id="diCardBatteryFill" style="width: 100%;"></div>
-              </div>
+              <div class="di-card-battery-icon-wrap" id="diCardBatteryIconWrap"></div>
             </div>
           </div>
 
@@ -121,6 +121,19 @@
                 <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
               </svg>
             </button>
+          </div>
+
+          <!-- Bottom Action Pills (Pin Lyrics & Wide/Compact Pill) -->
+          <div class="di-music-actions-row">
+            <button type="button" class="di-action-pill-btn" id="btnDiPinLyrics">pin lyrics</button>
+            <button type="button" class="di-action-pill-btn" id="btnDiPillMode">Wide Pill</button>
+          </div>
+
+          <!-- Lyrics View inside Music Content: Under the Buttons -->
+          <div class="di-music-lyrics-view" id="diMusicLyricsView" style="display: none;">
+            <div class="di-lyrics-scroller" id="diLyricsScroller">
+              <div class="di-lyrics-placeholder" id="diLyricsPlaceholder">Searching lyrics...</div>
+            </div>
           </div>
         </div>
       </div>

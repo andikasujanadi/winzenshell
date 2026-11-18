@@ -5,7 +5,7 @@
 [![Platform: Windows 11](https://img.shields.io/badge/Platform-Windows%2011%20(64--bit)-0078D4?logo=windows11&logoColor=white)](https://microsoft.com/windows)
 [![Runtime: .NET 10](https://img.shields.io/badge/Runtime-.NET%2010%20(WPF)-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 [![Frontend: WebView2](https://img.shields.io/badge/Frontend-WebView2%20%7C%20Web%20Components-008080?logo=microsoftedge&logoColor=white)](https://developer.microsoft.com/microsoft-edge/webview2/)
-[![Release: v0.3.2](https://img.shields.io/badge/Release-v0.3.2-0078D4)](README.md#changelog)
+[![Release: v0.3.3](https://img.shields.io/badge/Release-v0.3.3-0078D4)](README.md#changelog)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 **WinZenShell** is a customizable, lightweight Windows 11 taskbar and widget studio.  
@@ -16,8 +16,8 @@ It pairs a modern web interface (HTML, CSS, and JavaScript) with a fast native W
 ---
 
 > [!IMPORTANT]
-> **Release Notice (`v0.3.2`)**:  
-> WinZenShell v0.3.2 introduces **Layout Presets** (save, apply, rename, update, and delete complete shell, Dynamic Island, and widget layouts), a global **Date Format** template, new **Power** and **Lock Screen** widgets, **Windows Key Override** for the App Launcher, persistent **Hide Windows Taskbar** and **Auto Start on Logon** settings, and a single-file portable build.
+> **Release Notice (`v0.3.3`)**:  
+> WinZenShell v0.3.3 introduces synchronized **Live Lyrics** and **Wide Pill Mode** for the Music Dynamic Island, clean title-and-length adaptive width animation on the music pill, automatic type-to-search in the App Launcher, and stability polish for flyout animations and taskbar blurs.
 
 ---
 
@@ -202,6 +202,16 @@ window.winzen.shell.onMetricsUpdate((metrics) => {
 ---
 
 ## Changelog
+
+### v0.3.3 (2026-11-18)
+* **Music Dynamic Island - Live Lyrics & Wide Pill**:
+  * **Synchronized Live Lyrics**: Toggle **pin lyrics** on the expanded media card to view scrolling LRC-synced lyrics smoothly positioned under playback controls, with auto-fetch and smart fuzzy matching for YouTube/streaming track titles.
+  * **Adaptive Lyrics Pill**: When lyrics are pinned, the small resting music pill replaces the track title with the live lyric line, smoothly animating its width to fit the exact text.
+  * **Wide Pill Mode**: Toggle between standard compact pill and wide pill mode to keep the track title permanently visible on the taskbar.
+  * **Automatic Flushing**: Automatically clears pinned lyrics and reverts pill width when playback stops or skips to the next track.
+* **App Launcher Type-to-Search**:
+  * Typing anywhere when the App Launcher opens automatically focuses and writes directly into the search bar.
+  * Enhanced keyboard navigation and focus management across WebView2 flyouts.
 
 ### v0.3.2 (2026-11-17)
 * **Layout Presets**:

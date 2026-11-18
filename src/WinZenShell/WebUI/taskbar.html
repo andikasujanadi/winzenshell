@@ -5,10 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>WinZenShell Taskbar</title>
   <link rel="stylesheet" href="universal-theme.css?v=3" />
-  <link rel="stylesheet" href="taskbar.css?v=10" />
+  <link rel="stylesheet" href="taskbar.css?v=11" />
 </head>
 <body>
   <div class="taskbar-bar" id="taskbarBar">
+    <canvas class="taskbar-blur-canvas" id="taskbarBlurCanvas" aria-hidden="true"></canvas>
     <div class="taskbar-wallpaper-layer" id="taskbarWallpaperLayer" aria-hidden="true"></div>
     <div class="taskbar-surface-layer" id="taskbarSurfaceLayer" aria-hidden="true"></div>
     <!-- Left Widget Zone -->
@@ -31,6 +32,6 @@
   </div>
 
   <script src="bridge.js?v=5"></script>
-  <script src="taskbar.js?v=10"></script>
+  <script src="taskbar.js?v=11"></script>
 </body>
 </html>

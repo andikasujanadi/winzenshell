@@ -4,8 +4,246 @@ function initTaskbar() {
   const slotRight = document.getElementById('slot-right');
   const btnOpenStudio = document.getElementById('btnOpenStudio');
   const taskbarBar = document.getElementById('taskbarBar');
+  const taskbarBlurCanvas = document.getElementById('taskbarBlurCanvas');
   const taskbarWallpaperLayer = document.getElementById('taskbarWallpaperLayer');
   const taskbarSurfaceLayer = document.getElementById('taskbarSurfaceLayer');
+
+  // --- WebGL2 GPU Dual Kawase Blur Engine ---
+  let blurSharedBytes = null;
+  let gl = null;
+  let kawaseDownProg = null;
+  let kawaseUpProg = null;
+  let quadVao = null;
+  let srcTex = null;
+  let srcTexW = 0;
+  let srcTexH = 0;
+  let fboPyramid = [];
+  let fboBaseW = 0;
+  let fboBaseH = 0;
+
+  function initKawaseGl() {
+    if (gl || !taskbarBlurCanvas) return !!gl;
+    gl = taskbarBlurCanvas.getContext('webgl2', {
+      alpha: false,
+      antialias: false,
+      depth: false,
+      stencil: false,
+      preserveDrawingBuffer: true,
+      powerPreference: 'high-performance'
+    });
+    if (!gl) return false;
+
+    const vsSrc = `#version 300 es
+      layout(location = 0) in vec2 aPos;
+      uniform float uFlipY;
+      out vec2 vUv;
+      void main() {
+        vec2 uv = aPos * 0.5 + 0.5;
+        vUv = vec2(uv.x, mix(uv.y, 1.0 - uv.y, uFlipY));
+        gl_Position = vec4(aPos, 0.0, 1.0);
+      }`;
+
+    const downFsSrc = `#version 300 es
+      precision highp float;
+      in vec2 vUv;
+      out vec4 fragColor;
+      uniform sampler2D uTex;
+      uniform vec2 uHalfPixel;
+      void main() {
+        vec4 sum = texture(uTex, vUv) * 4.0;
+        sum += texture(uTex, vUv - uHalfPixel);
+        sum += texture(uTex, vUv + uHalfPixel);
+        sum += texture(uTex, vUv + vec2(uHalfPixel.x, -uHalfPixel.y));
+        sum += texture(uTex, vUv - vec2(uHalfPixel.x, -uHalfPixel.y));
+        fragColor = vec4((sum * 0.125).rgb, 1.0);
+      }`;
+
+    const upFsSrc = `#version 300 es
+      precision highp float;
+      in vec2 vUv;
+      out vec4 fragColor;
+      uniform sampler2D uTex;
+      uniform vec2 uHalfPixel;
+      uniform float uSaturate;
+      void main() {
+        vec4 sum = texture(uTex, vUv + vec2(-uHalfPixel.x * 2.0, 0.0));
+        sum += texture(uTex, vUv + vec2(-uHalfPixel.x, uHalfPixel.y)) * 2.0;
+        sum += texture(uTex, vUv + vec2(0.0, uHalfPixel.y * 2.0));
+        sum += texture(uTex, vUv + vec2(uHalfPixel.x, uHalfPixel.y)) * 2.0;
+        sum += texture(uTex, vUv + vec2(uHalfPixel.x * 2.0, 0.0));
+        sum += texture(uTex, vUv + vec2(uHalfPixel.x, -uHalfPixel.y)) * 2.0;
+        sum += texture(uTex, vUv + vec2(0.0, -uHalfPixel.y * 2.0));
+        sum += texture(uTex, vUv + vec2(-uHalfPixel.x, -uHalfPixel.y)) * 2.0;
+        vec3 rgb = (sum / 12.0).rgb;
+        float luma = dot(rgb, vec3(0.2126, 0.7152, 0.0722));
+        rgb = clamp(mix(vec3(luma), rgb, uSaturate), 0.0, 1.0);
+        fragColor = vec4(rgb, 1.0);
+      }`;
+
+    function compileProgram(vsText, fsText) {
+      const vs = gl.createShader(gl.VERTEX_SHADER);
+      gl.shaderSource(vs, vsText);
+      gl.compileShader(vs);
+      const fs = gl.createShader(gl.FRAGMENT_SHADER);
+      gl.shaderSource(fs, fsText);
+      gl.compileShader(fs);
+      const prog = gl.createProgram();
+      gl.attachShader(prog, vs);
+      gl.attachShader(prog, fs);
+      gl.linkProgram(prog);
+      gl.deleteShader(vs);
+      gl.deleteShader(fs);
+      return {
+        prog,
+        uFlipY: gl.getUniformLocation(prog, 'uFlipY'),
+        uTex: gl.getUniformLocation(prog, 'uTex'),
+        uHalfPixel: gl.getUniformLocation(prog, 'uHalfPixel'),
+        uSaturate: gl.getUniformLocation(prog, 'uSaturate')
+      };
+    }
+
+    kawaseDownProg = compileProgram(vsSrc, downFsSrc);
+    kawaseUpProg = compileProgram(vsSrc, upFsSrc);
+
+    quadVao = gl.createVertexArray();
+    gl.bindVertexArray(quadVao);
+    const vbo = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    gl.bindVertexArray(null);
+
+    srcTex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, srcTex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    return true;
+  }
+
+  function ensureKawasePyramid(baseW, baseH) {
+    if (fboBaseW === baseW && fboBaseH === baseH && fboPyramid.length === 4) return;
+    fboPyramid.forEach((lvl) => {
+      gl.deleteFramebuffer(lvl.fbo);
+      gl.deleteTexture(lvl.tex);
+    });
+    fboPyramid = [];
+    fboBaseW = baseW;
+    fboBaseH = baseH;
+
+    let w = baseW;
+    let h = baseH;
+    for (let i = 0; i < 4; i++) {
+      w = Math.max(2, Math.floor(w / 2));
+      h = Math.max(2, Math.floor(h / 2));
+      const tex = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+      const fbo = gl.createFramebuffer();
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+      fboPyramid.push({ fbo, tex, w, h });
+    }
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  }
+
+  function renderKawaseBlurFrame(w, h, blurStrength) {
+    if (!blurSharedBytes || w <= 0 || h <= 0 || blurStrength <= 0) return;
+    const byteLen = w * h * 4;
+    if (blurSharedBytes.byteLength < byteLen) return;
+    if (!initKawaseGl()) return;
+
+    if (taskbarBlurCanvas.width !== w || taskbarBlurCanvas.height !== h) {
+      taskbarBlurCanvas.width = w;
+      taskbarBlurCanvas.height = h;
+    }
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, srcTex);
+    const view = blurSharedBytes.subarray(0, byteLen);
+    if (srcTexW !== w || srcTexH !== h) {
+      srcTexW = w;
+      srcTexH = h;
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, view);
+    } else {
+      gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, view);
+    }
+
+    ensureKawasePyramid(w, h);
+
+    const passes = blurStrength <= 45 ? 1 : 2;
+    const offset = 0.85 + (blurStrength / 100.0) * 1.9;
+
+    gl.bindVertexArray(quadVao);
+
+    // 1. Downsample passes
+    gl.useProgram(kawaseDownProg.prog);
+    gl.uniform1i(kawaseDownProg.uTex, 0);
+    let prevTex = srcTex;
+    let prevW = w;
+    let prevH = h;
+    for (let i = 0; i < passes; i++) {
+      const lvl = fboPyramid[i];
+      gl.bindFramebuffer(gl.FRAMEBUFFER, lvl.fbo);
+      gl.viewport(0, 0, lvl.w, lvl.h);
+      gl.bindTexture(gl.TEXTURE_2D, prevTex);
+      gl.uniform1f(kawaseDownProg.uFlipY, i === 0 ? 1.0 : 0.0);
+      gl.uniform2f(kawaseDownProg.uHalfPixel, (0.5 / prevW) * offset, (0.5 / prevH) * offset);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      prevTex = lvl.tex;
+      prevW = lvl.w;
+      prevH = lvl.h;
+    }
+
+    // 2. Upsample passes
+    gl.useProgram(kawaseUpProg.prog);
+    gl.uniform1i(kawaseUpProg.uTex, 0);
+    gl.uniform1f(kawaseUpProg.uFlipY, 0.0);
+    for (let i = passes - 2; i >= 0; i--) {
+      const dstLvl = fboPyramid[i];
+      gl.bindFramebuffer(gl.FRAMEBUFFER, dstLvl.fbo);
+      gl.viewport(0, 0, dstLvl.w, dstLvl.h);
+      gl.bindTexture(gl.TEXTURE_2D, prevTex);
+      gl.uniform1f(kawaseUpProg.uSaturate, 1.0);
+      gl.uniform2f(kawaseUpProg.uHalfPixel, (0.5 / prevW) * offset, (0.5 / prevH) * offset);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      prevTex = dstLvl.tex;
+      prevW = dstLvl.w;
+      prevH = dstLvl.h;
+    }
+
+    // Final upsample pass directly to canvas with saturation boost
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.viewport(0, 0, w, h);
+    gl.bindTexture(gl.TEXTURE_2D, prevTex);
+    gl.uniform1f(kawaseUpProg.uSaturate, 1.15);
+    gl.uniform2f(kawaseUpProg.uHalfPixel, (0.5 / prevW) * offset, (0.5 / prevH) * offset);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    gl.bindVertexArray(null);
+  }
+
+  if (window.chrome && window.chrome.webview) {
+    window.chrome.webview.addEventListener('sharedbufferreceived', (e) => {
+      try {
+        blurSharedBytes = new Uint8Array(e.getBuffer());
+      } catch (err) {
+        console.error('SharedBuffer error:', err);
+      }
+    });
+    window.chrome.webview.addEventListener('message', (e) => {
+      const msg = e.data;
+      if (msg && msg.type === 'blur_frame') {
+        renderKawaseBlurFrame(msg.w, msg.h, msg.blur);
+      }
+    });
+  }
 
   let lastWidgetsSignature = '';
   let currentTheme = 'dark';
@@ -28,6 +266,9 @@ function initTaskbar() {
   let dynamicIslandClockTimer = null;
   let isDynamicIslandExpanded = false;
   let lastMediaSnapshot = null;
+  let lastMediaTrackKey = '';
+  let isMusicWidePillMode = false;
+  let isMusicLyricsPinnedMode = false;
   let globalDateFormat = 'DD-MM-YYYY';
 
   function formatDateWithTemplate(date, template) {
@@ -60,6 +301,12 @@ function initTaskbar() {
     const noAnim = currentDynamicIslandConfig.enableAnimation === false || !currentAnimations;
 
     if (!isEnabled || !media || !media.hasMedia) {
+      lastMediaTrackKey = '';
+      if (isMusicLyricsPinnedMode) {
+        isMusicLyricsPinnedMode = false;
+        musicEl.classList.remove('is-lyrics-pill');
+        musicEl.style.width = isMusicWidePillMode ? '210px' : '';
+      }
       musicEl.classList.remove('is-hovered');
       if (noAnim || !isEnabled) {
         musicEl.classList.add('is-music-absent');
@@ -69,6 +316,17 @@ function initTaskbar() {
       }
       return;
     }
+
+    const trackKey = `${(media.title || '').toLowerCase()}|${(media.artist || '').toLowerCase()}`;
+    const isFinished = (media.durationSeconds > 0 && media.positionSeconds >= media.durationSeconds - 0.3 && !media.isPlaying);
+    if ((lastMediaTrackKey && trackKey !== lastMediaTrackKey) || isFinished) {
+      if (isMusicLyricsPinnedMode) {
+        isMusicLyricsPinnedMode = false;
+        musicEl.classList.remove('is-lyrics-pill');
+        musicEl.style.width = isMusicWidePillMode ? '210px' : '';
+      }
+    }
+    lastMediaTrackKey = trackKey;
 
     if (musicEl.style.display === 'none') {
       if (noAnim) {
@@ -100,7 +358,7 @@ function initTaskbar() {
     }
 
     const titleEl = document.getElementById('tbDiMusicTitle');
-    if (titleEl) {
+    if (titleEl && !isMusicLyricsPinnedMode) {
       titleEl.textContent = media.title || 'Playing';
     }
 
@@ -159,16 +417,19 @@ function initTaskbar() {
 
     function triggerExpand(target) {
       clearTimeout(musicHoverTimer);
-      musicEl.style.transition = 'none';
-      musicEl.classList.remove('is-hovered');
-      void musicEl.offsetWidth;
-      musicEl.style.transition = '';
+      if (!isMusicWidePillMode) {
+        musicEl.style.transition = 'none';
+        musicEl.classList.remove('is-hovered');
+        void musicEl.offsetWidth;
+        musicEl.style.transition = '';
+      }
 
       const hasMusicPill = musicEl.style.display !== 'none' && !musicEl.classList.contains('is-music-absent');
       const clockRect = el.getBoundingClientRect();
       const wrapRect = wrapper.getBoundingClientRect();
       const clockW = Math.round(clockRect.width) || 78;
-      const musicW = 68;
+      const musicRect = musicEl.getBoundingClientRect();
+      const musicW = Math.round(musicRect.width) || (isMusicWidePillMode ? 210 : 68);
       const effectiveW = hasMusicPill ? (clockW + 8 + musicW) : clockW;
 
       if (window.winzen && typeof window.winzen.send === 'function') {
@@ -181,6 +442,7 @@ function initTaskbar() {
           clockWidth: clockW,
           musicWidth: hasMusicPill ? musicW : 0,
           hasMusicPill: hasMusicPill,
+          isMusicWide: isMusicWidePillMode,
           slot: currentDynamicIslandConfig.taskbarSlot || 'center'
         });
       }
@@ -248,17 +510,80 @@ function initTaskbar() {
     musicEl.appendChild(titleSpan);
     musicEl.appendChild(waveDiv);
 
+    window.winzenSetMusicLyrics = (lyricText, isPinned, dynamicW) => {
+      isMusicLyricsPinnedMode = !!isPinned;
+      if (!musicEl) return;
+
+      if (isMusicLyricsPinnedMode && lyricText && lyricText.trim().length > 0) {
+        musicEl.classList.add('is-lyrics-pill');
+        if (titleSpan) {
+          titleSpan.textContent = lyricText;
+        }
+        const targetW = (dynamicW && dynamicW > 70) ? Math.min(340, Math.max(96, Math.round(dynamicW))) : calculateTextWidth(lyricText);
+        musicEl.style.width = `${targetW}px`;
+      } else {
+        musicEl.classList.remove('is-lyrics-pill');
+        musicEl.style.width = isMusicWidePillMode ? '210px' : '';
+        if (titleSpan && lastMediaSnapshot) {
+          titleSpan.textContent = lastMediaSnapshot.title || 'Playing';
+        }
+      }
+
+      if (lastMediaSnapshot) {
+        updateDynamicIslandMedia(lastMediaSnapshot);
+      }
+    };
+
+    let _lyricMeasureCanvas = null;
+    function calculateTextWidth(text) {
+      if (!text) return 100;
+      if (!_lyricMeasureCanvas) {
+        _lyricMeasureCanvas = document.createElement('canvas');
+      }
+      const ctx = _lyricMeasureCanvas.getContext('2d');
+      if (ctx) {
+        ctx.font = '600 12px -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif';
+        const textW = Math.ceil(ctx.measureText(text).width);
+        return Math.min(340, Math.max(96, textW + 78));
+      }
+      const estimated = Math.round(text.length * 6.5 + 78);
+      return Math.min(340, Math.max(96, estimated));
+    }
+
+    window.winzenSetMusicWideMode = (wide) => {
+      isMusicWidePillMode = !!wide;
+      if (musicEl) {
+        if (isMusicWidePillMode) {
+          musicEl.classList.add('is-hovered');
+          if (!isMusicLyricsPinnedMode) {
+            musicEl.style.width = '210px';
+          }
+          if (lastMediaSnapshot) {
+            updateDynamicIslandMedia(lastMediaSnapshot);
+          }
+        } else {
+          musicEl.classList.remove('is-hovered');
+          if (!isMusicLyricsPinnedMode) {
+            musicEl.style.width = '';
+          }
+        }
+      }
+    };
+
+    window.winzenIsMusicWideMode = () => isMusicWidePillMode;
+
     musicEl.addEventListener('mouseenter', () => {
-      if (wrapper.classList.contains('island-hidden')) return;
+      if (wrapper.classList.contains('island-hidden') || isMusicWidePillMode || isMusicLyricsPinnedMode) return;
       clearTimeout(musicHoverTimer);
       musicHoverTimer = setTimeout(() => {
-        if (!wrapper.classList.contains('island-hidden')) {
+        if (!wrapper.classList.contains('island-hidden') && !isMusicWidePillMode && !isMusicLyricsPinnedMode) {
           musicEl.classList.add('is-hovered');
         }
       }, 260);
     });
 
     musicEl.addEventListener('mouseleave', () => {
+      if (isMusicWidePillMode || isMusicLyricsPinnedMode) return;
       clearTimeout(musicHoverTimer);
       musicEl.classList.remove('is-hovered');
     });
@@ -423,6 +748,13 @@ function initTaskbar() {
     document.documentElement.style.setProperty('--taskbar-border-bottom', borderBottomColor);
 
     const isTransparentWithBlur = bgOpacityPct < 100 && bgBlurPct > 0;
+    const useRealtimeBlur = isTransparentWithBlur && (settings.blurEngine === 'realtime' || settings.BlurEngine === 'realtime');
+    if (taskbarBlurCanvas) {
+      taskbarBlurCanvas.style.display = useRealtimeBlur ? 'block' : 'none';
+      if (useRealtimeBlur && blurSharedBytes && srcTexW > 0 && srcTexH > 0) {
+        renderKawaseBlurFrame(srcTexW, srcTexH, bgBlurPct);
+      }
+    }
     const backdropUrl = state.backdropImageUrl || '';
     if (taskbarWallpaperLayer) {
       if (isTransparentWithBlur && backdropUrl) {

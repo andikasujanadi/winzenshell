@@ -27,6 +27,7 @@ public partial class DynamicIslandWindow : Window
     private string _lastDockEdge = "Top";
     private string _lastSlot = "center";
     private string _lastTarget = "clock";
+    private bool _lastIsMusicWide = false;
 
     private DateTime _lastExpandTime = DateTime.MinValue;
 
@@ -45,15 +46,48 @@ public partial class DynamicIslandWindow : Window
         Deactivated += OnDeactivated;
         SizeChanged += OnWindowSizeChanged;
         _shellState.StateChanged += OnShellStateChanged;
+        if (_mediaService != null)
+        {
+            _mediaService.MediaChanged += OnMediaChanged;
+        }
         _ = InitializeWebViewAsync();
+    }
+
+    private void OnMediaChanged(MediaPlaybackSnapshot snapshot)
+    {
+        Dispatcher.Invoke(() =>
+        {
+            PushMediaToWeb(snapshot);
+        });
+    }
+
+    public void PushMediaToWeb(MediaPlaybackSnapshot snapshot)
+    {
+        if (!_webViewReady || DiWebView?.CoreWebView2 == null) return;
+        try
+        {
+            string json = JsonSerializer.Serialize(new
+            {
+                type = "metrics_update",
+                payload = new
+                {
+                    media = snapshot
+                }
+            }, new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            });
+            DiWebView.CoreWebView2.PostWebMessageAsJson(json);
+        }
+        catch { }
     }
 
     private void OnWindowSizeChanged(object sender, SizeChangedEventArgs e)
     {
-        // Invariant guard: overlay or expanded island must never be clipped below 440x240
-        if ((_isTaskbarOverlay || _isExpanded) && (e.NewSize.Width < 439 || e.NewSize.Height < 239))
+        // Invariant guard: overlay or expanded island must never be clipped below 440x330
+        if ((_isTaskbarOverlay || _isExpanded) && (e.NewSize.Width < 439 || e.NewSize.Height < 329))
         {
-            Dispatcher.BeginInvoke(() => EnsureWindowSize(440, 240));
+            Dispatcher.BeginInvoke(() => EnsureWindowSize(440, 330));
         }
     }
 
@@ -165,6 +199,10 @@ public partial class DynamicIslandWindow : Window
             {
                 _webViewReady = true;
                 PushStateToWeb(_shellState.BuildPayload());
+                if (_mediaService != null)
+                {
+                    PushMediaToWeb(_mediaService.CurrentSnapshot);
+                }
                 if (_isTaskbarOverlay)
                 {
                     var msg = JsonSerializer.Serialize(new
@@ -290,7 +328,7 @@ public partial class DynamicIslandWindow : Window
         EnsureWindowBounds(targetLeft, targetTop, Width, Height);
     }
 
-    public void ShowAsOverlay(double anchorScreenX, double anchorW, double taskbarScreenY, double taskbarH, string dockEdge, string slot = "center", string target = "clock", double clockW = 0, double musicW = 0, bool hasMusic = false, double anchorY = 8.0, double anchorH = 30.0)
+    public void ShowAsOverlay(double anchorScreenX, double anchorW, double taskbarScreenY, double taskbarH, string dockEdge, string slot = "center", string target = "clock", double clockW = 0, double musicW = 0, bool hasMusic = false, double anchorY = 8.0, double anchorH = 30.0, bool isMusicWide = false)
     {
         _isClosing = false;
         _isTaskbarOverlay = true;
@@ -305,6 +343,11 @@ public partial class DynamicIslandWindow : Window
         _lastDockEdge = dockEdge;
         _lastSlot = slot;
         _lastTarget = target;
+        _lastIsMusicWide = isMusicWide;
+        if (isMusicWide && _lastMusicW < 200)
+        {
+            _lastMusicW = 210;
+        }
 
         var mon = WorkAreaAppBarService.GetPrimaryMonitorInfo().rcMonitor;
         double dpi = 1.0;
@@ -318,7 +361,7 @@ public partial class DynamicIslandWindow : Window
         double monW = mon.Width / dpi;
 
         const double overlayW = 440.0;
-        const double overlayH = 240.0;
+        const double overlayH = 330.0;
 
         double targetLeft;
 
@@ -361,6 +404,7 @@ public partial class DynamicIslandWindow : Window
                 clockWidth = _lastClockW,
                 musicWidth = _lastMusicW,
                 hasMusicPill = _lastHasMusic,
+                isMusicWide = isMusicWide,
                 anchorY = _lastAnchorY,
                 anchorHeight = _lastAnchorH,
                 dockEdge = dockEdge,
@@ -411,6 +455,7 @@ public partial class DynamicIslandWindow : Window
                     clockWidth = _lastClockW > 0 ? _lastClockW : 78,
                     musicWidth = _lastMusicW,
                     hasMusicPill = _lastHasMusic,
+                    isMusicWide = _lastIsMusicWide,
                     anchorY = _lastAnchorY,
                     anchorHeight = _lastAnchorH > 0 ? _lastAnchorH : 30.0,
                     taskbarHeight = _lastTaskbarH > 0 ? _lastTaskbarH : 46.0,
@@ -478,15 +523,16 @@ public partial class DynamicIslandWindow : Window
             {
                 try
                 {
-                    // Unhide the taskbar pill FIRST with inline transition=none so it is 100% opaque on the very first painted frame
+                    // Unhide the taskbar pill FIRST with smooth natural transition
                     await tbWindow.TaskbarWebView.CoreWebView2.ExecuteScriptAsync(
                         "(() => { " +
                         "  const w = document.getElementById('shell-dynamic-island-wrapper'); " +
                         "  const el = document.getElementById('shell-dynamic-island'); " +
-                        "  if (w) { w.style.transition = 'none'; w.classList.remove('island-hidden'); } " +
+                        "  const m = document.getElementById('shell-dynamic-island-music'); " +
+                        "  if (w) { w.classList.remove('island-hidden'); } " +
                         "  if (el) { el.classList.remove('island-hidden'); } " +
+                        "  if (m && window.winzenIsMusicWideMode && window.winzenIsMusicWideMode()) { m.classList.add('is-hovered'); } " +
                         "  if (window.winzenUnmergeDynamicIsland) window.winzenUnmergeDynamicIsland(); " +
-                        "  if (w) void w.offsetWidth; " +
                         "})();"
                     );
                     // Wait 2 compositor frames (~32ms) so DWM composites the 100% opaque taskbar pill before hiding the overlay
@@ -560,6 +606,76 @@ public partial class DynamicIslandWindow : Window
                     CloseOverlay();
                 });
             }
+            else if (type == "di_set_music_wide")
+            {
+                bool isWide = root.TryGetProperty("isWide", out var wProp) && wProp.GetBoolean();
+                _lastIsMusicWide = isWide;
+                if (isWide)
+                {
+                    _lastMusicW = 210;
+                }
+                else
+                {
+                    _lastMusicW = 68;
+                }
+                Dispatcher.Invoke(() =>
+                {
+                    TaskbarWebWindow? tbWindow = TaskbarWindow ?? Owner as TaskbarWebWindow;
+                    if (tbWindow == null)
+                    {
+                        foreach (Window win in System.Windows.Application.Current.Windows)
+                        {
+                            if (win is TaskbarWebWindow mainTb)
+                            {
+                                tbWindow = mainTb;
+                                break;
+                            }
+                        }
+                    }
+                    tbWindow?.TaskbarWebView?.CoreWebView2?.ExecuteScriptAsync(
+                        $"window.winzenSetMusicWideMode && window.winzenSetMusicWideMode({(isWide ? "true" : "false")});"
+                    );
+                });
+            }
+            else if (type == "di_set_lyrics")
+            {
+                bool isPinned = root.TryGetProperty("isPinned", out var pinProp) && pinProp.GetBoolean();
+                string lyricText = root.TryGetProperty("text", out var textProp) ? textProp.GetString() ?? "" : "";
+                double lyricW = root.TryGetProperty("width", out var widthProp) && widthProp.TryGetDouble(out var lwVal) ? lwVal : 0;
+                if (isPinned && lyricW > 40)
+                {
+                    _lastMusicW = lyricW;
+                }
+                else if (_lastIsMusicWide)
+                {
+                    _lastMusicW = 210;
+                }
+                else
+                {
+                    _lastMusicW = 68;
+                }
+
+                Dispatcher.Invoke(() =>
+                {
+                    TaskbarWebWindow? tbWindow = TaskbarWindow ?? Owner as TaskbarWebWindow;
+                    if (tbWindow == null)
+                    {
+                        foreach (Window win in System.Windows.Application.Current.Windows)
+                        {
+                            if (win is TaskbarWebWindow mainTb)
+                            {
+                                tbWindow = mainTb;
+                                break;
+                            }
+                        }
+                    }
+
+                    string safeText = lyricText.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\n", " ").Replace("\r", "");
+                    tbWindow?.TaskbarWebView?.CoreWebView2?.ExecuteScriptAsync(
+                        $"window.winzenSetMusicLyrics && window.winzenSetMusicLyrics(\"{safeText}\", {(isPinned ? "true" : "false")}, {lyricW});"
+                    );
+                });
+            }
             else if (type == "di_expand")
             {
                 bool isExp = !root.TryGetProperty("expanded", out var expProp) || expProp.GetBoolean();
@@ -569,7 +685,7 @@ public partial class DynamicIslandWindow : Window
                     _lastExpandTime = DateTime.UtcNow;
                     Dispatcher.Invoke(() =>
                     {
-                        EnsureWindowSize(440, 240);
+                        EnsureWindowSize(440, 330);
                         if (!_isTaskbarOverlay)
                         {
                             UpdatePosition();

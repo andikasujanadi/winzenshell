@@ -216,7 +216,10 @@ public partial class SettingsWebWindow : Window
                     string? accent = root.TryGetProperty("accentColor", out var acProp) ? acProp.GetString() : null;
                     int? bgOpacity = root.TryGetProperty("backgroundOpacity", out var boProp) && boProp.ValueKind == JsonValueKind.Number ? boProp.GetInt32() : null;
                     int? bgBlur = root.TryGetProperty("backgroundBlurStrength", out var bbProp) && bbProp.ValueKind == JsonValueKind.Number ? bbProp.GetInt32() : null;
-                    _shellState.UpdateWorkAreaConfig(respect, dockEdge, heightPx, marginPx, theme, cornerRadius, accent, bgOpacity, bgBlur);
+                    int? flyoutBgOpacity = root.TryGetProperty("flyoutBackgroundOpacity", out var fboProp) && fboProp.ValueKind == JsonValueKind.Number ? fboProp.GetInt32() : null;
+                    int? flyoutBgBlur = root.TryGetProperty("flyoutBackgroundBlurStrength", out var fbbProp) && fbbProp.ValueKind == JsonValueKind.Number ? fbbProp.GetInt32() : null;
+                    string? blurEngine = root.TryGetProperty("blurEngine", out var beProp) && beProp.ValueKind == JsonValueKind.String ? beProp.GetString() : null;
+                    _shellState.UpdateWorkAreaConfig(respect, dockEdge, heightPx, marginPx, theme, cornerRadius, accent, bgOpacity, bgBlur, blurEngine, flyoutBgOpacity, flyoutBgBlur);
                     break;
 
                 case "set_accent_color":

@@ -39,6 +39,17 @@ body {
   box-shadow: none;
 }
 
+.taskbar-blur-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  display: none;
+}
+
 .taskbar-wallpaper-layer {
   position: absolute;
   inset: -32px;
@@ -333,6 +344,13 @@ body.winzen-no-anim *:active {
   border-color: #525252;
 }
 
+.shell-dynamic-island-music.is-lyrics-pill {
+  width: auto;
+  min-width: 90px;
+  max-width: 340px;
+  border-color: #525252;
+}
+
 .shell-dynamic-island-music:active {
   transform: scale(0.97);
 }
@@ -381,6 +399,12 @@ body.winzen-no-anim *:active {
 .shell-dynamic-island-music.is-hovered .di-music-title {
   opacity: 1;
   max-width: 130px;
+  margin: 0 8px;
+}
+
+.shell-dynamic-island-music.is-lyrics-pill .di-music-title {
+  opacity: 1;
+  max-width: 270px;
   margin: 0 8px;
 }
 

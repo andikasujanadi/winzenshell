@@ -142,6 +142,35 @@
   });
 
   searchInput.addEventListener('keydown', (e) => {
+    handleNavigationOrEscape(e);
+  });
+
+  // Redirect typing anywhere in the launcher into the searchbar
+  document.addEventListener('keydown', (e) => {
+    if (document.activeElement === searchInput) return;
+
+    if (handleNavigationOrEscape(e)) return;
+
+    if (e.key === 'Backspace') {
+      e.preventDefault();
+      searchInput.focus();
+      if (searchInput.value.length > 0) {
+        searchInput.value = searchInput.value.slice(0, -1);
+        updateView();
+      }
+      return;
+    }
+
+    // Printable character without Ctrl/Alt/Meta modifiers
+    if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault();
+      searchInput.focus();
+      searchInput.value += e.key;
+      updateView();
+    }
+  });
+
+  function handleNavigationOrEscape(e) {
     const cols = 6;
     if (e.key === 'ArrowDown') {
       e.preventDefault();
@@ -149,24 +178,28 @@
         selectedIndex = Math.min(selectedIndex + cols, visibleApps.length - 1);
         refreshSelected();
       }
+      return true;
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       if (selectedIndex >= 0) {
         selectedIndex = Math.max(selectedIndex - cols, 0);
         refreshSelected();
       }
+      return true;
     } else if (e.key === 'ArrowRight') {
       e.preventDefault();
       if (visibleApps.length > 0) {
         selectedIndex = Math.min(selectedIndex + 1, visibleApps.length - 1);
         refreshSelected();
       }
+      return true;
     } else if (e.key === 'ArrowLeft') {
       e.preventDefault();
       if (selectedIndex > 0) {
         selectedIndex = Math.max(selectedIndex - 1, 0);
         refreshSelected();
       }
+      return true;
     } else if (e.key === 'Enter') {
       e.preventDefault();
       if (selectedIndex >= 0 && visibleApps[selectedIndex]) {
@@ -174,16 +207,20 @@
       } else if (visibleApps.length > 0) {
         launchApp(visibleApps[0]);
       }
+      return true;
     } else if (e.key === 'Escape') {
       e.preventDefault();
       if (searchInput.value) {
         searchInput.value = '';
+        searchInput.focus();
         updateView();
       } else {
         sendHost('close_launcher');
       }
+      return true;
     }
-  });
+    return false;
+  }
 
   function refreshSelected() {
     const items = appsGrid.querySelectorAll('.app-item');

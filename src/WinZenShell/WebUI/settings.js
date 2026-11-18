@@ -171,6 +171,11 @@ function initSettingsPage() {
   const inputBgBlur = document.getElementById('inputBgBlur');
   const labelBgBlurVal = document.getElementById('labelBgBlurVal');
   const bgBlurField = document.getElementById('bgBlurField');
+  const inputFlyoutBgOpacity = document.getElementById('inputFlyoutBgOpacity');
+  const labelFlyoutBgOpacityVal = document.getElementById('labelFlyoutBgOpacityVal');
+  const inputFlyoutBgBlur = document.getElementById('inputFlyoutBgBlur');
+  const labelFlyoutBgBlurVal = document.getElementById('labelFlyoutBgBlurVal');
+  const flyoutBgBlurField = document.getElementById('flyoutBgBlurField');
   const accentSwatchesContainer = document.getElementById('accentSwatchesContainer');
   let currentAccentColor = '#3684E3';
 
@@ -254,7 +259,11 @@ function initSettingsPage() {
     const parsedRadius = inputCornerRadius ? parseInt(inputCornerRadius.value, 10) : 12;
     const parsedOpacity = inputBgOpacity ? parseInt(inputBgOpacity.value, 10) : 100;
     const parsedBlur = inputBgBlur ? parseInt(inputBgBlur.value, 10) : 60;
+    const parsedFlyoutOpacity = inputFlyoutBgOpacity ? parseInt(inputFlyoutBgOpacity.value, 10) : 100;
+    const parsedFlyoutBlur = inputFlyoutBgBlur ? parseInt(inputFlyoutBgBlur.value, 10) : 60;
     updateBlurFieldEnabledState(Number.isNaN(parsedOpacity) ? 100 : parsedOpacity);
+    updateFlyoutBlurFieldEnabledState(Number.isNaN(parsedFlyoutOpacity) ? 100 : parsedFlyoutOpacity);
+    const selectBlurEngine = document.getElementById('selectBlurEngine');
     window.winzen.send('update_workarea_config', {
       respectWorkArea: toggleRespectWorkArea.checked,
       dockEdge: selectDockEdge.value,
@@ -263,9 +272,17 @@ function initSettingsPage() {
       taskbarCornerRadiusPx: Number.isNaN(parsedRadius) ? 12 : parsedRadius,
       backgroundOpacity: Number.isNaN(parsedOpacity) ? 100 : parsedOpacity,
       backgroundBlurStrength: Number.isNaN(parsedBlur) ? 60 : parsedBlur,
+      flyoutBackgroundOpacity: Number.isNaN(parsedFlyoutOpacity) ? 100 : parsedFlyoutOpacity,
+      flyoutBackgroundBlurStrength: Number.isNaN(parsedFlyoutBlur) ? 60 : parsedFlyoutBlur,
+      blurEngine: selectBlurEngine ? selectBlurEngine.value : 'wallpaper',
       accentColor: currentAccentColor,
       theme: selectTheme ? selectTheme.value : 'dark'
     });
+  }
+
+  const selectBlurEngineEl = document.getElementById('selectBlurEngine');
+  if (selectBlurEngineEl) {
+    selectBlurEngineEl.addEventListener('change', sendWorkAreaConfig);
   }
 
   function updateBlurFieldEnabledState(opacityVal) {
@@ -274,6 +291,14 @@ function initSettingsPage() {
     inputBgBlur.disabled = isOpaque;
     bgBlurField.style.opacity = isOpaque ? '0.42' : '1';
     bgBlurField.title = isOpaque ? 'Blur is disabled at 100% opacity for efficiency' : '';
+  }
+
+  function updateFlyoutBlurFieldEnabledState(opacityVal) {
+    if (!inputFlyoutBgBlur || !flyoutBgBlurField) return;
+    const isOpaque = opacityVal >= 100;
+    inputFlyoutBgBlur.disabled = isOpaque;
+    flyoutBgBlurField.style.opacity = isOpaque ? '0.42' : '1';
+    flyoutBgBlurField.title = isOpaque ? 'Blur is disabled at 100% opacity for efficiency' : '';
   }
 
   if (selectTheme) {
@@ -562,7 +587,11 @@ function initSettingsPage() {
       if (sliderEl === inputBgOpacity) {
         updateBlurFieldEnabledState(parseInt(sliderEl.value, 10));
       }
-      if (sliderEl === inputBgOpacity || sliderEl === inputBgBlur) {
+      if (sliderEl === inputFlyoutBgOpacity) {
+        updateFlyoutBlurFieldEnabledState(parseInt(sliderEl.value, 10));
+      }
+      if (sliderEl === inputBgOpacity || sliderEl === inputBgBlur ||
+          sliderEl === inputFlyoutBgOpacity || sliderEl === inputFlyoutBgBlur) {
         if (liveConfigTimer) clearTimeout(liveConfigTimer);
         liveConfigTimer = setTimeout(sendWorkAreaConfig, 50);
       }
@@ -575,6 +604,8 @@ function initSettingsPage() {
   bindRangeSlider(inputCornerRadius, labelRadiusVal, 'px');
   bindRangeSlider(inputBgOpacity, labelBgOpacityVal, '%');
   bindRangeSlider(inputBgBlur, labelBgBlurVal, '%');
+  bindRangeSlider(inputFlyoutBgOpacity, labelFlyoutBgOpacityVal, '%');
+  bindRangeSlider(inputFlyoutBgBlur, labelFlyoutBgBlurVal, '%');
 
   function updateAccentColorUI(color) {
     currentAccentColor = color || '#3684E3';
@@ -586,6 +617,8 @@ function initSettingsPage() {
     updateSliderTrackFill(inputCornerRadius);
     updateSliderTrackFill(inputBgOpacity);
     updateSliderTrackFill(inputBgBlur);
+    updateSliderTrackFill(inputFlyoutBgOpacity);
+    updateSliderTrackFill(inputFlyoutBgBlur);
     updateSliderTrackFill(inputAppIconSize);
     if (accentSwatchesContainer) {
       accentSwatchesContainer.querySelectorAll('.accent-swatch').forEach(btn => {
@@ -847,9 +880,26 @@ function initSettingsPage() {
       }
       if (inputBgBlur) {
         const bl = s.backgroundBlurStrength ?? 60;
+        const selectBlurEngineSync = document.getElementById('selectBlurEngine');
+        if (selectBlurEngineSync) {
+          selectBlurEngineSync.value = (s.blurEngine === 'realtime') ? 'realtime' : 'wallpaper';
+        }
         inputBgBlur.value = bl;
         if (labelBgBlurVal) labelBgBlurVal.textContent = `${bl}%`;
         updateSliderTrackFill(inputBgBlur);
+      }
+      if (inputFlyoutBgOpacity) {
+        const fop = s.flyoutBackgroundOpacity ?? 100;
+        inputFlyoutBgOpacity.value = fop;
+        if (labelFlyoutBgOpacityVal) labelFlyoutBgOpacityVal.textContent = `${fop}%`;
+        updateSliderTrackFill(inputFlyoutBgOpacity);
+        updateFlyoutBlurFieldEnabledState(fop);
+      }
+      if (inputFlyoutBgBlur) {
+        const fbl = s.flyoutBackgroundBlurStrength ?? 60;
+        inputFlyoutBgBlur.value = fbl;
+        if (labelFlyoutBgBlurVal) labelFlyoutBgBlurVal.textContent = `${fbl}%`;
+        updateSliderTrackFill(inputFlyoutBgBlur);
       }
       if (s.accentColor) {
         updateAccentColorUI(s.accentColor);

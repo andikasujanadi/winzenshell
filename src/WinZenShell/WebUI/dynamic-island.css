@@ -127,11 +127,11 @@ html, body {
   transform: translateX(var(--di-pill-offset-x, 0px)) scale(0.98);
 }
 
-/* Expanded state: animates from pill position into centered 350x158 grow position */
+/* Expanded state: animates from pill position into centered 350x204 grow position */
 .dynamic-island-capsule.expanded {
   max-width: none !important;
   width: 350px !important;
-  height: 158px !important;
+  height: 204px !important;
   padding: 0 !important;
   border-radius: 40px !important;
   border: 1px solid #292929;
@@ -145,6 +145,10 @@ html, body {
               padding 0.32s cubic-bezier(0.16, 1, 0.3, 1) 0.06s,
               border-color 0.25s ease 0.06s,
               transform 0.32s cubic-bezier(0.16, 1, 0.3, 1) 0.06s;
+}
+
+.dynamic-island-capsule.expanded.lyrics-pinned {
+  height: 300px !important;
 }
 
 .island-collapsed-content {
@@ -182,11 +186,21 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  width: 66px;
+  width: var(--di-collapsed-width, 68px);
   height: 28px;
   flex-shrink: 0;
-  padding: 0 9px;
+  padding: 0 10px;
   box-sizing: border-box;
+}
+
+.dynamic-island-capsule.is-wide-pill .island-collapsed-music-inner {
+  width: 210px;
+}
+
+.dynamic-island-capsule.is-wide-pill .island-collapsed-music-inner .di-music-title {
+  opacity: 1;
+  max-width: 130px;
+  margin: 0 8px;
 }
 
 .dynamic-island-capsule.expanded .island-collapsed-content {
@@ -231,12 +245,15 @@ html, body {
   top: 0;
   left: 0;
   width: 350px;
-  height: 158px;
-  padding: 20px 24px;
+  height: auto;
+  min-height: 204px;
+  max-height: 300px;
+  padding: 16px 22px 14px 22px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-start;
+  gap: 6px;
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
@@ -437,6 +454,139 @@ html, body {
   opacity: 0.95;
 }
 
+/* Bottom Action Pills (pin lyrics & wide pill) */
+.di-music-actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  width: 100%;
+  margin-top: 4px;
+  padding-right: 2px;
+}
+
+.di-action-pill-btn {
+  background: #242424;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 5px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.16s ease, transform 0.14s ease, border-color 0.16s ease, color 0.16s ease;
+  outline: none;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.di-action-pill-btn:hover {
+  background: #333333;
+  border-color: rgba(255, 255, 255, 0.18);
+  transform: translateY(-1px);
+}
+
+.di-action-pill-btn:active {
+  transform: translateY(0px) scale(0.96);
+  background: #1f1f1f;
+}
+
+.di-action-pill-btn.active {
+  background: #ffffff;
+  color: #000000;
+  border-color: #ffffff;
+}
+
+/* In-Island Lyrics View (Placed smoothly below buttons) */
+.di-music-lyrics-view {
+  width: 100%;
+  height: 86px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-sizing: border-box;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  margin-top: 4px;
+  animation: diLyricsFadeIn 0.26s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes diLyricsFadeIn {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1.0); }
+}
+
+.di-lyrics-scroller {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px 14px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  scroll-behavior: smooth;
+  gap: 10px;
+  mask-image: linear-gradient(to bottom, transparent 0%, black 25%, black 75%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 25%, black 75%, transparent 100%);
+}
+
+.di-lyrics-scroller::-webkit-scrollbar {
+  display: none;
+}
+
+.di-lyric-line {
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.45;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.38);
+  transition: color 0.25s ease, transform 0.25s ease, filter 0.25s ease;
+  user-select: none;
+  cursor: pointer;
+  max-width: 95%;
+  flex-shrink: 0;
+}
+
+.di-lyric-line:hover {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.di-lyric-line.active {
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 700;
+  transform: scale(1.04);
+  text-shadow: 0 0 16px rgba(255, 255, 255, 0.35);
+}
+
+.di-lyric-line.passed {
+  color: rgba(255, 255, 255, 0.25);
+}
+
+.di-lyrics-placeholder {
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  margin: auto;
+}
+  width: 100%;
+  text-align: center;
+  user-select: none;
+}
+
 /* Collapsed Elements */
 .di-time {
   font-size: 13.5px;
@@ -507,35 +657,64 @@ html, body {
   font-variant-numeric: tabular-nums;
 }
 
-.di-card-battery-icon {
+.di-card-battery-icon-wrap {
   position: relative;
-  width: 24px;
-  height: 12px;
-  border: 1.5px solid #ffffff;
-  border-radius: 3.5px;
-  padding: 1.5px;
-  box-sizing: border-box;
-  display: flex;
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  --batt-border: #ffffff;
+  --batt-cap: #ffffff;
+  --batt-fill: #ffffff;
+  --batt-track: rgba(255, 255, 255, 0.3);
+  --batt-charging: #6ccb5f;
+  --batt-saver: #f59e0b;
+  --batt-low: #ef4444;
+  --batt-bolt-fill: #ffffff;
+  --batt-bolt-halo: #000000;
 }
 
-.di-card-battery-icon::after {
-  content: '';
-  position: absolute;
-  right: -3px;
-  top: 2.5px;
-  width: 2px;
-  height: 5px;
-  background: #ffffff;
-  border-radius: 0 1px 1px 0;
+.di-card-battery-icon-wrap .batt-svg {
+  width: 26px;
+  height: 14.5px;
+  display: block;
+  overflow: visible;
 }
 
-.di-card-battery-fill {
-  height: 100%;
-  background: #ffffff;
-  border-radius: 1px;
-  width: 100%;
+.di-card-battery-icon-wrap .batt-fill-bar {
   transition: width 0.3s ease;
+}
+
+.di-card-battery-group.is-charging .batt-fill-bar {
+  fill: var(--batt-charging) !important;
+}
+
+.di-card-battery-group.is-energy-saver:not(.is-charging) .batt-fill-bar {
+  fill: var(--batt-saver) !important;
+}
+
+.di-card-battery-group.is-low:not(.is-charging) .batt-fill-bar {
+  fill: var(--batt-low) !important;
+}
+
+.di-card-battery-group.style-macos.is-charging .batt-fill-bar {
+  fill: #30d158 !important;
+}
+
+.di-card-battery-group.style-macos.is-energy-saver:not(.is-charging) .batt-fill-bar {
+  fill: #ffd60a !important;
+}
+
+.di-card-battery-group.style-macos.is-low:not(.is-charging) .batt-fill-bar {
+  fill: #ff453a !important;
+}
+
+.di-card-battery-icon-wrap .batt-bolt {
+  display: none;
+}
+
+.di-card-battery-group.is-charging .batt-bolt {
+  display: block !important;
 }
 
 .di-card-bottom-group {
@@ -648,6 +827,19 @@ html, body {
   box-sizing: border-box;
 }
 
+.island-bg-pill.is-wide-pill .island-bg-music-inner .di-music-title {
+  opacity: 1;
+  max-width: 130px;
+  margin: 0 8px;
+}
+
+.island-bg-pill.is-lyrics-pill .island-bg-music-inner .di-music-title,
+.dynamic-island-capsule.is-lyrics-pill .island-collapsed-music-inner .di-music-title {
+  opacity: 1;
+  max-width: 270px;
+  margin: 0 8px;
+}
+
 .shell-dynamic-island-music {
   display: inline-flex;
   align-items: center;
@@ -694,6 +886,19 @@ html, body {
 .shell-dynamic-island-music.is-hovered {
   width: 210px;
   border-color: #525252;
+}
+
+.shell-dynamic-island-music.is-lyrics-pill {
+  width: auto;
+  min-width: 90px;
+  max-width: 340px;
+  border-color: #525252;
+}
+
+.shell-dynamic-island-music.is-lyrics-pill .di-music-title {
+  opacity: 1;
+  max-width: 270px;
+  margin: 0 8px;
 }
 
 .shell-dynamic-island-music:active {

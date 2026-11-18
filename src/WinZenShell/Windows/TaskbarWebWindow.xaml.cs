@@ -45,6 +45,7 @@ public partial class TaskbarWebWindow : Window
     private readonly TrayIconService _trayIconService;
     private readonly MediaService _mediaService;
     private readonly WallpaperBackdropService _wallpaperBackdrop = new();
+    private readonly RealtimeBlurService _realtimeBlur;
     private FileSystemWatcher? _triggerWatcher;
     private Forms.ContextMenuStrip? _activeNativeMenu;
     private IntPtr _hwnd = IntPtr.Zero;
@@ -72,6 +73,8 @@ public partial class TaskbarWebWindow : Window
         InitializeComponent();
         System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] TaskbarWebWindow: InitializeComponent done\n");
         TaskbarWebView.DefaultBackgroundColor = System.Drawing.Color.FromArgb(255, 28, 28, 28);
+        _realtimeBlur = new RealtimeBlurService(Dispatcher);
+        Closed += (_, _) => _realtimeBlur.Dispose();
         _shellState = shellState;
         _metricsService = metricsService;
         _brightnessService = brightnessService;
@@ -187,6 +190,7 @@ public partial class TaskbarWebWindow : Window
             var env = await WebViewEnvironmentManager.GetSharedEnvironmentAsync();
             await TaskbarWebView.EnsureCoreWebView2Async(env);
             ApplyTaskbarCornerRegion();
+            _realtimeBlur.Invalidate();
 
             var core = TaskbarWebView.CoreWebView2;
             core.Settings.AreDefaultContextMenusEnabled = false;
@@ -830,6 +834,7 @@ public partial class TaskbarWebWindow : Window
                     Win32Api.SWP_NOACTIVATE);
             }
             ApplyTaskbarCornerRegion();
+            _realtimeBlur.Invalidate();
 
             if (flippedEdge && IsVisible && !_isFullscreenActive)
             {
@@ -845,6 +850,10 @@ public partial class TaskbarWebWindow : Window
         int radius = _shellState.Settings.TaskbarCornerRadiusPx;
         bool isLight = string.Equals(_shellState.Settings.Theme, "light", StringComparison.OrdinalIgnoreCase);
         int opacity = Math.Clamp(_shellState.Settings.BackgroundOpacity, 0, 100);
+        FlyoutAnimationHelper.IsLightTheme = isLight;
+        FlyoutAnimationHelper.FlyoutBackgroundOpacity = Math.Clamp(_shellState.Settings.FlyoutBackgroundOpacity, 0, 100);
+        FlyoutAnimationHelper.FlyoutBackgroundBlurStrength = Math.Clamp(_shellState.Settings.FlyoutBackgroundBlurStrength, 0, 100);
+        FlyoutAnimationHelper.BlurEngine = _shellState.Settings.BlurEngine ?? "wallpaper";
         bool isOpaque = opacity >= 100;
         bool isFloatingRounded = margin > 0 && radius > 0;
 
@@ -902,6 +911,10 @@ public partial class TaskbarWebWindow : Window
 
         bool isLight = string.Equals(_shellState.Settings.Theme, "light", StringComparison.OrdinalIgnoreCase);
         int opacity = Math.Clamp(_shellState.Settings.BackgroundOpacity, 0, 100);
+        FlyoutAnimationHelper.IsLightTheme = isLight;
+        FlyoutAnimationHelper.FlyoutBackgroundOpacity = Math.Clamp(_shellState.Settings.FlyoutBackgroundOpacity, 0, 100);
+        FlyoutAnimationHelper.FlyoutBackgroundBlurStrength = Math.Clamp(_shellState.Settings.FlyoutBackgroundBlurStrength, 0, 100);
+        FlyoutAnimationHelper.BlurEngine = _shellState.Settings.BlurEngine ?? "wallpaper";
         bool isOpaque = opacity >= 100;
         bool isFloatingRounded = _shellState.Settings.FloatingMarginPx > 0 && _shellState.Settings.TaskbarCornerRadiusPx > 0;
         bool glassNeeded = !isOpaque || isFloatingRounded;
@@ -990,6 +1003,7 @@ public partial class TaskbarWebWindow : Window
         Dispatcher.Invoke(() =>
         {
             ApplyTaskbarCornerRegion();
+            _realtimeBlur.Invalidate();
             ApplyTaskbarBackdrop();
             string theme = payload.Settings.Theme;
             string accent = payload.Settings.AccentColor;
@@ -1037,21 +1051,24 @@ public partial class TaskbarWebWindow : Window
     {
         if (!_webViewReady || TaskbarWebView.CoreWebView2 == null) return;
 
-        if (_hwnd != IntPtr.Zero &&
-            payload.Settings.BackgroundOpacity < 100 &&
-            payload.Settings.BackgroundBlurStrength > 0 &&
-            Win32Api.GetWindowRect(_hwnd, out var rect))
+        bool isBlurEnabled = _hwnd != IntPtr.Zero &&
+                             payload.Settings.BackgroundOpacity < 100 &&
+                             payload.Settings.BackgroundBlurStrength > 0;
+        bool useRealtime = isBlurEnabled &&
+                           string.Equals(payload.Settings.BlurEngine, "realtime", StringComparison.OrdinalIgnoreCase);
+
+        _realtimeBlur.UpdateConfig(_hwnd, TaskbarWebView.CoreWebView2, useRealtime, payload.Settings.BackgroundBlurStrength);
+
+        if (isBlurEnabled && !useRealtime && Win32Api.GetWindowRect(_hwnd, out var rect))
         {
             var primaryBounds = Forms.Screen.PrimaryScreen?.Bounds ?? new System.Drawing.Rectangle(0, 0, 1920, 1080);
-            int screenW = primaryBounds.Width;
-            int screenH = primaryBounds.Height;
             payload.BackdropImageUrl = _wallpaperBackdrop.GetBlurredTaskbarStripDataUrl(
                 rect.Left,
                 rect.Top,
                 rect.Width,
                 rect.Height,
-                screenW,
-                screenH,
+                primaryBounds.Width,
+                primaryBounds.Height,
                 payload.Settings.BackgroundBlurStrength);
         }
         else
@@ -1128,6 +1145,7 @@ public partial class TaskbarWebWindow : Window
             switch (action)
             {
                 case "request_state":
+                    _realtimeBlur.ResetSharedBufferPosting();
                     PushStateToWeb(_shellState.BuildPayload());
                     BroadcastMetrics();
                     break;
@@ -1417,7 +1435,8 @@ public partial class TaskbarWebWindow : Window
                     double diClockW = root.TryGetProperty("clockWidth", out var diCwProp) && diCwProp.TryGetDouble(out double diCwd) ? diCwd : diW;
                     double diMusicW = root.TryGetProperty("musicWidth", out var diMwProp) && diMwProp.TryGetDouble(out double diMwd) ? diMwd : 0;
                     bool diHasMusic = root.TryGetProperty("hasMusicPill", out var diHmProp) && diHmProp.GetBoolean();
-                    ToggleDynamicIslandOverlay(diX, diW, diY, diH, diSlot, diTarget, diClockW, diMusicW, diHasMusic);
+                    bool diIsMusicWide = root.TryGetProperty("isMusicWide", out var diImwProp) && diImwProp.GetBoolean();
+                    ToggleDynamicIslandOverlay(diX, diW, diY, diH, diSlot, diTarget, diClockW, diMusicW, diHasMusic, diIsMusicWide);
                     break;
 
                 case "taskbar_clicked_outside":
@@ -1696,7 +1715,7 @@ public partial class TaskbarWebWindow : Window
         }
     }
 
-    public void ToggleDynamicIslandOverlay(double x, double w, double y, double h, string slot = "center", string target = "clock", double clockW = 0, double musicW = 0, bool hasMusic = false)
+    public void ToggleDynamicIslandOverlay(double x, double w, double y, double h, string slot = "center", string target = "clock", double clockW = 0, double musicW = 0, bool hasMusic = false, bool isMusicWide = false)
     {
         Dispatcher.Invoke(() =>
         {
@@ -1713,7 +1732,7 @@ public partial class TaskbarWebWindow : Window
                 double tbLeft = _taskbarDipWidth > 0 ? _taskbarDipLeft : Left;
                 double tbTop = _taskbarDipHeight > 0 ? _taskbarDipTop : Top;
                 double tbHeight = _taskbarDipHeight > 0 ? _taskbarDipHeight : Height;
-                DynamicIslandOverlayWindow.ShowAsOverlay(tbLeft + x, w, tbTop, tbHeight, _shellState.Settings.DockEdge, slot, target, clockW > 0 ? clockW : w, musicW, hasMusic, y, h);
+                DynamicIslandOverlayWindow.ShowAsOverlay(tbLeft + x, w, tbTop, tbHeight, _shellState.Settings.DockEdge, slot, target, clockW > 0 ? clockW : w, musicW, hasMusic, y, h, isMusicWide);
                 BroadcastMetrics();
             }
         });
@@ -2584,6 +2603,7 @@ public partial class TaskbarWebWindow : Window
                     }
                     _lastBackdropSig = "";
                     ApplyTaskbarCornerRegion();
+            _realtimeBlur.Invalidate();
                     RestoreTopmostAfterFullscreen();
                     TaskbarWebView?.InvalidateVisual();
                     _ = System.Threading.Tasks.Task.Delay(180).ContinueWith(_ =>

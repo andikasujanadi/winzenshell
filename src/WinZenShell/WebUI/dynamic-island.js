@@ -12,6 +12,7 @@
 
   const colMusicThumb = document.getElementById('diColMusicThumb');
   const colMusicThumbPlaceholder = document.getElementById('diColMusicThumbPlaceholder');
+  const colMusicTitle = document.getElementById('diColMusicTitle');
   const colMusicWaveform = document.getElementById('diColMusicWaveform');
 
   // Background merge/unmerge pill elements
@@ -23,12 +24,16 @@
   const bgDateEl = document.getElementById('diBgDate');
   const bgThumb = document.getElementById('diBgThumb');
   const bgThumbPlaceholder = document.getElementById('diBgThumbPlaceholder');
+  const bgTitle = document.getElementById('diBgTitle');
   const bgWaveform = document.getElementById('diBgWaveform');
 
   const cardTime = document.getElementById('diCardTime');
   const cardSec = document.getElementById('diCardSeconds');
+  const cardBatteryGroup = document.getElementById('diCardBattery');
   const cardBatteryPct = document.getElementById('diCardBatteryPct');
-  const cardBatteryFill = document.getElementById('diCardBatteryFill');
+  const cardBatteryIconWrap = document.getElementById('diCardBatteryIconWrap');
+  let currentBatteryStyle = '';
+  let lastBatteryMetrics = null;
   const cardWeekday = document.getElementById('diCardWeekday');
   const cardDate = document.getElementById('diCardDate');
 
@@ -45,6 +50,11 @@
   const btnMusicPrev = document.getElementById('btnDiMusicPrev');
   const btnMusicPlayPause = document.getElementById('btnDiMusicPlayPause');
   const btnMusicNext = document.getElementById('btnDiMusicNext');
+  const btnPinLyrics = document.getElementById('btnDiPinLyrics');
+  const btnPillMode = document.getElementById('btnDiPillMode');
+  const lyricsView = document.getElementById('diMusicLyricsView');
+  const lyricsScroller = document.getElementById('diLyricsScroller');
+  const lyricsPlaceholder = document.getElementById('diLyricsPlaceholder');
   const iconPlay = document.getElementById('iconDiPlay');
   const iconPause = document.getElementById('iconDiPause');
 
@@ -178,15 +188,105 @@
     updateCollapsedWidth();
   }
 
+  function buildBatteryIconHtml(style) {
+    switch (style) {
+      case 'win10':
+        return `
+          <svg class="batt-svg batt-win10" viewBox="0 0 28 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect class="batt-housing" x="1.5" y="2.5" width="22" height="11" rx="0" stroke="var(--batt-border)" stroke-width="1.2"/>
+            <rect class="batt-cap" x="23.5" y="5.5" width="2" height="5" rx="0" fill="var(--batt-border)"/>
+            <rect class="batt-fill-bar" x="3" y="4" width="0" height="8" rx="0" fill="var(--batt-fill)"/>
+            <path class="batt-bolt" d="M12.5 3.5 L9 8 H12 L11 12.5 L15 7.5 H12 Z" fill="currentColor"/>
+          </svg>
+        `;
+
+      case 'macos':
+        return `
+          <svg class="batt-svg batt-macos" viewBox="0 0 29 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <clipPath id="diMacosPillClip">
+                <rect x="1.5" y="2" width="23" height="12" rx="4.5"/>
+              </clipPath>
+            </defs>
+            <rect class="batt-track" x="1.5" y="2" width="23" height="12" rx="4.5" fill="var(--batt-track)"/>
+            <path class="batt-cap" d="M25.7 5.7 C27.2 5.7 27.5 6.6 27.5 8 C27.5 9.4 27.2 10.3 25.7 10.3 Z" fill="var(--batt-track)"/>
+            <g clip-path="url(#diMacosPillClip)">
+              <rect class="batt-fill-bar" x="1.5" y="2" width="0" height="12" fill="var(--batt-fill)"/>
+            </g>
+            <g class="batt-bolt">
+              <path d="M12.5 2.5 L8.5 7.5 H11.5 L10.5 13.5 L16.5 6.5 H12.5 Z" stroke="rgba(0,0,0,0.35)" stroke-width="1.2" stroke-linejoin="round" fill="none"/>
+              <path d="M12.5 2.5 L8.5 7.5 H11.5 L10.5 13.5 L16.5 6.5 H12.5 Z" fill="#ffffff"/>
+            </g>
+          </svg>
+        `;
+
+      case 'win11':
+      default:
+        return `
+          <svg class="batt-svg batt-win11" viewBox="0 0 28 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <clipPath id="diWin11CavityClip">
+                <rect x="3.5" y="4.5" width="18" height="7" rx="1.5"/>
+              </clipPath>
+            </defs>
+            <rect class="batt-housing" x="1.5" y="2.5" width="22" height="11" rx="3.5" stroke="var(--batt-border)" stroke-width="1.5"/>
+            <rect class="batt-cap" x="23.5" y="6" width="2" height="4" rx="1" fill="var(--batt-border)"/>
+            <g clip-path="url(#diWin11CavityClip)">
+              <rect class="batt-fill-bar" x="3.5" y="4.5" width="0" height="7" fill="var(--batt-fill)"/>
+            </g>
+            <g class="batt-bolt">
+              <path class="bolt-halo" d="M10.5 0.5 L7.5 6.5 H10 L9 11.5 L13.5 5.5 H10.5 Z" stroke="var(--batt-bolt-halo)" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
+              <path class="bolt-core" d="M10.5 0.5 L7.5 6.5 H10 L9 11.5 L13.5 5.5 H10.5 Z" fill="var(--batt-bolt-fill)"/>
+            </g>
+          </svg>
+        `;
+    }
+  }
+
+  function applyBatteryStyle(style) {
+    const resolved = (style === 'win10' || style === 'macos' || style === 'win11') ? style : 'win11';
+    if (resolved === currentBatteryStyle && cardBatteryIconWrap && cardBatteryIconWrap.children.length > 0) return;
+    currentBatteryStyle = resolved;
+    if (cardBatteryGroup) {
+      cardBatteryGroup.classList.remove('style-win11', 'style-win10', 'style-macos');
+      cardBatteryGroup.classList.add(`style-${resolved}`);
+    }
+    if (cardBatteryIconWrap) {
+      cardBatteryIconWrap.innerHTML = buildBatteryIconHtml(resolved);
+    }
+    if (lastBatteryMetrics) {
+      updateBattery(lastBatteryMetrics);
+    }
+  }
+
   function updateBattery(metrics) {
     if (!metrics) return;
+    lastBatteryMetrics = metrics;
     let pct = 100;
     if (typeof metrics.batteryPercent === 'number' && metrics.batteryPercent >= 0) {
-      pct = metrics.batteryPercent;
+      pct = Math.max(0, Math.min(100, metrics.batteryPercent));
     }
+    const isCharging = !!metrics.isCharging;
+    const isLow = pct <= 5 && !isCharging;
+    const isEnergySaver = pct > 5 && pct <= 20 && !isCharging;
+
     if (cardBatteryPct) cardBatteryPct.textContent = `${pct}%`;
-    if (cardBatteryFill) cardBatteryFill.style.width = `${Math.max(5, Math.min(100, pct))}%`;
+    if (cardBatteryGroup) {
+      cardBatteryGroup.classList.toggle('is-charging', isCharging);
+      cardBatteryGroup.classList.toggle('is-low', isLow);
+      cardBatteryGroup.classList.toggle('is-energy-saver', isEnergySaver);
+    }
+    if (cardBatteryIconWrap) {
+      const fillBar = cardBatteryIconWrap.querySelector('.batt-fill-bar');
+      if (fillBar) {
+        const maxW = currentBatteryStyle === 'macos' ? 23 : (currentBatteryStyle === 'win10' ? 19 : 18);
+        const fillW = Math.max(0, Math.min(maxW, (maxW * pct) / 100));
+        fillBar.setAttribute('width', fillW.toFixed(2));
+      }
+    }
   }
+
+  applyBatteryStyle('win11');
 
   function updateCollapsedWidth() {
     if (!capsule || isExpanded || isCollapsing) return;
@@ -213,6 +313,324 @@
       } else {
         waveEl.classList.remove('playing');
       }
+    }
+  }
+
+  let isMusicPillWideMode = false;
+  let isLyricsPinned = false;
+
+  // Synced Lyrics System (LRCLIB)
+  let parsedLyrics = []; // [{ time: number, text: string }]
+  let lyricsTrackKey = '';
+  let activeLyricIndex = -1;
+  let lyricsFetchAbort = null;
+
+  function parseLrc(lrcText) {
+    if (!lrcText || typeof lrcText !== 'string') return [];
+    const lines = lrcText.split('\n');
+    const result = [];
+    const tagRegex = /\[(\d{1,2}):(\d{2})(?:\.(\d{2,3}))?\]/g;
+    for (const rawLine of lines) {
+      const line = rawLine.trim();
+      if (!line) continue;
+      tagRegex.lastIndex = 0;
+      let match;
+      const timestamps = [];
+      let lastMatchEnd = 0;
+      while ((match = tagRegex.exec(line)) !== null) {
+        const min = parseInt(match[1], 10);
+        const sec = parseInt(match[2], 10);
+        const msFrac = match[3] ? (match[3].length === 2 ? parseInt(match[3], 10) * 10 : parseInt(match[3], 10)) : 0;
+        const totalSec = min * 60 + sec + msFrac / 1000;
+        timestamps.push(totalSec);
+        lastMatchEnd = tagRegex.lastIndex;
+      }
+      const text = line.slice(lastMatchEnd).trim();
+      if (text && timestamps.length > 0) {
+        for (const t of timestamps) {
+          result.push({ time: t, text });
+        }
+      }
+    }
+    result.sort((a, b) => a.time - b.time);
+    return result;
+  }
+
+  function flushSmallPillLyrics(fallbackTitle) {
+    currentActiveLyricText = '';
+    const title = fallbackTitle || (lastMediaSnapshot && lastMediaSnapshot.title) || 'Playing';
+    if (colMusicTitle) colMusicTitle.textContent = title;
+    if (bgTitle) bgTitle.textContent = title;
+    if (diTcTitle) diTcTitle.textContent = title;
+    if (window.winzen && typeof window.winzen.send === 'function') {
+      window.winzen.send('di_set_lyrics', {
+        isPinned: false,
+        text: '',
+        width: 0
+      });
+    }
+  }
+
+  function cleanLyricsQuery(rawTitle, rawArtist) {
+    let t = (rawTitle || '').trim();
+    let a = (rawArtist || '').trim();
+
+    // Strip common YouTube / streaming noise in parentheses or brackets
+    t = t.replace(/\s*[\(\[](?:official\s*(?:music\s*)?(?:video|audio|lyric\s*video|visualizer)|lyrics?|audio|hd|4k|mv|m\/v|live|remaster(?:ed)?|explicit)[\)\]]/gi, '');
+    t = t.replace(/\s*[\(\[](?:feat\.?|ft\.?)\s+[^\)\]]+[\)\]]/gi, '');
+    t = t.replace(/\s*\|\s*.*$/, '').trim();
+
+    // Clean VEVO / Topic / Official channel suffixes from artist
+    a = a.replace(/vevo$/i, '').replace(/\s*-\s*topic$/i, '').replace(/\s*official$/i, '').trim();
+
+    // If title has "Artist - Track" format, split it
+    let splitArtist = '';
+    let splitTrack = '';
+    const dashMatch = t.match(/^(.+?)\s+[-–—]\s+(.+)$/);
+    if (dashMatch) {
+      splitArtist = dashMatch[1].trim();
+      splitTrack = dashMatch[2].trim();
+    }
+
+    return { cleanTitle: t, cleanArtist: a, splitArtist, splitTrack };
+  }
+
+  async function searchLrclib(query, signal, duration) {
+    if (!query) return null;
+    const searchUrl = `https://lrclib.net/api/search?q=${encodeURIComponent(query)}`;
+    const res = await fetch(searchUrl, {
+      signal,
+      headers: { 'Lrclib-Client': 'WinZenShell DynamicIsland v1.0' }
+    });
+    if (!res.ok) return null;
+    const list = await res.json();
+    if (!Array.isArray(list) || list.length === 0) return null;
+
+    // Prefer items with syncedLyrics, and closest duration if available
+    const withSynced = list.filter((item) => !!item.syncedLyrics);
+    const pool = withSynced.length > 0 ? withSynced : list.filter((item) => !!item.plainLyrics);
+    if (pool.length === 0) return null;
+
+    if (typeof duration === 'number' && duration > 0) {
+      pool.sort((x, y) => Math.abs((x.duration || 0) - duration) - Math.abs((y.duration || 0) - duration));
+    }
+    return pool[0];
+  }
+
+  async function fetchLyricsForTrack(title, artist, duration) {
+    const key = `${(title || '').toLowerCase()}|${(artist || '').toLowerCase()}`;
+    if (key === lyricsTrackKey) return;
+    lyricsTrackKey = key;
+    parsedLyrics = [];
+    activeLyricIndex = -1;
+    flushSmallPillLyrics(title);
+
+    if (lyricsFetchAbort) {
+      lyricsFetchAbort.abort();
+    }
+    lyricsFetchAbort = new AbortController();
+    const { signal } = lyricsFetchAbort;
+
+    if (!title || title === 'No Media is Playing' || title === 'No Media') {
+      renderLyricsPlaceholder('No media playing');
+      return;
+    }
+
+    renderLyricsPlaceholder('Searching lyrics...');
+
+    try {
+      const { cleanTitle, cleanArtist, splitArtist, splitTrack } = cleanLyricsQuery(title, artist);
+      const primaryTrack = splitTrack || cleanTitle;
+      const primaryArtist = splitArtist || cleanArtist;
+
+      // 1. Direct match query
+      let url = `https://lrclib.net/api/get?track_name=${encodeURIComponent(primaryTrack)}&artist_name=${encodeURIComponent(primaryArtist)}`;
+      if (typeof duration === 'number' && duration > 0) {
+        url += `&duration=${Math.round(duration)}`;
+      }
+
+      let res = await fetch(url, {
+        signal,
+        headers: { 'Lrclib-Client': 'WinZenShell DynamicIsland v1.0' }
+      });
+
+      let data = null;
+      if (res.ok) {
+        const candidate = await res.json();
+        if (candidate && (candidate.syncedLyrics || candidate.plainLyrics)) {
+          data = candidate;
+        }
+      }
+
+      // 2. Fallback search queries (handles YouTube channel names, "Artist - Song", etc.)
+      if (!data) {
+        const queries = [];
+        if (splitTrack && splitArtist) {
+          queries.push(`${splitTrack} ${splitArtist}`);
+        }
+        if (cleanTitle && cleanArtist) {
+          queries.push(`${cleanTitle} ${cleanArtist}`);
+        }
+        if (splitTrack) {
+          queries.push(splitTrack);
+        }
+        if (cleanTitle && cleanTitle !== splitTrack) {
+          queries.push(cleanTitle);
+        }
+
+        const tried = new Set();
+        for (const q of queries) {
+          const norm = q.trim().toLowerCase();
+          if (!norm || tried.has(norm)) continue;
+          tried.add(norm);
+          data = await searchLrclib(q.trim(), signal, duration);
+          if (data) break;
+        }
+      }
+
+      if (!data || (!data.syncedLyrics && !data.plainLyrics)) {
+        renderLyricsPlaceholder('No lyrics found');
+        return;
+      }
+
+      if (data.syncedLyrics) {
+        parsedLyrics = parseLrc(data.syncedLyrics);
+        renderLyricsList(parsedLyrics);
+        syncLyricsWithPosition(lastMediaSnapshot ? (lastMediaSnapshot.positionSeconds || 0) : 0, true);
+      } else if (data.plainLyrics) {
+        const plainLines = data.plainLyrics.split('\n').map((l) => l.trim()).filter(Boolean);
+        parsedLyrics = plainLines.map((text, idx) => ({ time: idx * 4, text }));
+        renderLyricsList(parsedLyrics);
+      }
+    } catch (err) {
+      if (err.name === 'AbortError') return;
+      console.warn('[DynamicIsland] Failed to fetch lyrics:', err);
+      renderLyricsPlaceholder('Lyrics unavailable');
+    }
+  }
+
+  function renderLyricsPlaceholder(msg) {
+    if (!lyricsScroller) return;
+    lyricsScroller.innerHTML = `<div class="di-lyrics-placeholder">${msg}</div>`;
+  }
+
+  function renderLyricsList(lyrics) {
+    if (!lyricsScroller) return;
+    if (!lyrics || lyrics.length === 0) {
+      renderLyricsPlaceholder('No lyrics available');
+      return;
+    }
+    lyricsScroller.innerHTML = lyrics
+      .map((item, idx) => `<div class="di-lyric-line" data-idx="${idx}">${escapeHtml(item.text)}</div>`)
+      .join('');
+
+    lyricsScroller.querySelectorAll('.di-lyric-line').forEach((el) => {
+      el.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        const idx = parseInt(el.getAttribute('data-idx'), 10);
+        if (!Number.isNaN(idx) && parsedLyrics[idx]) {
+          const targetPos = parsedLyrics[idx].time;
+          if (window.winzen && typeof window.winzen.send === 'function') {
+            window.winzen.send('media_seek', { position: targetPos });
+          }
+        }
+      });
+    });
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  let currentActiveLyricText = '';
+  let _lyricMeasureCanvas = null;
+
+  function estimateLyricWidth(text) {
+    if (!text) return 100;
+    if (!_lyricMeasureCanvas) {
+      _lyricMeasureCanvas = document.createElement('canvas');
+    }
+    const ctx = _lyricMeasureCanvas.getContext('2d');
+    if (ctx) {
+      ctx.font = '600 12px -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif';
+      const textW = Math.ceil(ctx.measureText(text).width);
+      return Math.min(340, Math.max(96, textW + 78));
+    }
+    const est = Math.round(text.length * 6.5 + 78);
+    return Math.min(340, Math.max(96, est));
+  }
+
+  function syncLyricsWithPosition(posSeconds, forceScroll = false) {
+    if (!lyricsScroller || parsedLyrics.length === 0) return;
+    let targetIdx = -1;
+    for (let i = 0; i < parsedLyrics.length; i++) {
+      if (posSeconds >= parsedLyrics[i].time - 0.25) {
+        targetIdx = i;
+      } else {
+        break;
+      }
+    }
+
+    if (targetIdx !== activeLyricIndex || forceScroll) {
+      activeLyricIndex = targetIdx;
+      const activeLine = (targetIdx >= 0 && parsedLyrics[targetIdx]) ? parsedLyrics[targetIdx].text : '';
+      currentActiveLyricText = activeLine;
+
+      if (isLyricsPinned && activeLine) {
+        const dynW = estimateLyricWidth(activeLine);
+        if (colMusicTitle) colMusicTitle.textContent = activeLine;
+        if (bgTitle) bgTitle.textContent = activeLine;
+        if (diTcTitle) diTcTitle.textContent = activeLine;
+
+        if (window.winzen && typeof window.winzen.send === 'function') {
+          window.winzen.send('di_set_lyrics', {
+            isPinned: true,
+            text: activeLine,
+            width: dynW
+          });
+        }
+      }
+
+      const lines = lyricsScroller.querySelectorAll('.di-lyric-line');
+      lines.forEach((line, idx) => {
+        if (idx === targetIdx) {
+          line.classList.add('active');
+          line.classList.remove('passed');
+          const scrollerH = lyricsScroller.clientHeight;
+          const lineTop = line.offsetTop;
+          const lineH = line.clientHeight;
+          lyricsScroller.scrollTo({
+            top: Math.max(0, lineTop - scrollerH / 2 + lineH / 2),
+            behavior: forceScroll ? 'auto' : 'smooth'
+          });
+        } else if (idx < targetIdx) {
+          line.classList.remove('active');
+          line.classList.add('passed');
+        } else {
+          line.classList.remove('active', 'passed');
+        }
+      });
+    }
+  }
+
+  function updatePillModeUI() {
+    if (btnPillMode) {
+      btnPillMode.textContent = 'Wide Pill';
+      btnPillMode.classList.toggle('active', isMusicPillWideMode);
+    }
+    if (islandMusicPill) {
+      if (isMusicPillWideMode) {
+        islandMusicPill.classList.add('is-hovered');
+      } else {
+        islandMusicPill.classList.remove('is-hovered');
+      }
+    }
+    if (capsule) {
+      capsule.classList.toggle('is-wide-pill', isMusicPillWideMode);
+    }
+    if (window.winzen && typeof window.winzen.send === 'function') {
+      window.winzen.send('di_set_music_wide', { isWide: isMusicPillWideMode });
     }
   }
 
@@ -258,8 +676,13 @@
           islandMusicPill.classList.remove('is-music-absent');
         }
       }
+      if (isMusicPillWideMode) {
+        islandMusicPill.classList.add('is-hovered');
+      }
     } else {
-      islandMusicPill.classList.remove('is-hovered');
+      if (!isMusicPillWideMode) {
+        islandMusicPill.classList.remove('is-hovered');
+      }
       if (noAnim) {
         islandMusicPill.style.transition = 'none';
         islandMusicPill.classList.add('is-music-absent');
@@ -331,9 +754,30 @@
     syncSmallMusicElements(media, colMusicThumb, colMusicThumbPlaceholder, colMusicWaveform);
     syncSmallMusicElements(media, bgThumb, bgThumbPlaceholder, bgWaveform);
     syncSmallMusicElements(media, diTcThumb, diTcThumbPlaceholder, diTcWaveform);
-    if (diTcTitle) diTcTitle.textContent = media.title || 'Playing';
+    if (!isLyricsPinned || !currentActiveLyricText) {
+      if (colMusicTitle) colMusicTitle.textContent = media.title || 'Playing';
+      if (bgTitle) bgTitle.textContent = media.title || 'Playing';
+      if (diTcTitle) diTcTitle.textContent = media.title || 'Playing';
+    } else {
+      if (colMusicTitle) colMusicTitle.textContent = currentActiveLyricText;
+      if (bgTitle) bgTitle.textContent = currentActiveLyricText;
+      if (diTcTitle) diTcTitle.textContent = currentActiveLyricText;
+    }
 
-    // 3. Update top-center resting music pill visibility
+    // 3. Lyrics sync / auto-fetch if pinned
+    if (!media.hasMedia || (dur > 0 && pos >= dur - 0.3 && !media.isPlaying)) {
+      if (currentActiveLyricText || parsedLyrics.length > 0) {
+        lyricsTrackKey = '';
+        parsedLyrics = [];
+        activeLyricIndex = -1;
+        flushSmallPillLyrics(media.title || '');
+      }
+    } else if (isLyricsPinned && media.title) {
+      fetchLyricsForTrack(media.title, media.artist, media.durationSeconds);
+      syncLyricsWithPosition(pos);
+    }
+
+    // 4. Update top-center resting music pill visibility
     if (islandMusicPill && !isExpanded && !isCollapsing) {
       const showPill = diConfig.placement === 'top-center' &&
                        diConfig.enableMusicIsland !== false &&
@@ -419,6 +863,49 @@
       ev.stopPropagation();
       if (window.winzen && typeof window.winzen.send === 'function') {
         window.winzen.send('media_next');
+      }
+    });
+  }
+
+  // Pill mode toggle (Wide pill <-> Compact pill)
+  if (btnPillMode) {
+    btnPillMode.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      isMusicPillWideMode = !isMusicPillWideMode;
+      updatePillModeUI();
+    });
+  }
+
+  // Pin lyrics toggle (In-Island synchronized lyrics view)
+  if (btnPinLyrics) {
+    btnPinLyrics.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      isLyricsPinned = !isLyricsPinned;
+      btnPinLyrics.classList.toggle('active', isLyricsPinned);
+      btnPinLyrics.textContent = isLyricsPinned ? 'lyrics pinned' : 'pin lyrics';
+      if (capsule) {
+        capsule.classList.toggle('lyrics-pinned', isLyricsPinned);
+      }
+      if (lyricsView) {
+        lyricsView.style.display = isLyricsPinned ? 'flex' : 'none';
+      }
+      if (isLyricsPinned) {
+        if (lastMediaSnapshot) {
+          fetchLyricsForTrack(lastMediaSnapshot.title, lastMediaSnapshot.artist, lastMediaSnapshot.durationSeconds);
+          syncLyricsWithPosition(lastMediaSnapshot.positionSeconds || 0, true);
+        }
+      } else {
+        // Revert pill lyrics to title
+        if (colMusicTitle && lastMediaSnapshot) colMusicTitle.textContent = lastMediaSnapshot.title || 'Playing';
+        if (bgTitle && lastMediaSnapshot) bgTitle.textContent = lastMediaSnapshot.title || 'Playing';
+        if (diTcTitle && lastMediaSnapshot) diTcTitle.textContent = lastMediaSnapshot.title || 'Playing';
+        if (window.winzen && typeof window.winzen.send === 'function') {
+          window.winzen.send('di_set_lyrics', {
+            isPinned: false,
+            text: '',
+            width: 0
+          });
+        }
       }
     });
   }
@@ -540,7 +1027,10 @@
         ? Math.round(options.clockWidth)
         : getStandardClockWidth();
       currentClockWidth = clockW;
-      const musicW = 68;
+      const isWidePill = typeof options.isMusicWide === 'boolean' ? options.isMusicWide : isMusicPillWideMode;
+      const musicW = (options.musicWidth && options.musicWidth > 50)
+        ? Math.round(options.musicWidth)
+        : (isWidePill ? 210 : 68);
 
       let clockPos = 0;
       let musicPos = 0;
@@ -577,12 +1067,14 @@
 
         capsule.style.setProperty('--di-collapsed-width', `${musicW}px`);
         capsule.style.setProperty('--di-pill-offset-x', `${musicPos}px`);
+        capsule.classList.toggle('is-wide-pill', isWidePill);
 
         if (bgPill) {
           if (hasSecondIsland) {
             bgPill.style.transition = 'none';
             bgPill.classList.add('instant-setup');
             bgPill.style.display = 'inline-flex';
+            bgPill.classList.remove('is-wide-pill');
             if (bgClockInner) bgClockInner.style.display = 'inline-flex';
             if (bgMusicInner) bgMusicInner.style.display = 'none';
             bgPill.style.setProperty('--di-bg-pill-width', `${clockW}px`);
@@ -600,12 +1092,14 @@
 
         capsule.style.setProperty('--di-collapsed-width', `${clockW}px`);
         capsule.style.setProperty('--di-pill-offset-x', `${clockPos}px`);
+        capsule.classList.remove('is-wide-pill');
 
         if (bgPill) {
           if (hasSecondIsland) {
             bgPill.style.transition = 'none';
             bgPill.classList.add('instant-setup');
             bgPill.style.display = 'inline-flex';
+            bgPill.classList.toggle('is-wide-pill', isWidePill);
             if (bgClockInner) bgClockInner.style.display = 'none';
             if (bgMusicInner) bgMusicInner.style.display = 'flex';
             bgPill.style.setProperty('--di-bg-pill-width', `${musicW}px`);
@@ -633,6 +1127,54 @@
     } else {
       isExpanded = false;
       isCollapsing = true;
+
+      // Ensure dimensions and positions reflect wide pill mode during shrink
+      const isWidePill = typeof options.isMusicWide === 'boolean' ? options.isMusicWide : isMusicPillWideMode;
+      const musicW = (options.musicWidth && options.musicWidth > 50)
+        ? Math.round(options.musicWidth)
+        : (isWidePill ? 210 : 68);
+      const clockW = (options.clockWidth && options.clockWidth > 40)
+        ? Math.round(options.clockWidth)
+        : currentClockWidth;
+
+      const hasSecondIsland = (typeof options.hasMusicPill === 'boolean')
+        ? options.hasMusicPill
+        : (diConfig.enableMusicIsland !== false && !!(lastMediaSnapshot && lastMediaSnapshot.hasMedia));
+
+      let clockPos = 0;
+      let musicPos = 0;
+      if (hasSecondIsland) {
+        if (currentSlot === 'left') {
+          clockPos = 0;
+          musicPos = clockW + 8;
+        } else if (currentSlot === 'right') {
+          clockPos = -(musicW + 8);
+          musicPos = 0;
+        } else {
+          clockPos = -Math.round((musicW + 8) / 2);
+          musicPos = Math.round((clockW + 8) / 2);
+        }
+      }
+
+      if (currentTarget === 'music') {
+        capsule.style.setProperty('--di-collapsed-width', `${musicW}px`);
+        capsule.style.setProperty('--di-pill-offset-x', `${musicPos}px`);
+        capsule.classList.toggle('is-wide-pill', isWidePill);
+        if (bgPill && hasSecondIsland) {
+          bgPill.style.setProperty('--di-bg-pill-width', `${clockW}px`);
+          bgPill.style.setProperty('--di-bg-pill-offset-x', `${clockPos}px`);
+          bgPill.classList.remove('is-wide-pill');
+        }
+      } else {
+        capsule.style.setProperty('--di-collapsed-width', `${clockW}px`);
+        capsule.style.setProperty('--di-pill-offset-x', `${clockPos}px`);
+        capsule.classList.remove('is-wide-pill');
+        if (bgPill && hasSecondIsland) {
+          bgPill.style.setProperty('--di-bg-pill-width', `${musicW}px`);
+          bgPill.style.setProperty('--di-bg-pill-offset-x', `${musicPos}px`);
+          bgPill.classList.toggle('is-wide-pill', isWidePill);
+        }
+      }
 
       // Animate shrink back to the active pill's standby position while background pill unmerges
       capsule.classList.remove('expanded');
@@ -666,15 +1208,21 @@
 
   setInterval(() => {
     updateClock();
-    if (isExpanded && currentTarget === 'music' && !isScrubbingSeek &&
-        lastMediaSnapshot && lastMediaSnapshot.hasMedia &&
+    if (lastMediaSnapshot && lastMediaSnapshot.hasMedia &&
         lastMediaSnapshot.isPlaying && lastMediaSnapshot.durationSeconds > 0) {
-      const nextPos = Math.min(lastMediaSnapshot.durationSeconds, (lastMediaSnapshot.positionSeconds || 0) + 1);
-      lastMediaSnapshot.positionSeconds = nextPos;
-      if (musicPosition) musicPosition.textContent = formatTime(nextPos);
-      if (musicSeekFill) {
-        const pct = Math.min(100, Math.max(0, (nextPos / lastMediaSnapshot.durationSeconds) * 100));
-        musicSeekFill.style.width = `${pct}%`;
+      if (!isScrubbingSeek) {
+        const nextPos = Math.min(lastMediaSnapshot.durationSeconds, (lastMediaSnapshot.positionSeconds || 0) + 1);
+        lastMediaSnapshot.positionSeconds = nextPos;
+        if (isExpanded && currentTarget === 'music') {
+          if (musicPosition) musicPosition.textContent = formatTime(nextPos);
+          if (musicSeekFill) {
+            const pct = Math.min(100, Math.max(0, (nextPos / lastMediaSnapshot.durationSeconds) * 100));
+            musicSeekFill.style.width = `${pct}%`;
+          }
+        }
+        if (isLyricsPinned) {
+          syncLyricsWithPosition(nextPos);
+        }
       }
     }
   }, 1000);
@@ -686,6 +1234,17 @@
     const di = s.DynamicIsland || s.dynamicIsland;
     const edge = (s.DockEdge || s.dockEdge || 'bottom').toLowerCase();
     globalDateFormat = s.DateFormat || s.dateFormat || globalDateFormat;
+
+    const widgets = state.Widgets || state.widgets || [];
+    const overrides = s.WidgetOverrides || s.widgetOverrides || {};
+    const battWidget = Array.isArray(widgets)
+      ? widgets.find((w) => w && (w.id === 'community.zen-battery' || w.id === 'zen-battery' || w.Id === 'community.zen-battery' || w.Id === 'zen-battery'))
+      : null;
+    const battOverride = overrides['community.zen-battery'] || overrides['zen-battery'];
+    const battStyle = (battWidget && (battWidget.batteryIconStyle || battWidget.BatteryIconStyle))
+      || (battOverride && (battOverride.batteryIconStyle || battOverride.BatteryIconStyle))
+      || 'win11';
+    applyBatteryStyle(battStyle);
 
     if (di) {
       diConfig = {
@@ -762,6 +1321,7 @@
         clockWidth: msg.clockWidth,
         musicWidth: msg.musicWidth,
         hasMusicPill: msg.hasMusicPill,
+        isMusicWide: msg.isMusicWide,
         anchorY: msg.anchorY,
         anchorHeight: msg.anchorHeight,
         dockEdge: msg.dockEdge,
@@ -783,7 +1343,7 @@
   if (capsule) {
     capsule.addEventListener('click', (ev) => {
       ev.stopPropagation();
-      if (isExpanded && ev.target && ev.target.closest('.di-music-timeline-row, .di-music-controls-row')) {
+      if (isExpanded && ev.target && ev.target.closest('.di-music-timeline-row, .di-music-controls-row, .di-music-actions-row, .di-music-lyrics-view')) {
         return;
       }
       if (isExpanded) {
@@ -796,16 +1356,17 @@
 
   if (islandMusicPill) {
     islandMusicPill.addEventListener('mouseenter', () => {
-      if (isExpanded || isCollapsing) return;
+      if (isExpanded || isCollapsing || isMusicPillWideMode) return;
       clearTimeout(musicHoverTimer);
       musicHoverTimer = setTimeout(() => {
-        if (!isExpanded && !isCollapsing) {
+        if (!isExpanded && !isCollapsing && !isMusicPillWideMode) {
           islandMusicPill.classList.add('is-hovered');
         }
       }, 260);
     });
 
     islandMusicPill.addEventListener('mouseleave', () => {
+      if (isMusicPillWideMode) return;
       clearTimeout(musicHoverTimer);
       islandMusicPill.classList.remove('is-hovered');
     });
@@ -813,7 +1374,9 @@
     islandMusicPill.addEventListener('click', (ev) => {
       ev.stopPropagation();
       clearTimeout(musicHoverTimer);
-      islandMusicPill.classList.remove('is-hovered');
+      if (!isMusicPillWideMode) {
+        islandMusicPill.classList.remove('is-hovered');
+      }
       toggleExpand(true, { target: 'music' });
     });
   }

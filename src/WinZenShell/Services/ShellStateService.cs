@@ -165,6 +165,8 @@ public class LayoutPreset
     public int? TaskbarCornerRadiusPx { get; set; }
     public int? BackgroundOpacity { get; set; }
     public int? BackgroundBlurStrength { get; set; }
+    public int? FlyoutBackgroundOpacity { get; set; }
+    public int? FlyoutBackgroundBlurStrength { get; set; }
 
     // Dynamic Island placement settings
     public bool? DynamicIslandEnabled { get; set; }
@@ -183,6 +185,9 @@ public class ShellSettings
     public int TaskbarCornerRadiusPx { get; set; } = 12;
     public int BackgroundOpacity { get; set; } = 100;
     public int BackgroundBlurStrength { get; set; } = 60;
+    public int FlyoutBackgroundOpacity { get; set; } = 100;
+    public int FlyoutBackgroundBlurStrength { get; set; } = 60;
+    public string BlurEngine { get; set; } = "wallpaper"; // "wallpaper" or "realtime"
     public string AccentColor { get; set; } = "#3684E3";
     public string Theme { get; set; } = "dark"; // "dark" or "light"
     public string DateFormat { get; set; } = "DD-MM-YYYY";
@@ -382,7 +387,10 @@ public class ShellStateService
         int? cornerRadiusPx = null,
         string? accentColor = null,
         int? backgroundOpacity = null,
-        int? backgroundBlurStrength = null)
+        int? backgroundBlurStrength = null,
+        string? blurEngine = null,
+        int? flyoutBackgroundOpacity = null,
+        int? flyoutBackgroundBlurStrength = null)
     {
         _settings.RespectDesktopWorkArea = respectWorkArea;
         if (!string.IsNullOrWhiteSpace(dockEdge))
@@ -399,6 +407,12 @@ public class ShellStateService
             _settings.BackgroundOpacity = Math.Clamp(backgroundOpacity.Value, 0, 100);
         if (backgroundBlurStrength.HasValue)
             _settings.BackgroundBlurStrength = Math.Clamp(backgroundBlurStrength.Value, 0, 100);
+        if (flyoutBackgroundOpacity.HasValue)
+            _settings.FlyoutBackgroundOpacity = Math.Clamp(flyoutBackgroundOpacity.Value, 0, 100);
+        if (flyoutBackgroundBlurStrength.HasValue)
+            _settings.FlyoutBackgroundBlurStrength = Math.Clamp(flyoutBackgroundBlurStrength.Value, 0, 100);
+        if (!string.IsNullOrWhiteSpace(blurEngine))
+            _settings.BlurEngine = string.Equals(blurEngine, "realtime", StringComparison.OrdinalIgnoreCase) ? "realtime" : "wallpaper";
         if (!string.IsNullOrWhiteSpace(accentColor))
             _settings.AccentColor = accentColor;
         if (!string.IsNullOrWhiteSpace(theme))
@@ -878,6 +892,8 @@ public class ShellStateService
         preset.TaskbarCornerRadiusPx = _settings.TaskbarCornerRadiusPx;
         preset.BackgroundOpacity = _settings.BackgroundOpacity;
         preset.BackgroundBlurStrength = _settings.BackgroundBlurStrength;
+        preset.FlyoutBackgroundOpacity = _settings.FlyoutBackgroundOpacity;
+        preset.FlyoutBackgroundBlurStrength = _settings.FlyoutBackgroundBlurStrength;
         preset.DynamicIslandEnabled = _settings.DynamicIsland?.Enabled;
         preset.DynamicIslandPlacement = _settings.DynamicIsland?.Placement;
         preset.DynamicIslandTaskbarSlot = _settings.DynamicIsland?.TaskbarSlot;
@@ -929,6 +945,10 @@ public class ShellStateService
             _settings.BackgroundOpacity = Math.Clamp(preset.BackgroundOpacity.Value, 0, 100);
         if (preset.BackgroundBlurStrength.HasValue)
             _settings.BackgroundBlurStrength = Math.Clamp(preset.BackgroundBlurStrength.Value, 0, 100);
+        if (preset.FlyoutBackgroundOpacity.HasValue)
+            _settings.FlyoutBackgroundOpacity = Math.Clamp(preset.FlyoutBackgroundOpacity.Value, 0, 100);
+        if (preset.FlyoutBackgroundBlurStrength.HasValue)
+            _settings.FlyoutBackgroundBlurStrength = Math.Clamp(preset.FlyoutBackgroundBlurStrength.Value, 0, 100);
 
         _settings.DynamicIsland ??= new();
         if (preset.DynamicIslandEnabled.HasValue)

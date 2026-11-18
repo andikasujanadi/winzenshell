@@ -199,9 +199,9 @@ public partial class ControlCenterFlyoutWindow : Window
         }
         if (CcWebView != null)
         {
-            var bgCol = isLight
-                ? System.Drawing.Color.FromArgb(0xF9, 0xF9, 0xF9)
-                : System.Drawing.Color.FromArgb(0x1C, 0x1C, 0x1C);
+            var bgCol = FlyoutAnimationHelper.FlyoutBackgroundOpacity < 100
+                ? System.Drawing.Color.Transparent
+                : (isLight ? System.Drawing.Color.FromArgb(0xF9, 0xF9, 0xF9) : System.Drawing.Color.FromArgb(0x1C, 0x1C, 0x1C));
             if (CcWebView.DefaultBackgroundColor != bgCol)
                 CcWebView.DefaultBackgroundColor = bgCol;
         }

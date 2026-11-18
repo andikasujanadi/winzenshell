@@ -22,6 +22,10 @@ public static class FlyoutAnimationHelper
 
     public static bool AnimationsEnabled { get; set; } = true;
     public static IntPtr TaskbarHwnd { get; set; } = IntPtr.Zero;
+    public static int FlyoutBackgroundOpacity { get; set; } = 100;
+    public static int FlyoutBackgroundBlurStrength { get; set; } = 60;
+    public static string BlurEngine { get; set; } = "wallpaper";
+    public static bool IsLightTheme { get; set; }
 
     private static AnimState GetState(Window w) => _states.GetOrCreateValue(w);
 
@@ -42,6 +46,8 @@ public static class FlyoutAnimationHelper
 
         window.BeginAnimation(Window.TopProperty, null);
         window.BeginAnimation(Window.OpacityProperty, null);
+
+        FlyoutBackdropHelper.ApplyTo(window, finalTop);
 
         if (!AnimationsEnabled)
         {
