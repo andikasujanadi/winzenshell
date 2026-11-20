@@ -5,7 +5,7 @@
 [![Platform: Windows 11](https://img.shields.io/badge/Platform-Windows%2011%20(64--bit)-0078D4?logo=windows11&logoColor=white)](https://microsoft.com/windows)
 [![Runtime: .NET 10](https://img.shields.io/badge/Runtime-.NET%2010%20(WPF)-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 [![Frontend: WebView2](https://img.shields.io/badge/Frontend-WebView2%20%7C%20Web%20Components-008080?logo=microsoftedge&logoColor=white)](https://developer.microsoft.com/microsoft-edge/webview2/)
-[![Release: v0.3.3](https://img.shields.io/badge/Release-v0.3.3-0078D4)](README.md#changelog)
+[![Release: v0.3.4](https://img.shields.io/badge/Release-v0.3.4-0078D4)](README.md#changelog)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 **WinZenShell** is a customizable, lightweight Windows 11 taskbar and widget studio.  
@@ -16,8 +16,8 @@ It pairs a modern web interface (HTML, CSS, and JavaScript) with a fast native W
 ---
 
 > [!IMPORTANT]
-> **Release Notice (`v0.3.3`)**:  
-> WinZenShell v0.3.3 introduces synchronized **Live Lyrics** and **Wide Pill Mode** for the Music Dynamic Island, clean title-and-length adaptive width animation on the music pill, automatic type-to-search in the App Launcher, and stability polish for flyout animations and taskbar blurs.
+> **Release Notice (`v0.3.4`)**:  
+> WinZenShell v0.3.4 introduces **Separated Taskbar Style** with per-island blur clipping, **Gnome 3×3** launcher icon and **Highlight Active App Icon** toggle, **concentric corner radius & dynamic padding**, cached **flyout blur** with smooth cross-fade, persistent **Pin Lyrics** and **Wide Pill** settings, and a cleaner **Settings** layout with card-based **Layout Presets**.
 
 ---
 
@@ -202,6 +202,19 @@ window.winzen.shell.onMetricsUpdate((metrics) => {
 ---
 
 ## Changelog
+
+### v0.3.4 (2026-11-20)
+* **Separated Taskbar Style & Adaptive Geometry**:
+  * Added **Separated** taskbar style alongside **Unified**, splitting Left, Center, and Right regions into independent floating islands with accurate per-island blur clipping and auto-hiding empty right-region controls.
+  * Added dynamic horizontal padding and concentric inner button radius synced with the taskbar corner radius, plus a **Highlight Active App Icon** toggle and a **Gnome** 3×3 dots launcher icon option.
+* **Flyout Blur & Backdrop Reliability**:
+  * Cached decoded wallpaper backdrops and added asynchronous live-window capture with smooth cross-fade while excluding the flyout itself from capture.
+  * Fixed missing blur on first open for auto-sized flyouts (Bluetooth, Power, etc.) and transparent WebView2 background initialization.
+* **Dynamic Island Persistence**:
+  * Added **Pin Lyrics** and **Wide Pill** toggles to **Settings → Dynamic Island** with full persistence across restarts and two-way sync with the Music Island card, and fixed Wide Pill width on startup.
+* **Settings & Layout Presets Redesign**:
+  * Reorganized **Shell** and **Dynamic Island** settings into cleaner, focused groups.
+  * Updated **Layout** active widget cards with a quick `×` button to move widgets to Inactive, and redesigned **Layout Presets** into an alphabetically sorted card grid with compact icon actions.
 
 ### v0.3.3 (2026-11-18)
 * **Music Dynamic Island - Live Lyrics & Wide Pill**:

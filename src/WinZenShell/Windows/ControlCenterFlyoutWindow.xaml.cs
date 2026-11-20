@@ -139,9 +139,9 @@ public partial class ControlCenterFlyoutWindow : Window
             var env = await WebViewEnvironmentManager.GetSharedEnvironmentAsync();
             await CcWebView.EnsureCoreWebView2Async(env);
             bool initLight = string.Equals(_shellState.Settings.Theme, "light", StringComparison.OrdinalIgnoreCase);
-            CcWebView.DefaultBackgroundColor = initLight
-                ? System.Drawing.Color.FromArgb(0xF9, 0xF9, 0xF9)
-                : System.Drawing.Color.FromArgb(0x1C, 0x1C, 0x1C);
+            CcWebView.DefaultBackgroundColor = FlyoutAnimationHelper.FlyoutBackgroundOpacity < 100
+                ? System.Drawing.Color.Transparent
+                : (initLight ? System.Drawing.Color.FromArgb(0xF9, 0xF9, 0xF9) : System.Drawing.Color.FromArgb(0x1C, 0x1C, 0x1C));
 
             var core = CcWebView.CoreWebView2;
             core.Settings.AreDefaultContextMenusEnabled = false;

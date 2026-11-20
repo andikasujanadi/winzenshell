@@ -196,6 +196,11 @@ public partial class SettingsWebWindow : Window
                     _shellState.ToggleAnimations(animEnable);
                     break;
 
+                case "toggle_highlight_active_app":
+                    bool highlightActive = !root.TryGetProperty("enable", out var haProp) || haProp.GetBoolean();
+                    _shellState.UpdateHighlightActiveAppIcon(highlightActive);
+                    break;
+
                 case "toggle_override_windows_key":
                     bool ovWinKey = root.TryGetProperty("enable", out var owkProp) && owkProp.GetBoolean();
                     _shellState.UpdateOverrideWindowsKey(ovWinKey);
@@ -219,7 +224,8 @@ public partial class SettingsWebWindow : Window
                     int? flyoutBgOpacity = root.TryGetProperty("flyoutBackgroundOpacity", out var fboProp) && fboProp.ValueKind == JsonValueKind.Number ? fboProp.GetInt32() : null;
                     int? flyoutBgBlur = root.TryGetProperty("flyoutBackgroundBlurStrength", out var fbbProp) && fbbProp.ValueKind == JsonValueKind.Number ? fbbProp.GetInt32() : null;
                     string? blurEngine = root.TryGetProperty("blurEngine", out var beProp) && beProp.ValueKind == JsonValueKind.String ? beProp.GetString() : null;
-                    _shellState.UpdateWorkAreaConfig(respect, dockEdge, heightPx, marginPx, theme, cornerRadius, accent, bgOpacity, bgBlur, blurEngine, flyoutBgOpacity, flyoutBgBlur);
+                    string? taskbarStyle = root.TryGetProperty("taskbarStyle", out var tsProp) && tsProp.ValueKind == JsonValueKind.String ? tsProp.GetString() : null;
+                    _shellState.UpdateWorkAreaConfig(respect, dockEdge, heightPx, marginPx, theme, cornerRadius, accent, bgOpacity, bgBlur, blurEngine, flyoutBgOpacity, flyoutBgBlur, taskbarStyle);
                     break;
 
                 case "set_accent_color":
@@ -340,7 +346,9 @@ public partial class SettingsWebWindow : Window
                     bool diAnim = !root.TryGetProperty("enableAnimation", out var diaProp) || diaProp.GetBoolean();
                     bool diReserve = !root.TryGetProperty("reserveWorkArea", out var dirProp) || dirProp.GetBoolean();
                     bool diMusic = !root.TryGetProperty("enableMusicIsland", out var dimProp) || dimProp.GetBoolean();
-                    _shellState.UpdateDynamicIslandConfig(diEnabled, diPlacement, diSlot, diTimeFormat, diShowSec, diShowDate, diAnim, diReserve, diMusic);
+                    bool? diPinLyrics = root.TryGetProperty("pinLyrics", out var diplProp) ? diplProp.GetBoolean() : null;
+                    bool? diWidePill = root.TryGetProperty("widePill", out var diwpProp) ? diwpProp.GetBoolean() : null;
+                    _shellState.UpdateDynamicIslandConfig(diEnabled, diPlacement, diSlot, diTimeFormat, diShowSec, diShowDate, diAnim, diReserve, diMusic, diPinLyrics, diWidePill);
                     break;
 
                 case "update_control_center_widgets":

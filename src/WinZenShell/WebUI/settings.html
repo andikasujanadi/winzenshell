@@ -22,7 +22,7 @@
         </div>
         <div class="pane-profile-text">
           <span class="pane-title">WinZenShell</span>
-          <span class="pane-sub">v0.3.3</span>
+          <span class="pane-sub">v0.3.4</span>
         </div>
       </div>
 
@@ -139,22 +139,7 @@
               </div>
             </div>
 
-            <!-- 4. Enable Animation -->
-            <div class="expander-subrow setting-subrow">
-              <div class="card-titles">
-                <label class="card-title" for="toggleEnableAnimations">Enable Animation</label>
-                <span class="card-subtitle">Use smooth animations for menus, app icons, and taskbar transitions</span>
-              </div>
-              <div class="card-right">
-                <span class="toggle-state-text" id="stateEnableAnimations">On</span>
-                <label class="win11-toggle">
-                  <input type="checkbox" id="toggleEnableAnimations" checked />
-                  <span class="toggle-track"><span class="toggle-thumb"></span></span>
-                </label>
-              </div>
-            </div>
-
-            <!-- 4b. Override Windows Key -->
+            <!-- 4. Override Windows Key -->
             <div class="expander-subrow setting-subrow">
               <div class="card-titles">
                 <label class="card-title" for="toggleOverrideWinKey">Override Windows Key</label>
@@ -169,7 +154,7 @@
               </div>
             </div>
 
-            <!-- 4c. Auto Start on Logon -->
+            <!-- 5. Auto Start on Logon -->
             <div class="expander-subrow setting-subrow">
               <div class="card-titles">
                 <label class="card-title" for="toggleAutoStart">Auto Start on Logon</label>
@@ -184,143 +169,7 @@
               </div>
             </div>
 
-            <!-- 5. Theme, Shell Position & Island Placement -->
-            <div class="expander-subrow controls-subrow">
-              <div class="subrow-field">
-                <label for="selectTheme">Theme</label>
-                <select id="selectTheme" class="win11-select">
-                  <option value="dark">Windows 11 Dark</option>
-                  <option value="light">Windows 11 Light</option>
-                </select>
-              </div>
-              <div class="subrow-field">
-                <label for="selectDockEdge">Shell Position</label>
-                <select id="selectDockEdge" class="win11-select">
-                  <option value="Bottom">Bottom</option>
-                  <option value="Top">Top</option>
-                </select>
-              </div>
-              <div class="subrow-field" id="shellFieldDiPlacement">
-                <label for="selectShellDiPlacement">Island Placement</label>
-                <select id="selectShellDiPlacement" class="win11-select">
-                  <option value="taskbar">Inside Taskbar</option>
-                  <option value="top-center">Top Center (Desktop Work Area)</option>
-                </select>
-              </div>
-            </div>
-
-            <!-- 6. Accent Color -->
-            <div class="expander-subrow setting-subrow" id="accentColorRow">
-              <div class="card-titles">
-                <label class="card-title">Accent Color</label>
-                <span class="card-subtitle">Pick a highlight color for active apps, sliders, and buttons</span>
-                <div class="accent-swatches-grid" id="accentSwatchesContainer">
-                  <button type="button" class="accent-swatch" data-color="#3684E3" style="--swatch-color: #3684E3;" title="Blue" aria-label="Blue"></button>
-                  <button type="button" class="accent-swatch" data-color="#2490A5" style="--swatch-color: #2490A5;" title="Teal" aria-label="Teal"></button>
-                  <button type="button" class="accent-swatch" data-color="#3C964A" style="--swatch-color: #3C964A;" title="Green" aria-label="Green"></button>
-                  <button type="button" class="accent-swatch" data-color="#CA8902" style="--swatch-color: #CA8902;" title="Gold" aria-label="Gold"></button>
-                  <button type="button" class="accent-swatch" data-color="#E95F05" style="--swatch-color: #E95F05;" title="Orange" aria-label="Orange"></button>
-                  <button type="button" class="accent-swatch" data-color="#E82C42" style="--swatch-color: #E82C42;" title="Red" aria-label="Red"></button>
-                  <button type="button" class="accent-swatch" data-color="#D76199" style="--swatch-color: #D76199;" title="Pink" aria-label="Pink"></button>
-                  <button type="button" class="accent-swatch" data-color="#9342AD" style="--swatch-color: #9342AD;" title="Purple" aria-label="Purple"></button>
-                  <button type="button" class="accent-swatch" data-color="#708496" style="--swatch-color: #708496;" title="Slate" aria-label="Slate"></button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="section-label">Taskbar</div>
-
-          <div class="win11-expander">
-            <!-- 1. Height, 2. Floating Margin, 3. Corner Radius, 4. Opacity, 5. Blur Strength -->
-            <div class="expander-subrow controls-subrow" style="border-top: none;">
-              <div class="subrow-field">
-                <label for="inputTaskbarHeight">Height (<span id="labelHeightVal">48px</span>)</label>
-                <input type="range" id="inputTaskbarHeight" class="win11-slider" min="36" max="72" step="2" value="48" />
-              </div>
-              <div class="subrow-field">
-                <label for="inputFloatingMargin">Floating Margin (<span id="labelMarginVal">0px</span>)</label>
-                <input type="range" id="inputFloatingMargin" class="win11-slider" min="0" max="16" step="2" value="0" />
-              </div>
-              <div class="subrow-field">
-                <label for="inputCornerRadius">Corner Radius (<span id="labelRadiusVal">12px</span>)</label>
-                <input type="range" id="inputCornerRadius" class="win11-slider" min="0" max="120" step="1" value="12" />
-              </div>
-              <div class="subrow-field">
-                <label for="inputBgOpacity">Opacity (<span id="labelBgOpacityVal">100%</span>)</label>
-                <input type="range" id="inputBgOpacity" class="win11-slider" min="0" max="100" step="2" value="100" />
-              </div>
-              <div class="subrow-field" id="bgBlurField">
-                <label for="inputBgBlur">Blur Strength (<span id="labelBgBlurVal">60%</span>)</label>
-                <input type="range" id="inputBgBlur" class="win11-slider" min="0" max="100" step="5" value="60" />
-              </div>
-              <div class="subrow-field" id="blurEngineField">
-                <label for="selectBlurEngine">Blur Engine</label>
-                <select id="selectBlurEngine" class="win11-select">
-                  <option value="wallpaper">Wallpaper (Static)</option>
-                  <option value="realtime">Realtime GPU (Kawase)</option>
-                </select>
-              </div>
-            </div>
-
-            <!-- 6. Show Label -->
-            <div class="expander-subrow setting-subrow">
-              <div class="card-titles">
-                <label class="card-title" for="toggleShowAppNames">Show Label</label>
-                <span class="card-subtitle">Show app names next to icons on the taskbar</span>
-              </div>
-              <div class="card-right">
-                <span class="toggle-state-text" id="stateShowAppNames">On</span>
-                <label class="win11-toggle">
-                  <input type="checkbox" id="toggleShowAppNames" checked />
-                  <span class="toggle-track"><span class="toggle-thumb"></span></span>
-                </label>
-              </div>
-            </div>
-
-            <!-- 7. Combine Same App Windows -->
-            <div class="expander-subrow setting-subrow">
-              <div class="card-titles">
-                <label class="card-title" for="toggleCombineApps">Combine Same App Windows</label>
-                <span class="card-subtitle">Group windows from the same app into a single taskbar button</span>
-              </div>
-              <div class="card-right">
-                <span class="toggle-state-text" id="stateCombineApps">Off</span>
-                <label class="win11-toggle">
-                  <input type="checkbox" id="toggleCombineApps" />
-                  <span class="toggle-track"><span class="toggle-thumb"></span></span>
-                </label>
-              </div>
-            </div>
-
-            <!-- 8. Show Window Thumbnail on Hover -->
-            <div class="expander-subrow setting-subrow">
-              <div class="card-titles">
-                <label class="card-title" for="toggleShowThumbnails">Show Window Thumbnail on Hover</label>
-                <span class="card-subtitle">Show a live window preview when hovering over open apps</span>
-              </div>
-              <div class="card-right">
-                <span class="toggle-state-text" id="stateShowThumbnails">On</span>
-                <label class="win11-toggle">
-                  <input type="checkbox" id="toggleShowThumbnails" checked />
-                  <span class="toggle-track"><span class="toggle-thumb"></span></span>
-                </label>
-              </div>
-            </div>
-
-            <!-- 9. Icon Size -->
-            <div class="expander-subrow setting-subrow">
-              <div class="card-titles">
-                <label class="card-title" for="inputAppIconSize">Icon Size (<span id="labelAppIconSizeVal">18px</span>)</label>
-                <span class="card-subtitle">Resize app icons on the taskbar and app launcher</span>
-              </div>
-              <div class="card-right" style="gap: 10px; min-width: 240px;">
-                <input type="range" id="inputAppIconSize" class="win11-slider" min="12" max="32" step="1" value="18" style="flex: 1;" />
-                <button type="button" id="btnResetAppIconSize" class="win11-btn secondary-btn" style="padding: 5px 10px; font-size: 12px; white-space: nowrap;">Reset size</button>
-              </div>
-            </div>
-
-            <!-- 10. Global Date Format -->
+            <!-- 6. Global Date Format -->
             <div class="expander-subrow setting-subrow">
               <div class="card-titles">
                 <label class="card-title" for="inputDateFormat">Date Format (<span id="labelDateFormatPreview">17-11-2026</span>)</label>
@@ -341,6 +190,215 @@
                 <input type="text" id="inputDateFormat" class="win11-input" style="width: 140px;" value="DD-MM-YYYY" placeholder="DD-MM-YYYY" maxlength="40" />
               </div>
             </div>
+          </div>
+
+          <div class="section-label">Appearance</div>
+
+          <div class="win11-expander">
+            <!-- Theme, Taskbar Style, Blur Engine -->
+            <div class="expander-subrow controls-subrow" style="border-top: none;">
+              <div class="subrow-field">
+                <label for="selectTheme">Theme</label>
+                <select id="selectTheme" class="win11-select">
+                  <option value="dark">Windows 11 Dark</option>
+                  <option value="light">Windows 11 Light</option>
+                </select>
+              </div>
+              <div class="subrow-field" id="taskbarStyleField">
+                <label for="selectTaskbarStyle">Taskbar Style</label>
+                <select id="selectTaskbarStyle" class="win11-select">
+                  <option value="unified">Unified</option>
+                  <option value="separated">Separated</option>
+                </select>
+              </div>
+              <div class="subrow-field" id="blurEngineField">
+                <label for="selectBlurEngine">Blur Engine</label>
+                <select id="selectBlurEngine" class="win11-select">
+                  <option value="wallpaper">Wallpaper</option>
+                  <option value="realtime">Realtime GPU</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Accent Color -->
+            <div class="expander-subrow setting-subrow" id="accentColorRow">
+              <div class="card-titles">
+                <label class="card-title">Accent Color</label>
+                <span class="card-subtitle">Pick a highlight color for active apps, sliders, and buttons</span>
+                <div class="accent-swatches-grid" id="accentSwatchesContainer">
+                  <button type="button" class="accent-swatch" data-color="#3684E3" style="--swatch-color: #3684E3;" title="Blue" aria-label="Blue"></button>
+                  <button type="button" class="accent-swatch" data-color="#2490A5" style="--swatch-color: #2490A5;" title="Teal" aria-label="Teal"></button>
+                  <button type="button" class="accent-swatch" data-color="#3C964A" style="--swatch-color: #3C964A;" title="Green" aria-label="Green"></button>
+                  <button type="button" class="accent-swatch" data-color="#CA8902" style="--swatch-color: #CA8902;" title="Gold" aria-label="Gold"></button>
+                  <button type="button" class="accent-swatch" data-color="#E95F05" style="--swatch-color: #E95F05;" title="Orange" aria-label="Orange"></button>
+                  <button type="button" class="accent-swatch" data-color="#E82C42" style="--swatch-color: #E82C42;" title="Red" aria-label="Red"></button>
+                  <button type="button" class="accent-swatch" data-color="#D76199" style="--swatch-color: #D76199;" title="Pink" aria-label="Pink"></button>
+                  <button type="button" class="accent-swatch" data-color="#9342AD" style="--swatch-color: #9342AD;" title="Purple" aria-label="Purple"></button>
+                  <button type="button" class="accent-swatch" data-color="#708496" style="--swatch-color: #708496;" title="Slate" aria-label="Slate"></button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Background Opacity, Background Blur -->
+            <div class="expander-subrow controls-subrow">
+              <div class="subrow-field">
+                <label for="inputBgOpacity">Background Opacity (<span id="labelBgOpacityVal">100%</span>)</label>
+                <input type="range" id="inputBgOpacity" class="win11-slider" min="0" max="100" step="2" value="100" />
+              </div>
+              <div class="subrow-field" id="bgBlurField">
+                <label for="inputBgBlur">Background Blur (<span id="labelBgBlurVal">60%</span>)</label>
+                <input type="range" id="inputBgBlur" class="win11-slider" min="0" max="100" step="5" value="60" />
+              </div>
+            </div>
+
+            <!-- Flyout Opacity, Flyout Blur -->
+            <div class="expander-subrow controls-subrow">
+              <div class="subrow-field">
+                <label for="inputFlyoutBgOpacity">Flyout Opacity (<span id="labelFlyoutBgOpacityVal">100%</span>)</label>
+                <input type="range" id="inputFlyoutBgOpacity" class="win11-slider" min="0" max="100" step="2" value="100" />
+              </div>
+              <div class="subrow-field" id="flyoutBgBlurField">
+                <label for="inputFlyoutBgBlur">Flyout Blur (<span id="labelFlyoutBgBlurVal">60%</span>)</label>
+                <input type="range" id="inputFlyoutBgBlur" class="win11-slider" min="0" max="100" step="5" value="60" />
+              </div>
+            </div>
+
+            <!-- Enable Animation -->
+            <div class="expander-subrow setting-subrow">
+              <div class="card-titles">
+                <label class="card-title" for="toggleEnableAnimations">Enable Animation</label>
+                <span class="card-subtitle">Use smooth animations for menus, app icons, and taskbar transitions</span>
+              </div>
+              <div class="card-right">
+                <span class="toggle-state-text" id="stateEnableAnimations">On</span>
+                <label class="win11-toggle">
+                  <input type="checkbox" id="toggleEnableAnimations" checked />
+                  <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-label">Position &amp; Size</div>
+
+          <div class="win11-expander">
+            <!-- Shell Position, Island Placement, Island Position -->
+            <div class="expander-subrow controls-subrow" style="border-top: none;">
+              <div class="subrow-field">
+                <label for="selectDockEdge">Shell Position</label>
+                <select id="selectDockEdge" class="win11-select">
+                  <option value="Bottom">Bottom</option>
+                  <option value="Top">Top</option>
+                </select>
+              </div>
+              <div class="subrow-field" id="shellFieldDiPlacement">
+                <label for="selectShellDiPlacement">Island Placement</label>
+                <select id="selectShellDiPlacement" class="win11-select">
+                  <option value="taskbar">Inside Taskbar</option>
+                  <option value="top-center">Top Center</option>
+                </select>
+              </div>
+              <div class="subrow-field" id="shellFieldDiSlot">
+                <label for="selectShellDiSlot">Island Position</label>
+                <select id="selectShellDiSlot" class="win11-select">
+                  <option value="center">Center</option>
+                  <option value="left">Left</option>
+                  <option value="right">Right</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Height, Floating Margin, Corner Radius -->
+            <div class="expander-subrow controls-subrow">
+              <div class="subrow-field">
+                <label for="inputTaskbarHeight">Height (<span id="labelHeightVal">48px</span>)</label>
+                <input type="range" id="inputTaskbarHeight" class="win11-slider" min="36" max="72" step="2" value="48" />
+              </div>
+              <div class="subrow-field">
+                <label for="inputFloatingMargin">Floating Margin (<span id="labelMarginVal">0px</span>)</label>
+                <input type="range" id="inputFloatingMargin" class="win11-slider" min="0" max="16" step="2" value="0" />
+              </div>
+              <div class="subrow-field">
+                <label for="inputCornerRadius">Corner Radius (<span id="labelRadiusVal">12px</span>)</label>
+                <input type="range" id="inputCornerRadius" class="win11-slider" min="0" max="120" step="1" value="12" />
+              </div>
+            </div>
+          </div>
+
+          <div class="section-label">Taskbar Apps</div>
+
+          <div class="win11-expander">
+            <!-- Icon Size -->
+            <div class="expander-subrow setting-subrow" style="border-top: none;">
+              <div class="card-titles">
+                <label class="card-title" for="inputAppIconSize">Icon Size (<span id="labelAppIconSizeVal">18px</span>)</label>
+                <span class="card-subtitle">Resize app icons on the taskbar and app launcher</span>
+              </div>
+              <div class="card-right" style="gap: 10px; min-width: 240px;">
+                <input type="range" id="inputAppIconSize" class="win11-slider" min="12" max="32" step="1" value="18" style="flex: 1;" />
+                <button type="button" id="btnResetAppIconSize" class="win11-btn secondary-btn" style="padding: 5px 10px; font-size: 12px; white-space: nowrap;">Reset size</button>
+              </div>
+            </div>
+
+            <!-- Show Label -->
+            <div class="expander-subrow setting-subrow">
+              <div class="card-titles">
+                <label class="card-title" for="toggleShowAppNames">Show Label</label>
+                <span class="card-subtitle">Show app names next to icons on the taskbar</span>
+              </div>
+              <div class="card-right">
+                <span class="toggle-state-text" id="stateShowAppNames">On</span>
+                <label class="win11-toggle">
+                  <input type="checkbox" id="toggleShowAppNames" checked />
+                  <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Combine Same App Windows -->
+            <div class="expander-subrow setting-subrow">
+              <div class="card-titles">
+                <label class="card-title" for="toggleCombineApps">Combine Same App Windows</label>
+                <span class="card-subtitle">Group windows from the same app into a single taskbar button</span>
+              </div>
+              <div class="card-right">
+                <span class="toggle-state-text" id="stateCombineApps">Off</span>
+                <label class="win11-toggle">
+                  <input type="checkbox" id="toggleCombineApps" />
+                  <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Highlight Active App Icon -->
+            <div class="expander-subrow setting-subrow">
+              <div class="card-titles">
+                <label class="card-title" for="toggleHighlightActiveApp">Highlight Active App Icon</label>
+                <span class="card-subtitle">Show a highlighted background behind the currently active app on the taskbar</span>
+              </div>
+              <div class="card-right">
+                <span class="toggle-state-text" id="stateHighlightActiveApp">On</span>
+                <label class="win11-toggle">
+                  <input type="checkbox" id="toggleHighlightActiveApp" checked />
+                  <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Show Window Thumbnail on Hover -->
+            <div class="expander-subrow setting-subrow">
+              <div class="card-titles">
+                <label class="card-title" for="toggleShowThumbnails">Show Window Thumbnail on Hover</label>
+                <span class="card-subtitle">Show a live window preview when hovering over open apps</span>
+              </div>
+              <div class="card-right">
+                <span class="toggle-state-text" id="stateShowThumbnails">On</span>
+                <label class="win11-toggle">
+                  <input type="checkbox" id="toggleShowThumbnails" checked />
+                  <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                </label>
+              </div>
+            </div>
 
             <!-- Hidden Apps -->
             <div class="expander-subrow setting-subrow" id="hiddenAppsRow">
@@ -355,20 +413,6 @@
             </div>
           </div>
 
-          <div class="section-label">Flyouts</div>
-
-          <div class="win11-expander">
-            <div class="expander-subrow controls-subrow" style="border-top: none;">
-              <div class="subrow-field">
-                <label for="inputFlyoutBgOpacity">Opacity (<span id="labelFlyoutBgOpacityVal">100%</span>)</label>
-                <input type="range" id="inputFlyoutBgOpacity" class="win11-slider" min="0" max="100" step="2" value="100" />
-              </div>
-              <div class="subrow-field" id="flyoutBgBlurField">
-                <label for="inputFlyoutBgBlur">Blur Strength (<span id="labelFlyoutBgBlurVal">60%</span>)</label>
-                <input type="range" id="inputFlyoutBgBlur" class="win11-slider" min="0" max="100" step="5" value="60" />
-              </div>
-            </div>
-          </div>
 
           <div class="section-label">Screen space &amp; status</div>
 
@@ -432,7 +476,7 @@
           </div>
 
           <div class="win11-expander">
-            <!-- 1. Master Enable -->
+            <!-- Master Enable -->
             <div class="win11-card">
               <div class="card-left">
                 <svg class="card-icon" viewBox="0 0 16 16" fill="currentColor">
@@ -452,8 +496,27 @@
               </div>
             </div>
 
-            <!-- 2. Placement -->
-            <div class="expander-subrow setting-subrow" id="rowDiPlacement">
+            <!-- Expand Animation -->
+            <div class="expander-subrow setting-subrow">
+              <div class="card-titles">
+                <label class="card-title" for="toggleDiAnimation">Expand Animation</label>
+                <span class="card-subtitle">Smooth fluid transition when expanding the island to view clock and date</span>
+              </div>
+              <div class="card-right">
+                <span class="toggle-state-text" id="stateDiAnimation">On</span>
+                <label class="win11-toggle">
+                  <input type="checkbox" id="toggleDiAnimation" checked />
+                  <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-label">Placement</div>
+
+          <div class="win11-expander">
+            <!-- Island Placement -->
+            <div class="expander-subrow setting-subrow" id="rowDiPlacement" style="border-top: none;">
               <div class="card-titles">
                 <label class="card-title" for="selectDiPlacement">Island Placement</label>
                 <span class="card-subtitle" id="subtextDiPlacement">Place inside the taskbar or floating at top center</span>
@@ -461,12 +524,27 @@
               <div class="card-right">
                 <select id="selectDiPlacement" class="win11-select">
                   <option value="taskbar">Inside Taskbar</option>
-                  <option value="top-center">Top Center (Desktop Work Area)</option>
+                  <option value="top-center">Top Center</option>
                 </select>
               </div>
             </div>
 
-            <!-- 2b. Cut Working Space (Desktop Work Area Reservation for Top Center) -->
+            <!-- Position inside Taskbar -->
+            <div class="expander-subrow setting-subrow" id="rowDiSlot">
+              <div class="card-titles">
+                <label class="card-title" for="selectDiSlot">Position inside Taskbar</label>
+                <span class="card-subtitle" id="subtextDiSlot">Center replaces center widgets; Left pins first; Right pins last</span>
+              </div>
+              <div class="card-right">
+                <select id="selectDiSlot" class="win11-select">
+                  <option value="center">Center</option>
+                  <option value="left">Left</option>
+                  <option value="right">Right</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Cut Working Space -->
             <div class="expander-subrow setting-subrow" id="rowDiReserveWorkArea">
               <div class="card-titles">
                 <label class="card-title" for="toggleDiReserveWorkArea">Cut Working Space</label>
@@ -480,37 +558,26 @@
                 </label>
               </div>
             </div>
+          </div>
 
-            <!-- 3. Taskbar Slot Position -->
-            <div class="expander-subrow setting-subrow" id="rowDiSlot">
-              <div class="card-titles">
-                <label class="card-title" for="selectDiSlot">Position inside Taskbar</label>
-                <span class="card-subtitle" id="subtextDiSlot">Center replaces center widgets; Left pins first; Right pins last</span>
-              </div>
-              <div class="card-right">
-                <select id="selectDiSlot" class="win11-select">
-                  <option value="center">Center (Exclusive — replaces center widgets)</option>
-                  <option value="left">Left (First item before Start)</option>
-                  <option value="right">Right (Last item in system area)</option>
-                </select>
-              </div>
-            </div>
+          <div class="section-label">Clock &amp; Date</div>
 
-            <!-- 4. Clock Time Format -->
-            <div class="expander-subrow setting-subrow">
+          <div class="win11-expander">
+            <!-- Time Format -->
+            <div class="expander-subrow setting-subrow" style="border-top: none;">
               <div class="card-titles">
                 <label class="card-title" for="selectDiTimeFormat">Time Format</label>
                 <span class="card-subtitle">Choose between 24-hour and 12-hour clock display</span>
               </div>
               <div class="card-right">
                 <select id="selectDiTimeFormat" class="win11-select">
-                  <option value="24h">24-Hour (23:14)</option>
-                  <option value="12h">12-Hour (11:14 PM)</option>
+                  <option value="24h">24-Hour</option>
+                  <option value="12h">12-Hour</option>
                 </select>
               </div>
             </div>
 
-            <!-- 5. Show Seconds -->
+            <!-- Show Seconds -->
             <div class="expander-subrow setting-subrow">
               <div class="card-titles">
                 <label class="card-title" for="toggleDiSeconds">Show Seconds</label>
@@ -525,7 +592,7 @@
               </div>
             </div>
 
-            <!-- 6. Show Date -->
+            <!-- Show Date -->
             <div class="expander-subrow setting-subrow">
               <div class="card-titles">
                 <label class="card-title" for="toggleDiDate">Show Date</label>
@@ -539,24 +606,13 @@
                 </label>
               </div>
             </div>
+          </div>
 
-            <!-- 7. Dynamic Island Expand Animation -->
-            <div class="expander-subrow setting-subrow">
-              <div class="card-titles">
-                <label class="card-title" for="toggleDiAnimation">Expand Animation</label>
-                <span class="card-subtitle">Smooth fluid transition when expanding the island to view clock and date</span>
-              </div>
-              <div class="card-right">
-                <span class="toggle-state-text" id="stateDiAnimation">On</span>
-                <label class="win11-toggle">
-                  <input type="checkbox" id="toggleDiAnimation" checked />
-                  <span class="toggle-track"><span class="toggle-thumb"></span></span>
-                </label>
-              </div>
-            </div>
+          <div class="section-label">Music</div>
 
-            <!-- 8. Music Dynamic Island -->
-            <div class="expander-subrow setting-subrow" id="rowDiMusic">
+          <div class="win11-expander">
+            <!-- Music Island -->
+            <div class="expander-subrow setting-subrow" id="rowDiMusic" style="border-top: none;">
               <div class="card-titles">
                 <label class="card-title" for="toggleDiMusic">Music Island</label>
                 <span class="card-subtitle">Show media playback and controls in Dynamic Island when music is playing</span>
@@ -565,6 +621,36 @@
                 <span class="toggle-state-text" id="stateDiMusic">On</span>
                 <label class="win11-toggle">
                   <input type="checkbox" id="toggleDiMusic" checked />
+                  <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Pin Lyrics -->
+            <div class="expander-subrow setting-subrow" id="rowDiPinLyrics">
+              <div class="card-titles">
+                <label class="card-title" for="toggleDiPinLyrics">Pin Lyrics</label>
+                <span class="card-subtitle">Show live synced lyrics in the Dynamic Island pill while music is playing</span>
+              </div>
+              <div class="card-right">
+                <span class="toggle-state-text" id="stateDiPinLyrics">Off</span>
+                <label class="win11-toggle">
+                  <input type="checkbox" id="toggleDiPinLyrics" />
+                  <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Wide Pill -->
+            <div class="expander-subrow setting-subrow" id="rowDiWidePill">
+              <div class="card-titles">
+                <label class="card-title" for="toggleDiWidePill">Wide Pill</label>
+                <span class="card-subtitle">Keep the music pill expanded to show the track title at all times</span>
+              </div>
+              <div class="card-right">
+                <span class="toggle-state-text" id="stateDiWidePill">Off</span>
+                <label class="win11-toggle">
+                  <input type="checkbox" id="toggleDiWidePill" />
                   <span class="toggle-track"><span class="toggle-thumb"></span></span>
                 </label>
               </div>
@@ -632,22 +718,6 @@
               <div class="rp-chips rp-chips-horizontal" id="previewChipsUnused" data-region="unused"></div>
             </div>
           </div>
-
-          <!-- SECTION 2: CONTROL CENTER -->
-          <div class="section-label-row" style="margin-top: 36px;">
-            <div class="section-label no-margin">Control Center</div>
-            <span class="rp-drag-hint">Drag tiles to reorder · Click ratio to toggle 1:1 / 1:2</span>
-          </div>
-
-          <div class="cc-preview-card">
-            <div class="cc-preview-grid" id="ccSettingsPreviewGrid"></div>
-          </div>
-
-          <div class="section-label-row" style="margin-top: 24px;">
-            <div class="section-label no-margin">Add Widget to Control Center</div>
-            <span class="rp-drag-hint">Click + to add a widget into the Control Center</span>
-          </div>
-          <div class="cc-available-grid" id="ccAvailableWidgetsGrid"></div>
         </section>
 
       </div>

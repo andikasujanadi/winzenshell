@@ -917,7 +917,8 @@ public partial class TaskbarWebWindow : Window
         FlyoutAnimationHelper.BlurEngine = _shellState.Settings.BlurEngine ?? "wallpaper";
         bool isOpaque = opacity >= 100;
         bool isFloatingRounded = _shellState.Settings.FloatingMarginPx > 0 && _shellState.Settings.TaskbarCornerRadiusPx > 0;
-        bool glassNeeded = !isOpaque || isFloatingRounded;
+        bool isSeparated = string.Equals(_shellState.Settings.TaskbarStyle, "separated", StringComparison.OrdinalIgnoreCase);
+        bool glassNeeded = !isOpaque || isFloatingRounded || isSeparated;
 
         string sig = $"{isLight}|{glassNeeded}";
         if (!force && sig == _lastBackdropSig) return;

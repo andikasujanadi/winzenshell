@@ -130,9 +130,9 @@ public partial class AppLauncherFlyoutWindow : Window
             var env = await WebViewEnvironmentManager.GetSharedEnvironmentAsync();
             await LauncherWebView.EnsureCoreWebView2Async(env);
             bool initLight = string.Equals(_shellState?.Settings.Theme, "light", StringComparison.OrdinalIgnoreCase);
-            LauncherWebView.DefaultBackgroundColor = initLight
-                ? System.Drawing.Color.FromArgb(0xF3, 0xF3, 0xF3)
-                : System.Drawing.Color.FromArgb(0x1E, 0x1E, 0x1E);
+            LauncherWebView.DefaultBackgroundColor = FlyoutAnimationHelper.FlyoutBackgroundOpacity < 100
+                ? System.Drawing.Color.Transparent
+                : (initLight ? System.Drawing.Color.FromArgb(0xF3, 0xF3, 0xF3) : System.Drawing.Color.FromArgb(0x1E, 0x1E, 0x1E));
 
             var core = LauncherWebView.CoreWebView2;
             core.Settings.AreDefaultContextMenusEnabled = false;

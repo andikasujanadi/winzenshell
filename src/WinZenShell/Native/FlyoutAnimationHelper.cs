@@ -47,6 +47,10 @@ public static class FlyoutAnimationHelper
         window.BeginAnimation(Window.TopProperty, null);
         window.BeginAnimation(Window.OpacityProperty, null);
 
+        bool missingSizeBeforeShow =
+            (double.IsNaN(window.Width) || window.Width <= 0) && window.ActualWidth <= 4 ||
+            (double.IsNaN(window.Height) || window.Height <= 0) && window.ActualHeight <= 4;
+
         FlyoutBackdropHelper.ApplyTo(window, finalTop);
 
         if (!AnimationsEnabled)
@@ -54,6 +58,7 @@ public static class FlyoutAnimationHelper
             window.Top = finalTop;
             window.Opacity = 1.0;
             if (!window.IsVisible) window.Show();
+            if (missingSizeBeforeShow) FlyoutBackdropHelper.ApplyTo(window, finalTop);
             if (activate)
             {
                 window.Activate();
@@ -101,6 +106,7 @@ public static class FlyoutAnimationHelper
         }
 
         if (!window.IsVisible) window.Show();
+        if (missingSizeBeforeShow) FlyoutBackdropHelper.ApplyTo(window, finalTop);
         if (activate)
         {
             window.Activate();

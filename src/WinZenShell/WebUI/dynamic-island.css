@@ -131,9 +131,9 @@ html, body {
 .dynamic-island-capsule.expanded {
   max-width: none !important;
   width: 350px !important;
-  height: 204px !important;
+  height: 124px !important;
   padding: 0 !important;
-  border-radius: 40px !important;
+  border-radius: 32px !important;
   border: 1px solid #292929;
   box-shadow: none !important;
   cursor: pointer;
@@ -147,7 +147,12 @@ html, body {
               transform 0.32s cubic-bezier(0.16, 1, 0.3, 1) 0.06s;
 }
 
-.dynamic-island-capsule.expanded.lyrics-pinned {
+.dynamic-island-capsule.expanded.target-music {
+  height: 204px !important;
+  border-radius: 40px !important;
+}
+
+.dynamic-island-capsule.expanded.target-music.lyrics-pinned {
   height: 300px !important;
 }
 
@@ -217,8 +222,8 @@ html, body {
   top: 0;
   left: 0;
   width: 350px;
-  height: 158px;
-  padding: 20px 24px;
+  height: 124px;
+  padding: 16px 22px 18px 22px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -579,10 +584,9 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
   height: 100%;
   margin: auto;
-}
-  width: 100%;
   text-align: center;
   user-select: none;
 }
@@ -883,7 +887,8 @@ html, body {
   border-color: #474747;
 }
 
-.shell-dynamic-island-music.is-hovered {
+.shell-dynamic-island-music.is-hovered,
+.shell-dynamic-island-music.is-wide-pill {
   width: 210px;
   border-color: #525252;
 }
@@ -893,6 +898,13 @@ html, body {
   min-width: 90px;
   max-width: 340px;
   border-color: #525252;
+}
+
+.shell-dynamic-island-music.is-hovered .di-music-title,
+.shell-dynamic-island-music.is-wide-pill .di-music-title {
+  opacity: 1;
+  max-width: 130px;
+  margin: 0 8px;
 }
 
 .shell-dynamic-island-music.is-lyrics-pill .di-music-title {

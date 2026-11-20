@@ -39,6 +39,15 @@ body {
   box-shadow: none;
 }
 
+.taskbar-backdrop-clip {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  overflow: hidden;
+}
+
 .taskbar-blur-canvas {
   position: absolute;
   inset: 0;
@@ -87,14 +96,99 @@ body {
   border-radius: var(--taskbar-radius, 12px);
   border: none !important;
   box-shadow: none;
+  padding: 0 var(--taskbar-pad-x, 8px);
+}
+
+/* Separated Style: each populated region renders as its own rounded island */
+.taskbar-bar.separated {
+  border: none !important;
+  background: transparent !important;
+  padding: 0 8px;
+  gap: 8px;
+}
+
+.taskbar-bar.separated .taskbar-surface-layer {
+  display: none !important;
+}
+
+.taskbar-bar.separated .taskbar-backdrop-clip {
+  clip-path: url(#separatedBlurClip);
+}
+
+.taskbar-bar.separated .zone-left {
+  justify-self: start;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.taskbar-bar.separated .zone-center {
+  justify-self: center;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.taskbar-bar.separated .right-wrapper {
+  justify-self: end;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.taskbar-bar.separated .zone-left:not(.is-empty),
+.taskbar-bar.separated .zone-center:not(.is-empty):not(.no-island-bg),
+.taskbar-bar.separated .right-wrapper {
+  height: 100%;
+  max-height: 100%;
+  padding: 0 var(--taskbar-pad-x, 8px);
+  background: var(--taskbar-surface-bg, #1c1c1c);
+  border: 1px solid var(--taskbar-sep-border, rgba(255, 255, 255, 0.08));
+  border-radius: var(--taskbar-sep-radius, 12px);
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.taskbar-bar.separated .zone-center.no-island-bg {
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+.taskbar-bar.separated .zone-left.is-empty,
+.taskbar-bar.separated .zone-center.is-empty {
+  background: transparent;
+  border: none;
+  padding: 0;
+  pointer-events: none;
+}
+
+.taskbar-bar.separated .right-wrapper.is-empty {
+  padding: 0 6px;
+  opacity: 0;
+  background: transparent;
+  border-color: transparent;
+  transition: opacity 0.18s ease, background-color 0.18s ease, border-color 0.18s ease;
+}
+
+.taskbar-bar.separated .right-wrapper.is-empty:hover,
+.taskbar-bar.separated .right-wrapper.is-empty:focus-within {
+  opacity: 1;
+  background: var(--taskbar-surface-bg, #1c1c1c);
+  border-color: var(--taskbar-sep-border, rgba(255, 255, 255, 0.08));
+}
+
+.taskbar-bar.separated .right-wrapper.is-empty .zone-right {
+  display: none;
+}
+
+.taskbar-bar.separated .right-wrapper.is-empty .studio-btn {
+  margin-left: 0;
 }
 
 .taskbar-zone {
   display: flex;
   align-items: center;
   gap: 4px;
-  height: 38px;
-  max-height: 38px;
+  height: max(38px, calc(var(--winzen-app-icon-size, 18px) + 20px));
+  max-height: 100%;
 }
 
 .zone-left {
@@ -114,8 +208,8 @@ body {
   align-items: center;
   justify-content: flex-end;
   gap: 4px;
-  height: 38px;
-  max-height: 38px;
+  height: max(38px, calc(var(--winzen-app-icon-size, 18px) + 20px));
+  max-height: 100%;
   width: 100%;
   min-width: 0;
   overflow: hidden;
@@ -127,8 +221,8 @@ body {
 }
 
 .widget-host {
-  height: 38px;
-  max-height: 38px;
+  height: max(38px, calc(var(--winzen-app-icon-size, 18px) + 20px));
+  max-height: 100%;
   display: inline-flex;
   align-items: center;
   flex-shrink: 0;
@@ -339,7 +433,8 @@ body.winzen-no-anim *:active {
   border-color: #474747;
 }
 
-.shell-dynamic-island-music.is-hovered {
+.shell-dynamic-island-music.is-hovered,
+.shell-dynamic-island-music.is-wide-pill {
   width: 210px;
   border-color: #525252;
 }
@@ -396,7 +491,8 @@ body.winzen-no-anim *:active {
               margin 0.28s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.shell-dynamic-island-music.is-hovered .di-music-title {
+.shell-dynamic-island-music.is-hovered .di-music-title,
+.shell-dynamic-island-music.is-wide-pill .di-music-title {
   opacity: 1;
   max-width: 130px;
   margin: 0 8px;

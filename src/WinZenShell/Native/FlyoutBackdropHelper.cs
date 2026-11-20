@@ -4,11 +4,14 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using Microsoft.Win32;
 using MediaColor = System.Windows.Media.Color;
@@ -24,15 +27,33 @@ namespace WinZenShell.Native;
 /// </summary>
 public static class FlyoutBackdropHelper
 {
+    private sealed class BackdropState
+    {
+        public int Token;
+        public WriteableBitmap? LastRealtimeBitmap;
+        public int LastLeft;
+        public int LastTop;
+        public int LastW;
+        public int LastH;
+        public int LastBlur;
+    }
+
     private static readonly int CurrentPid = Environment.ProcessId;
+    private static readonly ConditionalWeakTable<Window, BackdropState> _windowStates = new();
+    private static readonly object _wpCacheLock = new();
     private static string _wpPathCache = "";
     private static long _wpTicksCache;
-    private static byte[]? _wpFileBytesCache;
+    private static Bitmap? _wpScreenBmpCache;
+    private static int _wpScreenW;
+    private static int _wpScreenH;
 
     public static void ApplyTo(Window window, double finalTopDip)
     {
         if (window.FindName("OuterBorder") is not Border outerBorder)
             return;
+
+        var bState = _windowStates.GetOrCreateValue(window);
+        int token = ++bState.Token;
 
         int opacity = Math.Clamp(FlyoutAnimationHelper.FlyoutBackgroundOpacity, 0, 100);
         int blurStrength = Math.Clamp(FlyoutAnimationHelper.FlyoutBackgroundBlurStrength, 0, 100);
@@ -61,6 +82,18 @@ public static class FlyoutBackdropHelper
         double dipH = !double.IsNaN(window.Height) && window.Height > 0 ? window.Height : window.ActualHeight;
         if (dipW <= 4 || dipH <= 4)
         {
+            try
+            {
+                window.Measure(new System.Windows.Size(
+                    !double.IsNaN(window.Width) && window.Width > 0 ? window.Width : double.PositiveInfinity,
+                    !double.IsNaN(window.Height) && window.Height > 0 ? window.Height : double.PositiveInfinity));
+                if (dipW <= 4 && window.DesiredSize.Width > 4) dipW = window.DesiredSize.Width;
+                if (dipH <= 4 && window.DesiredSize.Height > 4) dipH = window.DesiredSize.Height;
+            }
+            catch { }
+        }
+        if (dipW <= 4 || dipH <= 4)
+        {
             outerBorder.Background = new SolidColorBrush(tintColor);
             return;
         }
@@ -81,41 +114,120 @@ public static class FlyoutBackdropHelper
 
         int smallW = Math.Clamp(pxW / 4, 8, 480);
         int smallH = Math.Clamp(pxH / 4, 8, 360);
+        int radius = Math.Clamp((int)Math.Round(1 + (blurStrength / 100.0) * 12.0), 1, 16);
 
-        byte[]? bgra = CaptureRegionBgra(pxLeft, pxTop, pxW, pxH, smallW, smallH, useRealtime);
-        if (bgra == null)
+        WriteableBitmap baseWb;
+        bool hasCachedRealtime = useRealtime &&
+            bState.LastRealtimeBitmap != null &&
+            bState.LastLeft == pxLeft &&
+            bState.LastTop == pxTop &&
+            bState.LastW == smallW &&
+            bState.LastH == smallH &&
+            bState.LastBlur == blurStrength;
+
+        if (hasCachedRealtime)
         {
-            outerBorder.Background = new SolidColorBrush(tintColor);
+            baseWb = bState.LastRealtimeBitmap!;
+        }
+        else
+        {
+            byte[]? wpBgra = CaptureRegionBgra(pxLeft, pxTop, pxW, pxH, smallW, smallH, includeWindows: false);
+            if (wpBgra == null)
+            {
+                outerBorder.Background = new SolidColorBrush(tintColor);
+                return;
+            }
+
+            SeparableBoxBlurBgra(wpBgra, smallW, smallH, radius);
+            SeparableBoxBlurBgra(wpBgra, smallW, smallH, Math.Max(1, radius - 1));
+
+            baseWb = new WriteableBitmap(smallW, smallH, 96, 96, PixelFormats.Pbgra32, null);
+            baseWb.WritePixels(new Int32Rect(0, 0, smallW, smallH), wpBgra, smallW * 4, 0);
+            baseWb.Freeze();
+        }
+
+        var unitRect = new Rect(0, 0, 1, 1);
+        var tintDrawing = new GeometryDrawing(new SolidColorBrush(tintColor), null, new RectangleGeometry(unitRect));
+        tintDrawing.Freeze();
+
+        if (!useRealtime)
+        {
+            bState.LastRealtimeBitmap = null;
+            var group = new DrawingGroup();
+            group.Children.Add(new ImageDrawing(baseWb, unitRect));
+            group.Children.Add(tintDrawing);
+            group.Freeze();
+
+            var brush = new DrawingBrush(group)
+            {
+                Stretch = Stretch.Fill,
+                Viewbox = unitRect,
+                ViewboxUnits = BrushMappingMode.RelativeToBoundingBox
+            };
+            brush.Freeze();
+            outerBorder.Background = brush;
             return;
         }
 
-        int radius = Math.Clamp((int)Math.Round(1 + (blurStrength / 100.0) * 12.0), 1, 16);
-        SeparableBoxBlurBgra(bgra, smallW, smallH, radius);
-        SeparableBoxBlurBgra(bgra, smallW, smallH, Math.Max(1, radius - 1));
+        // Realtime mode: show cached realtime (or wallpaper) blur immediately, then capture live windows in background & cross-fade
+        var rtImageDrawing = new ImageDrawing(baseWb, unitRect);
+        var rtOverlayGroup = new DrawingGroup { Opacity = 0.0 };
+        rtOverlayGroup.Children.Add(rtImageDrawing);
 
-        var wb = new WriteableBitmap(smallW, smallH, 96, 96, PixelFormats.Pbgra32, null);
-        wb.WritePixels(new Int32Rect(0, 0, smallW, smallH), bgra, smallW * 4, 0);
-        wb.Freeze();
+        var rootGroup = new DrawingGroup();
+        rootGroup.Children.Add(new ImageDrawing(baseWb, unitRect));
+        rootGroup.Children.Add(rtOverlayGroup);
+        rootGroup.Children.Add(tintDrawing);
 
-        var group = new DrawingGroup();
-        var unitRect = new Rect(0, 0, 1, 1);
-        group.Children.Add(new ImageDrawing(wb, unitRect));
-        group.Children.Add(new GeometryDrawing(new SolidColorBrush(tintColor), null, new RectangleGeometry(unitRect)));
-        group.Freeze();
-
-        var brush = new DrawingBrush(group)
+        var rtBrush = new DrawingBrush(rootGroup)
         {
             Stretch = Stretch.Fill,
             Viewbox = unitRect,
             ViewboxUnits = BrushMappingMode.RelativeToBoundingBox
         };
-        brush.Freeze();
-        outerBorder.Background = brush;
+        outerBorder.Background = rtBrush;
+
+        IntPtr targetHwnd = IntPtr.Zero;
+        try { targetHwnd = new System.Windows.Interop.WindowInteropHelper(window).Handle; } catch { }
+
+        _ = Task.Run(() =>
+        {
+            byte[]? rtBgra = CaptureRegionBgra(pxLeft, pxTop, pxW, pxH, smallW, smallH, includeWindows: true, excludeHwnd: targetHwnd);
+            if (rtBgra == null) return;
+            SeparableBoxBlurBgra(rtBgra, smallW, smallH, radius);
+            SeparableBoxBlurBgra(rtBgra, smallW, smallH, Math.Max(1, radius - 1));
+
+            window.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ApplicationIdle, new Action(() =>
+            {
+                if (bState.Token != token || !window.IsVisible) return;
+                var rtWb = new WriteableBitmap(smallW, smallH, 96, 96, PixelFormats.Pbgra32, null);
+                rtWb.WritePixels(new Int32Rect(0, 0, smallW, smallH), rtBgra, smallW * 4, 0);
+                rtWb.Freeze();
+
+                bState.LastRealtimeBitmap = rtWb;
+                bState.LastLeft = pxLeft;
+                bState.LastTop = pxTop;
+                bState.LastW = smallW;
+                bState.LastH = smallH;
+                bState.LastBlur = blurStrength;
+
+                rtOverlayGroup.Opacity = 0.0;
+                rtImageDrawing.ImageSource = rtWb;
+
+                var fade = new DoubleAnimation(0.0, 1.0, new Duration(TimeSpan.FromMilliseconds(380)))
+                {
+                    BeginTime = TimeSpan.FromMilliseconds(16),
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut },
+                    FillBehavior = FillBehavior.HoldEnd
+                };
+                rtOverlayGroup.BeginAnimation(DrawingGroup.OpacityProperty, fade, HandoffBehavior.SnapshotAndReplace);
+            }));
+        });
     }
 
     private static byte[]? CaptureRegionBgra(
         int leftPx, int topPx, int widthPx, int heightPx,
-        int outW, int outH, bool includeWindows)
+        int outW, int outH, bool includeWindows, IntPtr excludeHwnd = default)
     {
         try
         {
@@ -130,7 +242,7 @@ public static class FlyoutBackdropHelper
 
                 if (includeWindows)
                 {
-                    CompositeIntersectingWindows(g, leftPx, topPx, widthPx, heightPx, outW, outH);
+                    CompositeIntersectingWindows(g, leftPx, topPx, widthPx, heightPx, outW, outH, excludeHwnd);
                 }
             }
 
@@ -162,39 +274,49 @@ public static class FlyoutBackdropHelper
         if (string.IsNullOrWhiteSpace(wpPath) || !File.Exists(wpPath))
             return;
 
-        long ticks = 0;
-        try { ticks = File.GetLastWriteTimeUtc(wpPath).Ticks; } catch { }
-        if (wpPath != _wpPathCache || ticks != _wpTicksCache || _wpFileBytesCache == null)
-        {
-            _wpFileBytesCache = File.ReadAllBytes(wpPath);
-            _wpPathCache = wpPath;
-            _wpTicksCache = ticks;
-        }
-
         var mon = WorkAreaAppBarService.GetPrimaryMonitorInfo().rcMonitor;
         int screenW = mon.Width > 0 ? mon.Width : 1920;
         int screenH = mon.Height > 0 ? mon.Height : 1080;
 
-        using var msIn = new MemoryStream(_wpFileBytesCache);
-        using var srcImage = System.Drawing.Image.FromStream(msIn, false, false);
-        double scale = Math.Max((double)screenW / srcImage.Width, (double)screenH / srcImage.Height);
-        double dispW = srcImage.Width * scale;
-        double dispH = srcImage.Height * scale;
-        double offsetX = (dispW - screenW) / 2.0;
-        double offsetY = (dispH - screenH) / 2.0;
+        long ticks = 0;
+        try { ticks = File.GetLastWriteTimeUtc(wpPath).Ticks; } catch { }
 
-        float srcX = (float)Math.Max(0, (leftPx + offsetX) / scale);
-        float srcY = (float)Math.Max(0, (topPx + offsetY) / scale);
-        float srcW = (float)Math.Max(1, Math.Min(srcImage.Width - srcX, widthPx / scale));
-        float srcH = (float)Math.Max(1, Math.Min(srcImage.Height - srcY, heightPx / scale));
+        lock (_wpCacheLock)
+        {
+            if (wpPath != _wpPathCache || ticks != _wpTicksCache || _wpScreenBmpCache == null || _wpScreenW != screenW || _wpScreenH != screenH)
+            {
+                byte[] fileBytes = File.ReadAllBytes(wpPath);
+                using var msIn = new MemoryStream(fileBytes);
+                using var srcImage = System.Drawing.Image.FromStream(msIn, false, false);
+                double scale = Math.Max((double)screenW / srcImage.Width, (double)screenH / srcImage.Height);
+                int dispW = (int)Math.Ceiling(srcImage.Width * scale);
+                int dispH = (int)Math.Ceiling(srcImage.Height * scale);
+                int offsetX = (dispW - screenW) / 2;
+                int offsetY = (dispH - screenH) / 2;
 
-        using var attrs = new ImageAttributes();
-        attrs.SetWrapMode(WrapMode.TileFlipXY);
-        g.DrawImage(srcImage, new Rectangle(0, 0, outW, outH), srcX, srcY, srcW, srcH, GraphicsUnit.Pixel, attrs);
+                var cachedBmp = new Bitmap(screenW, screenH, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
+                using (var cg = Graphics.FromImage(cachedBmp))
+                {
+                    cg.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                    cg.DrawImage(srcImage, new Rectangle(-offsetX, -offsetY, dispW, dispH));
+                }
+
+                _wpScreenBmpCache?.Dispose();
+                _wpScreenBmpCache = cachedBmp;
+                _wpPathCache = wpPath;
+                _wpTicksCache = ticks;
+                _wpScreenW = screenW;
+                _wpScreenH = screenH;
+            }
+
+            using var attrs = new ImageAttributes();
+            attrs.SetWrapMode(WrapMode.TileFlipXY);
+            g.DrawImage(_wpScreenBmpCache, new Rectangle(0, 0, outW, outH), leftPx, topPx, widthPx, heightPx, GraphicsUnit.Pixel, attrs);
+        }
     }
 
     private static void CompositeIntersectingWindows(
-        Graphics g, int leftPx, int topPx, int widthPx, int heightPx, int outW, int outH)
+        Graphics g, int leftPx, int topPx, int widthPx, int heightPx, int outW, int outH, IntPtr excludeHwnd)
     {
         int rightPx = leftPx + widthPx;
         int bottomPx = topPx + heightPx;
@@ -202,7 +324,7 @@ public static class FlyoutBackdropHelper
 
         Win32Api.EnumWindows((wnd, _) =>
         {
-            if (wnd == IntPtr.Zero || !Win32Api.IsWindowVisible(wnd) || Win32Api.IsIconic(wnd))
+            if (wnd == IntPtr.Zero || wnd == excludeHwnd || !Win32Api.IsWindowVisible(wnd) || Win32Api.IsIconic(wnd))
                 return true;
 
             if (Win32Api.DwmGetWindowAttribute(wnd, Win32Api.DWMWA_CLOAKED, out int cloaked, sizeof(int)) == 0 && cloaked != 0)
@@ -231,7 +353,7 @@ public static class FlyoutBackdropHelper
                 return true;
 
             Win32Api.GetWindowThreadProcessId(wnd, out uint pid);
-            if (pid == CurrentPid && (frameRect.Width < 500 || frameRect.Height < 320))
+            if (pid == CurrentPid)
                 return true;
 
             candidates.Add((wnd, rawRect, frameRect));

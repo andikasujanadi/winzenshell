@@ -52,6 +52,9 @@ function initSettingsPage() {
   const toggleCombineApps = document.getElementById('toggleCombineApps');
   const stateCombineApps = document.getElementById('stateCombineApps');
 
+  const toggleHighlightActiveApp = document.getElementById('toggleHighlightActiveApp');
+  const stateHighlightActiveApp = document.getElementById('stateHighlightActiveApp');
+
   const toggleShowThumbnails = document.getElementById('toggleShowThumbnails');
   const stateShowThumbnails = document.getElementById('stateShowThumbnails');
 
@@ -184,6 +187,8 @@ function initSettingsPage() {
   const stateDynamicIsland = document.getElementById('stateDynamicIsland');
   const selectDiPlacement = document.getElementById('selectDiPlacement');
   const selectShellDiPlacement = document.getElementById('selectShellDiPlacement');
+  const selectShellDiSlot = document.getElementById('selectShellDiSlot');
+  const shellFieldDiSlot = document.getElementById('shellFieldDiSlot');
   const rowDiPlacement = document.getElementById('rowDiPlacement');
   const subtextDiPlacement = document.getElementById('subtextDiPlacement');
   const rowDiReserveWorkArea = document.getElementById('rowDiReserveWorkArea');
@@ -200,6 +205,10 @@ function initSettingsPage() {
   const stateDiAnimation = document.getElementById('stateDiAnimation');
   const toggleDiMusic = document.getElementById('toggleDiMusic');
   const stateDiMusic = document.getElementById('stateDiMusic');
+  const toggleDiPinLyrics = document.getElementById('toggleDiPinLyrics');
+  const stateDiPinLyrics = document.getElementById('stateDiPinLyrics');
+  const toggleDiWidePill = document.getElementById('toggleDiWidePill');
+  const stateDiWidePill = document.getElementById('stateDiWidePill');
 
   const diPreviewTime = document.getElementById('diPreviewTime');
   const diPreviewSeconds = document.getElementById('diPreviewSeconds');
@@ -264,6 +273,7 @@ function initSettingsPage() {
     updateBlurFieldEnabledState(Number.isNaN(parsedOpacity) ? 100 : parsedOpacity);
     updateFlyoutBlurFieldEnabledState(Number.isNaN(parsedFlyoutOpacity) ? 100 : parsedFlyoutOpacity);
     const selectBlurEngine = document.getElementById('selectBlurEngine');
+    const selectTaskbarStyle = document.getElementById('selectTaskbarStyle');
     window.winzen.send('update_workarea_config', {
       respectWorkArea: toggleRespectWorkArea.checked,
       dockEdge: selectDockEdge.value,
@@ -275,6 +285,7 @@ function initSettingsPage() {
       flyoutBackgroundOpacity: Number.isNaN(parsedFlyoutOpacity) ? 100 : parsedFlyoutOpacity,
       flyoutBackgroundBlurStrength: Number.isNaN(parsedFlyoutBlur) ? 60 : parsedFlyoutBlur,
       blurEngine: selectBlurEngine ? selectBlurEngine.value : 'wallpaper',
+      taskbarStyle: selectTaskbarStyle ? selectTaskbarStyle.value : 'unified',
       accentColor: currentAccentColor,
       theme: selectTheme ? selectTheme.value : 'dark'
     });
@@ -283,6 +294,11 @@ function initSettingsPage() {
   const selectBlurEngineEl = document.getElementById('selectBlurEngine');
   if (selectBlurEngineEl) {
     selectBlurEngineEl.addEventListener('change', sendWorkAreaConfig);
+  }
+
+  const selectTaskbarStyleEl = document.getElementById('selectTaskbarStyle');
+  if (selectTaskbarStyleEl) {
+    selectTaskbarStyleEl.addEventListener('change', sendWorkAreaConfig);
   }
 
   function updateBlurFieldEnabledState(opacityVal) {
@@ -368,6 +384,15 @@ function initSettingsPage() {
     stateCombineApps.textContent = combine ? 'On' : 'Off';
     updateActiveWindowsWidgetConfig({ combineApps: combine });
   });
+
+  if (toggleHighlightActiveApp) {
+    toggleHighlightActiveApp.addEventListener('change', () => {
+      if (isUpdatingFromHost) return;
+      const highlight = toggleHighlightActiveApp.checked;
+      if (stateHighlightActiveApp) stateHighlightActiveApp.textContent = highlight ? 'On' : 'Off';
+      window.winzen.send('toggle_highlight_active_app', { enable: highlight });
+    });
+  }
 
   if (toggleShowThumbnails) {
     toggleShowThumbnails.addEventListener('change', () => {
@@ -498,7 +523,9 @@ function initSettingsPage() {
       showSeconds: toggleDiSeconds ? toggleDiSeconds.checked : false,
       showDate: toggleDiDate ? toggleDiDate.checked : true,
       enableAnimation: toggleDiAnimation ? toggleDiAnimation.checked : true,
-      enableMusicIsland: toggleDiMusic ? toggleDiMusic.checked : true
+      enableMusicIsland: toggleDiMusic ? toggleDiMusic.checked : true,
+      pinLyrics: toggleDiPinLyrics ? toggleDiPinLyrics.checked : false,
+      widePill: toggleDiWidePill ? toggleDiWidePill.checked : false
     };
 
     window.winzen.send('update_dynamic_island', payload);
@@ -516,6 +543,8 @@ function initSettingsPage() {
     if (stateDiDate) stateDiDate.textContent = toggleDiDate && toggleDiDate.checked ? 'On' : 'Off';
     if (stateDiAnimation) stateDiAnimation.textContent = toggleDiAnimation && toggleDiAnimation.checked ? 'On' : 'Off';
     if (stateDiMusic) stateDiMusic.textContent = toggleDiMusic && toggleDiMusic.checked ? 'On' : 'Off';
+    if (stateDiPinLyrics) stateDiPinLyrics.textContent = toggleDiPinLyrics && toggleDiPinLyrics.checked ? 'On' : 'Off';
+    if (stateDiWidePill) stateDiWidePill.textContent = toggleDiWidePill && toggleDiWidePill.checked ? 'On' : 'Off';
 
     if (selectDiPlacement) {
       const topCenterOpt = selectDiPlacement.querySelector('option[value="top-center"]');
@@ -544,6 +573,11 @@ function initSettingsPage() {
     if (rowDiSlot) {
       rowDiSlot.style.display = (isEnabled && selectDiPlacement && selectDiPlacement.value === 'taskbar') ? 'flex' : 'none';
     }
+    if (shellFieldDiSlot && selectShellDiSlot) {
+      const showSlot = isEnabled && selectDiPlacement && selectDiPlacement.value === 'taskbar';
+      selectShellDiSlot.disabled = !showSlot;
+      shellFieldDiSlot.style.opacity = showSlot ? '1' : '0.45';
+    }
   }
 
   if (toggleDynamicIsland) toggleDynamicIsland.addEventListener('change', sendDynamicIslandConfig);
@@ -560,12 +594,25 @@ function initSettingsPage() {
     });
   }
   if (toggleDiReserveWorkArea) toggleDiReserveWorkArea.addEventListener('change', sendDynamicIslandConfig);
-  if (selectDiSlot) selectDiSlot.addEventListener('change', sendDynamicIslandConfig);
+  if (selectDiSlot) {
+    selectDiSlot.addEventListener('change', () => {
+      if (selectShellDiSlot) selectShellDiSlot.value = selectDiSlot.value;
+      sendDynamicIslandConfig();
+    });
+  }
+  if (selectShellDiSlot) {
+    selectShellDiSlot.addEventListener('change', () => {
+      if (selectDiSlot) selectDiSlot.value = selectShellDiSlot.value;
+      sendDynamicIslandConfig();
+    });
+  }
   if (selectDiTimeFormat) selectDiTimeFormat.addEventListener('change', () => { sendDynamicIslandConfig(); updateDynamicIslandPreview(); });
   if (toggleDiSeconds) toggleDiSeconds.addEventListener('change', () => { sendDynamicIslandConfig(); updateDynamicIslandPreview(); });
   if (toggleDiDate) toggleDiDate.addEventListener('change', () => { sendDynamicIslandConfig(); updateDynamicIslandPreview(); });
   if (toggleDiAnimation) toggleDiAnimation.addEventListener('change', sendDynamicIslandConfig);
   if (toggleDiMusic) toggleDiMusic.addEventListener('change', sendDynamicIslandConfig);
+  if (toggleDiPinLyrics) toggleDiPinLyrics.addEventListener('change', sendDynamicIslandConfig);
+  if (toggleDiWidePill) toggleDiWidePill.addEventListener('change', sendDynamicIslandConfig);
   setInterval(updateDynamicIslandPreview, 1000);
 
   function updateSliderTrackFill(sliderEl) {
@@ -691,7 +738,9 @@ function initSettingsPage() {
     if (!layoutPresetsList) return;
     layoutPresetsList.innerHTML = '';
 
-    const list = Array.isArray(presets) ? presets : [];
+    const list = (Array.isArray(presets) ? presets : []).slice().sort((a, b) =>
+      String(a?.name || '').localeCompare(String(b?.name || ''), undefined, { sensitivity: 'base' })
+    );
     if (list.length === 0) {
       const empty = document.createElement('div');
       empty.className = 'layout-preset-empty';
@@ -730,30 +779,37 @@ function initSettingsPage() {
 
       const btnApply = document.createElement('button');
       btnApply.type = 'button';
-      btnApply.className = 'win11-btn';
-      btnApply.textContent = 'Apply';
+      btnApply.className = 'win11-btn layout-preset-icon-btn';
+      btnApply.title = 'Apply';
+      btnApply.setAttribute('aria-label', 'Apply');
+      btnApply.innerHTML = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 8.5 6.5 12 13 4.5"/></svg>';
       btnApply.addEventListener('click', () => {
         window.winzen.send('apply_layout_preset', { id: preset.id });
       });
 
       const btnRename = document.createElement('button');
       btnRename.type = 'button';
-      btnRename.className = 'win11-btn';
-      btnRename.textContent = 'Rename';
+      btnRename.className = 'win11-btn layout-preset-icon-btn';
+      btnRename.title = 'Rename';
+      btnRename.setAttribute('aria-label', 'Rename');
+      btnRename.innerHTML = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 2.5a1.4 1.4 0 0 1 2 2L5.2 12.8 2.5 13.5l.7-2.7z"/><path d="M10 4l2 2"/></svg>';
 
       const btnUpdate = document.createElement('button');
       btnUpdate.type = 'button';
-      btnUpdate.className = 'win11-btn';
-      btnUpdate.textContent = 'Update';
-      btnUpdate.title = 'Overwrite this preset with the current layout';
+      btnUpdate.className = 'win11-btn layout-preset-icon-btn';
+      btnUpdate.title = 'Update with current layout';
+      btnUpdate.setAttribute('aria-label', 'Update');
+      btnUpdate.innerHTML = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12.5 14H3.5A1.5 1.5 0 0 1 2 12.5v-9A1.5 1.5 0 0 1 3.5 2h7l3.5 3.5v7A1.5 1.5 0 0 1 12.5 14z"/><polyline points="11 14 11 9.5 5 9.5 5 14"/><polyline points="5 2 5 5.5 10 5.5"/></svg>';
       btnUpdate.addEventListener('click', () => {
         window.winzen.send('update_layout_preset', { id: preset.id });
       });
 
       const btnDelete = document.createElement('button');
       btnDelete.type = 'button';
-      btnDelete.className = 'win11-btn-danger';
-      btnDelete.textContent = 'Delete';
+      btnDelete.className = 'win11-btn-danger layout-preset-icon-btn';
+      btnDelete.title = 'Delete';
+      btnDelete.setAttribute('aria-label', 'Delete');
+      btnDelete.innerHTML = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4h11"/><path d="M6 4V2.5h4V4"/><path d="M4 4l.8 9.5a1 1 0 0 0 1 .9h4.4a1 1 0 0 0 1-.9L12 4"/><line x1="6.5" y1="6.8" x2="6.5" y2="11.5"/><line x1="9.5" y1="6.8" x2="9.5" y2="11.5"/></svg>';
       btnDelete.addEventListener('click', () => {
         window.winzen.send('delete_layout_preset', { id: preset.id });
       });
@@ -799,8 +855,8 @@ function initSettingsPage() {
           }
         });
 
-        actions.appendChild(btnSaveRename);
         actions.appendChild(btnCancelRename);
+        actions.appendChild(btnSaveRename);
         renameInput.focus();
         renameInput.select();
       });
@@ -884,6 +940,10 @@ function initSettingsPage() {
         if (selectBlurEngineSync) {
           selectBlurEngineSync.value = (s.blurEngine === 'realtime') ? 'realtime' : 'wallpaper';
         }
+        const selectTaskbarStyleSync = document.getElementById('selectTaskbarStyle');
+        if (selectTaskbarStyleSync) {
+          selectTaskbarStyleSync.value = (s.taskbarStyle === 'separated') ? 'separated' : 'unified';
+        }
         inputBgBlur.value = bl;
         if (labelBgBlurVal) labelBgBlurVal.textContent = `${bl}%`;
         updateSliderTrackFill(inputBgBlur);
@@ -923,6 +983,9 @@ function initSettingsPage() {
       if (selectDiSlot) {
         selectDiSlot.value = di.taskbarSlot || 'center';
       }
+      if (selectShellDiSlot) {
+        selectShellDiSlot.value = di.taskbarSlot || 'center';
+      }
       if (selectDiTimeFormat) {
         selectDiTimeFormat.value = di.timeFormat || '24h';
       }
@@ -942,6 +1005,14 @@ function initSettingsPage() {
         toggleDiMusic.checked = di.enableMusicIsland !== false;
         if (stateDiMusic) stateDiMusic.textContent = di.enableMusicIsland !== false ? 'On' : 'Off';
       }
+      if (toggleDiPinLyrics) {
+        toggleDiPinLyrics.checked = !!di.pinLyrics;
+        if (stateDiPinLyrics) stateDiPinLyrics.textContent = di.pinLyrics ? 'On' : 'Off';
+      }
+      if (toggleDiWidePill) {
+        toggleDiWidePill.checked = !!di.widePill;
+        if (stateDiWidePill) stateDiWidePill.textContent = di.widePill ? 'On' : 'Off';
+      }
       updateDynamicIslandUIState();
       updateDynamicIslandPreview();
 
@@ -956,6 +1027,12 @@ function initSettingsPage() {
 
       toggleCombineApps.checked = combine;
       stateCombineApps.textContent = combine ? 'On' : 'Off';
+
+      if (toggleHighlightActiveApp) {
+        const highlight = s.highlightActiveAppIcon !== false;
+        toggleHighlightActiveApp.checked = highlight;
+        if (stateHighlightActiveApp) stateHighlightActiveApp.textContent = highlight ? 'On' : 'Off';
+      }
 
       if (toggleShowThumbnails) {
         toggleShowThumbnails.checked = showThumbs;
@@ -1181,6 +1258,7 @@ function initSettingsPage() {
               <label>Launcher icon</label>
               <select class="win11-select w-starticon">
                 <option value="chromeos" ${curIcon === 'chromeos' ? 'selected' : ''}>ChromeOS</option>
+                <option value="gnome" ${curIcon === 'gnome' ? 'selected' : ''}>Gnome</option>
                 <option value="windows" ${curIcon === 'windows' ? 'selected' : ''}>Windows 11</option>
                 <option value="win10" ${curIcon === 'win10' ? 'selected' : ''}>Windows 10</option>
                 <option value="apple" ${curIcon === 'apple' ? 'selected' : ''}>Apple</option>
@@ -1321,11 +1399,21 @@ function initSettingsPage() {
             <span class="tc-widget-name" title="${escapeHtml(w.name)}">${escapeHtml(w.name)}</span>
             ${authorTagHtml ? `<div class="tc-tag-row">${authorTagHtml}</div>` : ''}
           </div>
-          <button type="button" class="tc-collapse-btn" title="${isExpanded ? 'Collapse options' : 'Expand options'}" aria-label="Toggle options">
-            <svg class="tc-chevron" viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="4 6 8 10 12 6"></polyline>
-            </svg>
-          </button>
+          <div class="tc-card-actions">
+            ${!isUnused ? `
+              <button type="button" class="tc-remove-btn" title="Move to Inactive" aria-label="Move to Inactive">
+                <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                  <line x1="4" y1="4" x2="12" y2="12"></line>
+                  <line x1="12" y1="4" x2="4" y2="12"></line>
+                </svg>
+              </button>
+            ` : ''}
+            <button type="button" class="tc-collapse-btn" title="${isExpanded ? 'Collapse options' : 'Expand options'}" aria-label="Toggle options">
+              <svg class="tc-chevron" viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="4 6 8 10 12 6"></polyline>
+              </svg>
+            </button>
+          </div>
         </div>
 
         <div class="tc-card-body">
@@ -1462,6 +1550,24 @@ function initSettingsPage() {
         collapseBtn.addEventListener('click', (e) => {
           e.stopPropagation();
           toggleCollapse();
+        });
+      }
+
+      const removeBtn = chip.querySelector('.tc-remove-btn');
+      if (removeBtn) {
+        removeBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (!previewChipsUnused) return;
+          const oldParent = chip.parentElement;
+          const unusedPlaceholder = previewChipsUnused.querySelector('.empty-placeholder');
+          if (unusedPlaceholder) unusedPlaceholder.remove();
+          chip.classList.add('disabled');
+          removeBtn.remove();
+          previewChipsUnused.appendChild(chip);
+          if (oldParent && oldParent.querySelectorAll('.rp-chip:not(.empty-placeholder)').length === 0) {
+            oldParent.innerHTML = `<span class="rp-chip empty-placeholder">Empty</span>`;
+          }
+          commitTaskbarWidgetOrder();
         });
       }
 

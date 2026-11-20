@@ -618,6 +618,7 @@ public partial class DynamicIslandWindow : Window
                 {
                     _lastMusicW = 68;
                 }
+                _shellState.SetDynamicIslandWidePill(isWide);
                 Dispatcher.Invoke(() =>
                 {
                     TaskbarWebWindow? tbWindow = TaskbarWindow ?? Owner as TaskbarWebWindow;
@@ -642,6 +643,7 @@ public partial class DynamicIslandWindow : Window
                 bool isPinned = root.TryGetProperty("isPinned", out var pinProp) && pinProp.GetBoolean();
                 string lyricText = root.TryGetProperty("text", out var textProp) ? textProp.GetString() ?? "" : "";
                 double lyricW = root.TryGetProperty("width", out var widthProp) && widthProp.TryGetDouble(out var lwVal) ? lwVal : 0;
+                _shellState.SetDynamicIslandPinLyrics(isPinned);
                 if (isPinned && lyricW > 40)
                 {
                     _lastMusicW = lyricW;

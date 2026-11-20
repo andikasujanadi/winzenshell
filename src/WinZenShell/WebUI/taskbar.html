@@ -5,12 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>WinZenShell Taskbar</title>
   <link rel="stylesheet" href="universal-theme.css?v=3" />
-  <link rel="stylesheet" href="taskbar.css?v=11" />
+  <link rel="stylesheet" href="taskbar.css?v=12" />
 </head>
 <body>
   <div class="taskbar-bar" id="taskbarBar">
-    <canvas class="taskbar-blur-canvas" id="taskbarBlurCanvas" aria-hidden="true"></canvas>
-    <div class="taskbar-wallpaper-layer" id="taskbarWallpaperLayer" aria-hidden="true"></div>
+    <div class="taskbar-backdrop-clip" id="taskbarBackdropClip" aria-hidden="true">
+      <canvas class="taskbar-blur-canvas" id="taskbarBlurCanvas" aria-hidden="true"></canvas>
+      <div class="taskbar-wallpaper-layer" id="taskbarWallpaperLayer" aria-hidden="true"></div>
+    </div>
+    <svg width="0" height="0" style="position:absolute;width:0;height:0;pointer-events:none;" aria-hidden="true">
+      <defs>
+        <clipPath id="separatedBlurClip"></clipPath>
+      </defs>
+    </svg>
     <div class="taskbar-surface-layer" id="taskbarSurfaceLayer" aria-hidden="true"></div>
     <!-- Left Widget Zone -->
     <div class="taskbar-zone zone-left" id="slot-left"></div>
@@ -32,6 +39,6 @@
   </div>
 
   <script src="bridge.js?v=5"></script>
-  <script src="taskbar.js?v=11"></script>
+  <script src="taskbar.js?v=12"></script>
 </body>
 </html>

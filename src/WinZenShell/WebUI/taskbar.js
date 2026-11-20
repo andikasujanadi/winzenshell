@@ -323,7 +323,15 @@ function initTaskbar() {
       if (isMusicLyricsPinnedMode) {
         isMusicLyricsPinnedMode = false;
         musicEl.classList.remove('is-lyrics-pill');
-        musicEl.style.width = isMusicWidePillMode ? '210px' : '';
+        if (isMusicWidePillMode) {
+          musicEl.classList.add('is-wide-pill');
+          musicEl.classList.add('is-hovered');
+          musicEl.style.width = '210px';
+        } else {
+          musicEl.classList.remove('is-wide-pill');
+          musicEl.classList.remove('is-hovered');
+          musicEl.style.width = '';
+        }
       }
     }
     lastMediaTrackKey = trackKey;
@@ -342,6 +350,12 @@ function initTaskbar() {
       }
     } else {
       musicEl.classList.remove('is-music-absent');
+    }
+
+    if (isMusicWidePillMode && !isMusicLyricsPinnedMode) {
+      musicEl.classList.add('is-wide-pill');
+      musicEl.classList.add('is-hovered');
+      musicEl.style.width = '210px';
     }
 
     const thumbImg = document.getElementById('tbDiMusicThumb');
@@ -523,9 +537,18 @@ function initTaskbar() {
         musicEl.style.width = `${targetW}px`;
       } else {
         musicEl.classList.remove('is-lyrics-pill');
-        musicEl.style.width = isMusicWidePillMode ? '210px' : '';
-        if (titleSpan && lastMediaSnapshot) {
-          titleSpan.textContent = lastMediaSnapshot.title || 'Playing';
+        if (isMusicWidePillMode) {
+          musicEl.classList.add('is-wide-pill');
+          musicEl.classList.add('is-hovered');
+          musicEl.style.width = '210px';
+        } else {
+          musicEl.classList.remove('is-wide-pill');
+          musicEl.classList.remove('is-hovered');
+          musicEl.style.width = '';
+        }
+        if (titleSpan) {
+          const fallback = lyricText || (lastMediaSnapshot && lastMediaSnapshot.title) || 'Playing';
+          titleSpan.textContent = fallback;
         }
       }
 
@@ -554,6 +577,7 @@ function initTaskbar() {
       isMusicWidePillMode = !!wide;
       if (musicEl) {
         if (isMusicWidePillMode) {
+          musicEl.classList.add('is-wide-pill');
           musicEl.classList.add('is-hovered');
           if (!isMusicLyricsPinnedMode) {
             musicEl.style.width = '210px';
@@ -562,6 +586,7 @@ function initTaskbar() {
             updateDynamicIslandMedia(lastMediaSnapshot);
           }
         } else {
+          musicEl.classList.remove('is-wide-pill');
           musicEl.classList.remove('is-hovered');
           if (!isMusicLyricsPinnedMode) {
             musicEl.style.width = '';
@@ -571,6 +596,10 @@ function initTaskbar() {
     };
 
     window.winzenIsMusicWideMode = () => isMusicWidePillMode;
+
+    if (isMusicWidePillMode) {
+      window.winzenSetMusicWideMode(true);
+    }
 
     musicEl.addEventListener('mouseenter', () => {
       if (wrapper.classList.contains('island-hidden') || isMusicWidePillMode || isMusicLyricsPinnedMode) return;
@@ -727,15 +756,35 @@ function initTaskbar() {
     document.documentElement.style.setProperty('--win11-accent', currentAccent);
 
     const isFloating = (settings.floatingMarginPx || 0) > 0;
+    const isSeparated = (settings.taskbarStyle || settings.TaskbarStyle || 'unified').toLowerCase() === 'separated';
     const isFloatingRounded = isFloating && currentRadius > 0;
     const bgOpacityPct = Math.max(0, Math.min(100, settings.backgroundOpacity ?? 100));
     const bgBlurPct = Math.max(0, Math.min(100, settings.backgroundBlurStrength ?? 60));
     const bgAlpha = (bgOpacityPct / 100).toFixed(2);
     const isLightTheme = currentTheme === 'light';
     const surfaceBg = isLightTheme ? `rgba(243, 243, 243, ${bgAlpha})` : `rgba(28, 28, 28, ${bgAlpha})`;
-    const htmlBg = (bgOpacityPct >= 100 && !isFloatingRounded) ? (isLightTheme ? '#f3f3f3' : '#1c1c1c') : 'transparent';
+    const htmlBg = (bgOpacityPct >= 100 && !isFloatingRounded && !isSeparated) ? (isLightTheme ? '#f3f3f3' : '#1c1c1c') : 'transparent';
+    const activeWinWidget = state.widgets.find((w) => w.id === 'community.zen-active-windows');
+    const appIconSizePx = activeWinWidget && typeof activeWinWidget.iconSizePx === 'number'
+      ? Math.max(12, Math.min(32, activeWinWidget.iconSizePx))
+      : 18;
+    document.documentElement.style.setProperty('--winzen-app-icon-size', `${appIconSizePx}px`);
+
+    const tbHeight = settings.taskbarHeightPx ?? 48;
+    const effectiveRadius = Math.min(currentRadius, tbHeight / 2);
+    const activeEffRadius = isSeparated ? effectiveRadius : (isFloating ? effectiveRadius : 0);
+    const btnH = Math.max(36, appIconSizePx + 18);
+    const vGap = Math.max(2, (tbHeight - btnH) / 2);
+    const dynamicPadX = Math.round(6 + Math.max(0, activeEffRadius - 10) * 0.18);
+    const innerBtnRadius = activeEffRadius > 6
+      ? Math.min(Math.floor(btnH / 2), Math.max(4, Math.round(activeEffRadius - vGap)))
+      : 4;
+
     document.documentElement.style.setProperty('--taskbar-surface-bg', surfaceBg);
     document.documentElement.style.setProperty('--taskbar-html-bg', htmlBg);
+    document.documentElement.style.setProperty('--taskbar-sep-radius', `${effectiveRadius}px`);
+    document.documentElement.style.setProperty('--taskbar-pad-x', `${dynamicPadX}px`);
+    document.documentElement.style.setProperty('--taskbar-inner-radius', `${innerBtnRadius}px`);
 
     const borderAlpha = bgOpacityPct === 0 ? 0 : +(0.08 * (bgOpacityPct / 100)).toFixed(4);
     const borderTopColor = borderAlpha <= 0.0001
@@ -746,6 +795,7 @@ function initTaskbar() {
       : (isLightTheme ? `rgba(0, 0, 0, ${borderAlpha})` : `rgba(255, 255, 255, ${borderAlpha})`);
     document.documentElement.style.setProperty('--taskbar-border-top', borderTopColor);
     document.documentElement.style.setProperty('--taskbar-border-bottom', borderBottomColor);
+    document.documentElement.style.setProperty('--taskbar-sep-border', borderTopColor);
 
     const isTransparentWithBlur = bgOpacityPct < 100 && bgBlurPct > 0;
     const useRealtimeBlur = isTransparentWithBlur && (settings.blurEngine === 'realtime' || settings.BlurEngine === 'realtime');
@@ -767,12 +817,6 @@ function initTaskbar() {
       }
     }
 
-    const activeWinWidget = state.widgets.find((w) => w.id === 'community.zen-active-windows');
-    const appIconSizePx = activeWinWidget && typeof activeWinWidget.iconSizePx === 'number'
-      ? Math.max(12, Math.min(32, activeWinWidget.iconSizePx))
-      : 18;
-    document.documentElement.style.setProperty('--winzen-app-icon-size', `${appIconSizePx}px`);
-
     const isTop = (settings.dockEdge || 'Bottom').toLowerCase() === 'top';
     currentDockEdge = isTop ? 'top' : 'bottom';
     currentAnimations = settings.enableAnimations !== false;
@@ -789,6 +833,14 @@ function initTaskbar() {
       enableMusicIsland: true
     };
     currentDynamicIslandConfig = diConfig;
+    const wantWide = !!diConfig.widePill;
+    isMusicWidePillMode = wantWide;
+    if (typeof window.winzenSetMusicWideMode === 'function') {
+      window.winzenSetMusicWideMode(wantWide);
+    }
+    if (!diConfig.pinLyrics && isMusicLyricsPinnedMode && typeof window.winzenSetMusicLyrics === 'function') {
+      window.winzenSetMusicLyrics('', false, 0);
+    }
     if (dynamicIslandEl) {
       if (currentDynamicIslandConfig.enableAnimation === false) {
         dynamicIslandEl.classList.add('no-anim');
@@ -803,8 +855,10 @@ function initTaskbar() {
     document.body.classList.toggle('winzen-no-anim', !currentAnimations);
     if (taskbarBar) {
       taskbarBar.classList.toggle('floating', isFloating);
+      taskbarBar.classList.toggle('separated', isSeparated);
       taskbarBar.classList.toggle('dock-top', isTop);
-      taskbarBar.style.setProperty('--taskbar-radius', `${isFloating ? currentRadius : 0}px`);
+      scheduleSeparatedBlurClip();
+      taskbarBar.style.setProperty('--taskbar-radius', `${isFloating ? effectiveRadius : 0}px`);
       if (bgOpacityPct === 0) {
         taskbarBar.style.borderTopColor = 'transparent';
         taskbarBar.style.borderBottomColor = 'transparent';
@@ -821,6 +875,7 @@ function initTaskbar() {
       host.style.setProperty('--winzen-accent', currentAccent);
       host.style.setProperty('--winzen-border-accent', currentAccent);
       host.style.setProperty('--win11-accent', currentAccent);
+      host.style.setProperty('--winzen-radius-xs', `${innerBtnRadius}px`);
     });
 
     const enabledWidgets = state.widgets
@@ -900,6 +955,8 @@ function initTaskbar() {
       host.style.setProperty('--winzen-accent', currentAccent);
       host.style.setProperty('--winzen-border-accent', currentAccent);
       host.style.setProperty('--win11-accent', currentAccent);
+      const curInnerR = document.documentElement.style.getPropertyValue('--taskbar-inner-radius') || '4px';
+      host.style.setProperty('--winzen-radius-xs', curInnerR);
 
       const shadow = host.attachShadow({ mode: 'open' });
 
@@ -930,7 +987,7 @@ function initTaskbar() {
           --winzen-accent-pressed: ${currentAccent};
           --winzen-purple: #c084fc;
           --winzen-danger: #f87171;
-          --winzen-radius-xs: 4px;
+          --winzen-radius-xs: var(--taskbar-inner-radius, 4px);
           --winzen-radius-sm: 6px;
           --winzen-radius: 10px;
           --winzen-radius-lg: 14px;
@@ -942,8 +999,8 @@ function initTaskbar() {
           width: ${isAutoWidth ? (isShrinkableStrip ? 'auto' : 'max-content') : '100%'};
           max-width: ${isShrinkableStrip ? '100%' : 'none'};
           min-width: ${isShrinkableStrip ? '0' : 'auto'};
-          height: 36px;
-          max-height: 36px;
+          height: max(36px, calc(var(--winzen-app-icon-size, 18px) + 18px));
+          max-height: 100%;
           overflow: visible;
           font-family: var(--winzen-font);
           color: var(--winzen-text);
@@ -987,7 +1044,7 @@ function initTaskbar() {
       wrapper.dataset.inControlCenter = 'false';
       wrapper.dataset.theme = currentTheme;
       wrapper.setAttribute('data-theme', currentTheme);
-      wrapper.style.cssText = `width:${isAutoWidth ? (isShrinkableStrip ? 'auto' : 'max-content') : '100%'};${isShrinkableStrip ? 'max-width:100%;min-width:0;' : ''}height:36px;max-height:36px;display:inline-flex;align-items:center;`;
+      wrapper.style.cssText = `width:${isAutoWidth ? (isShrinkableStrip ? 'auto' : 'max-content') : '100%'};${isShrinkableStrip ? 'max-width:100%;min-width:0;' : ''}height:max(36px, calc(var(--winzen-app-icon-size, 18px) + 18px));max-height:100%;display:inline-flex;align-items:center;`;
       wrapper.innerHTML = w.htmlContent || '';
       shadow.appendChild(wrapper);
 
@@ -1053,16 +1110,87 @@ function initTaskbar() {
       dynamicIslandEl = null;
     }
 
+    const leftEmpty = slotLeft.children.length === 0;
+    const centerEmpty = slotCenter.children.length === 0;
+    const centerNoBg = !!(isDiActiveInTaskbar && diSlot === 'center');
+    const rightEmpty = slotRight.children.length === 0;
+    slotLeft.classList.toggle('is-empty', leftEmpty);
+    slotCenter.classList.toggle('is-empty', centerEmpty);
+    slotCenter.classList.toggle('no-island-bg', centerNoBg);
+    slotRight.classList.toggle('is-empty', rightEmpty);
+    const rightWrapperEl = document.querySelector('.right-wrapper');
+    if (rightWrapperEl) {
+      rightWrapperEl.classList.toggle('is-empty', rightEmpty);
+    }
+
+    scheduleSeparatedBlurClip();
+
     if (window.winzen.metrics) {
       window.dispatchEvent(new CustomEvent('winzen:metrics', { detail: window.winzen.metrics }));
     }
   }
+
+  let _sepClipRaf = 0;
+  function updateSeparatedBlurClip() {
+    const clipEl = document.getElementById('separatedBlurClip');
+    if (!clipEl || !taskbarBar) return;
+    if (!taskbarBar.classList.contains('separated')) {
+      clipEl.innerHTML = '';
+      return;
+    }
+
+    const barRect = taskbarBar.getBoundingClientRect();
+    const rawR = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--taskbar-sep-radius'));
+    const r = Number.isFinite(rawR) ? Math.max(0, rawR) : 12;
+
+    const islands = [];
+    if (slotLeft && !slotLeft.classList.contains('is-empty')) islands.push(slotLeft);
+    if (slotCenter && !slotCenter.classList.contains('is-empty') && !slotCenter.classList.contains('no-island-bg')) islands.push(slotCenter);
+    const rw = document.querySelector('.right-wrapper');
+    if (rw && (!rw.classList.contains('is-empty') || rw.matches(':hover') || rw.matches(':focus-within'))) {
+      islands.push(rw);
+    }
+
+    const rectsHtml = islands.map((el) => {
+      const rect = el.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) return '';
+      const x = (rect.left - barRect.left).toFixed(2);
+      const y = (rect.top - barRect.top).toFixed(2);
+      const w = rect.width.toFixed(2);
+      const h = rect.height.toFixed(2);
+      const rx = Math.min(r, rect.width / 2, rect.height / 2).toFixed(2);
+      return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" ry="${rx}"/>`;
+    }).join('');
+    clipEl.innerHTML = rectsHtml;
+  }
+
+  function scheduleSeparatedBlurClip() {
+    if (_sepClipRaf) cancelAnimationFrame(_sepClipRaf);
+    _sepClipRaf = requestAnimationFrame(() => {
+      _sepClipRaf = 0;
+      updateSeparatedBlurClip();
+    });
+  }
+
+  if (typeof ResizeObserver !== 'undefined') {
+    const sepRo = new ResizeObserver(() => scheduleSeparatedBlurClip());
+    if (slotLeft) sepRo.observe(slotLeft);
+    if (slotCenter) sepRo.observe(slotCenter);
+    const rw = document.querySelector('.right-wrapper');
+    if (rw) {
+      sepRo.observe(rw);
+      rw.addEventListener('mouseenter', scheduleSeparatedBlurClip);
+      rw.addEventListener('mouseleave', scheduleSeparatedBlurClip);
+    }
+  }
+  window.addEventListener('resize', scheduleSeparatedBlurClip);
 
   window.addEventListener('winzen:metrics', (e) => {
     if (e.detail && e.detail.media) {
       lastMediaSnapshot = e.detail.media;
       updateDynamicIslandMedia(e.detail.media);
     }
+    scheduleSeparatedBlurClip();
   });
 
   window.winzen.send('request_state');

@@ -10,8 +10,8 @@
   width: auto;
   max-width: 100%;
   min-width: 0;
-  height: 36px;
-  max-height: 36px;
+  height: max(36px, calc(var(--aw-icon-size, 18px) + 18px));
+  max-height: 100%;
   display: inline-flex;
   align-items: center;
   justify-content: flex-start;
@@ -21,8 +21,8 @@
 
 .win-pill {
   position: relative;
-  height: 36px;
-  max-height: 36px;
+  height: max(36px, calc(var(--aw-icon-size, 18px) + 18px));
+  max-height: 100%;
   flex: 0 1 auto;
   min-width: 34px;
   max-width: 172px;
@@ -46,9 +46,10 @@
 
 .win-pill.icon-only {
   flex: 0 0 auto;
-  width: max(38px, calc(var(--aw-icon-size, 18px) + 18px));
-  min-width: max(38px, calc(var(--aw-icon-size, 18px) + 18px));
-  max-width: max(38px, calc(var(--aw-icon-size, 18px) + 18px));
+  width: max(36px, calc(var(--aw-icon-size, 18px) + 18px));
+  min-width: max(36px, calc(var(--aw-icon-size, 18px) + 18px));
+  max-width: max(36px, calc(var(--aw-icon-size, 18px) + 18px));
+  height: max(36px, calc(var(--aw-icon-size, 18px) + 18px));
   justify-content: center;
   padding: 0;
   gap: 0;
@@ -62,6 +63,20 @@
 .win-pill.active {
   background: var(--winzen-surface-active, rgba(255, 255, 255, 0.0837));
   border-color: var(--winzen-border, rgba(255, 255, 255, 0.08));
+}
+
+.win-strip.no-active-highlight .win-pill.active:not(:hover),
+.win-strip.no-active-highlight .win-pill.combined.active:not(:hover),
+:host([data-theme="light"]) .win-strip.no-active-highlight .win-pill.active:not(:hover),
+:host(.theme-light) .win-strip.no-active-highlight .win-pill.active:not(:hover),
+.theme-light .win-strip.no-active-highlight .win-pill.active:not(:hover),
+body.theme-light .win-strip.no-active-highlight .win-pill.active:not(:hover) {
+  background: transparent;
+  border-color: transparent;
+}
+
+.win-strip.no-active-highlight .win-pill.combined.active:not(:hover)::before {
+  opacity: 0;
 }
 
 .win-pill:active {
@@ -87,13 +102,13 @@
 .win-pill::after {
   content: '';
   position: absolute;
-  bottom: 2px;
+  bottom: 3px;
   left: 50%;
   transform: translateX(-50%);
   width: 6px;
   height: 3px;
   border-radius: 1.5px;
-  background: var(--winzen-text-muted, #8a8a8a);
+  background: color-mix(in srgb, var(--winzen-text, #ffffff) 75%, transparent);
   transition: width 0.14s ease, background-color 0.14s ease;
 }
 
@@ -164,7 +179,7 @@
 .win-pill.combined::after {
   transform: translateX(-6px);
   width: 5px;
-  box-shadow: 7px 0 0 0 var(--winzen-text-muted, #8a8a8a);
+  box-shadow: 7px 0 0 0 color-mix(in srgb, var(--winzen-text, #ffffff) 75%, transparent);
 }
 
 .win-pill.combined.active::after {

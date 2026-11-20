@@ -1319,7 +1319,15 @@ body.is-dragging-preview-chip * {
   margin-top: 1px;
 }
 
-.tc-collapse-btn {
+.tc-card-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.tc-collapse-btn,
+.tc-remove-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1340,7 +1348,13 @@ body.is-dragging-preview-chip * {
   color: var(--win11-text-primary);
 }
 
-.tc-collapse-btn:active {
+.tc-remove-btn:hover {
+  background: rgba(239, 68, 68, 0.16);
+  color: #f87171;
+}
+
+.tc-collapse-btn:active,
+.tc-remove-btn:active {
   background: rgba(255, 255, 255, 0.12);
 }
 
@@ -2333,12 +2347,13 @@ body.winzen-no-anim *:active {
 }
 
 .layout-presets-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
 }
 
 .layout-preset-empty {
+  grid-column: 1 / -1;
   font-size: 12px;
   color: var(--win11-text-secondary);
   padding: 6px 2px 2px;
@@ -2346,11 +2361,12 @@ body.winzen-no-anim *:active {
 
 .layout-preset-row {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
   justify-content: space-between;
   gap: 12px;
-  padding: 10px 12px;
-  border-radius: 5px;
+  padding: 12px 14px;
+  border-radius: 6px;
   border: 1px solid var(--win11-stroke-card);
   background: var(--win11-bg-control);
   transition: border-color 0.12s ease, background-color 0.12s ease;
@@ -2402,9 +2418,10 @@ body.winzen-no-anim *:active {
 
 .layout-preset-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  justify-content: flex-end;
   gap: 6px;
-  flex-shrink: 0;
 }
 
 .layout-preset-actions .win11-btn,
@@ -2415,12 +2432,20 @@ body.winzen-no-anim *:active {
   font-size: 12px;
 }
 
+.layout-preset-actions .layout-preset-icon-btn {
+  width: 28px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .layout-preset-rename-input {
   height: 28px;
   font-size: 13px;
   padding: 0 8px;
   flex: 1;
-  min-width: 120px;
-  max-width: 240px;
+  min-width: 0;
+  max-width: 100%;
 }
 

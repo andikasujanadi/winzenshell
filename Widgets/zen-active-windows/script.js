@@ -17,6 +17,16 @@ if (strip) {
 let animationsEnabled = typeof widgetConfig !== 'undefined' && widgetConfig
   ? widgetConfig.animations !== false
   : true;
+let highlightActiveApp = true;
+try {
+  const initSettings = window.winzen && window.winzen.state && window.winzen.state.settings;
+  if (initSettings && typeof initSettings.highlightActiveAppIcon === 'boolean') {
+    highlightActiveApp = initSettings.highlightActiveAppIcon;
+  }
+} catch { }
+if (strip) {
+  strip.classList.toggle('no-active-highlight', !highlightActiveApp);
+}
 
 let lastCachedMetrics = (typeof window !== 'undefined' && window.winzen && window.winzen.metrics)
   ? window.winzen.metrics
@@ -103,6 +113,10 @@ window.addEventListener('winzen:state', (e) => {
   const state = e.detail;
   if (state && state.settings) {
     animationsEnabled = state.settings.enableAnimations !== false;
+    highlightActiveApp = state.settings.highlightActiveAppIcon !== false;
+    if (strip) {
+      strip.classList.toggle('no-active-highlight', !highlightActiveApp);
+    }
   }
   if (!state || !Array.isArray(state.widgets)) return;
   const cfg = state.widgets.find((w) => w.id === 'community.zen-active-windows');

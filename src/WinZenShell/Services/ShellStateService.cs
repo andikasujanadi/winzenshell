@@ -147,6 +147,12 @@ public class DynamicIslandConfig
 
     [JsonPropertyName("enableMusicIsland")]
     public bool EnableMusicIsland { get; set; } = true;
+
+    [JsonPropertyName("pinLyrics")]
+    public bool PinLyrics { get; set; } = false;
+
+    [JsonPropertyName("widePill")]
+    public bool WidePill { get; set; } = false;
 }
 
 public class LayoutPreset
@@ -163,6 +169,7 @@ public class LayoutPreset
     public int? TaskbarHeightPx { get; set; }
     public int? FloatingMarginPx { get; set; }
     public int? TaskbarCornerRadiusPx { get; set; }
+    public string? TaskbarStyle { get; set; }
     public int? BackgroundOpacity { get; set; }
     public int? BackgroundBlurStrength { get; set; }
     public int? FlyoutBackgroundOpacity { get; set; }
@@ -183,6 +190,7 @@ public class ShellSettings
     public int TaskbarHeightPx { get; set; } = 48;
     public int FloatingMarginPx { get; set; } = 0;
     public int TaskbarCornerRadiusPx { get; set; } = 12;
+    public string TaskbarStyle { get; set; } = "unified"; // "unified" or "separated"
     public int BackgroundOpacity { get; set; } = 100;
     public int BackgroundBlurStrength { get; set; } = 60;
     public int FlyoutBackgroundOpacity { get; set; } = 100;
@@ -192,6 +200,7 @@ public class ShellSettings
     public string Theme { get; set; } = "dark"; // "dark" or "light"
     public string DateFormat { get; set; } = "DD-MM-YYYY";
     public bool EnableAnimations { get; set; } = true;
+    public bool HighlightActiveAppIcon { get; set; } = true;
     public bool OverrideWindowsKey { get; set; } = false;
     public bool AutoStartOnLogon { get; set; } = false;
     public Dictionary<string, WidgetStateOverride> WidgetOverrides { get; set; } = new();
@@ -378,6 +387,14 @@ public class ShellStateService
         BroadcastState();
     }
 
+    public void UpdateHighlightActiveAppIcon(bool enable)
+    {
+        _settings.HighlightActiveAppIcon = enable;
+        SaveSettings();
+        _statusBanner = enable ? "Active app highlight enabled" : "Active app highlight disabled";
+        BroadcastState();
+    }
+
     public void UpdateWorkAreaConfig(
         bool respectWorkArea,
         string dockEdge,
@@ -390,7 +407,8 @@ public class ShellStateService
         int? backgroundBlurStrength = null,
         string? blurEngine = null,
         int? flyoutBackgroundOpacity = null,
-        int? flyoutBackgroundBlurStrength = null)
+        int? flyoutBackgroundBlurStrength = null,
+        string? taskbarStyle = null)
     {
         _settings.RespectDesktopWorkArea = respectWorkArea;
         if (!string.IsNullOrWhiteSpace(dockEdge))
@@ -417,6 +435,8 @@ public class ShellStateService
             _settings.AccentColor = accentColor;
         if (!string.IsNullOrWhiteSpace(theme))
             _settings.Theme = string.Equals(theme, "light", StringComparison.OrdinalIgnoreCase) ? "light" : "dark";
+        if (!string.IsNullOrWhiteSpace(taskbarStyle))
+            _settings.TaskbarStyle = string.Equals(taskbarStyle, "separated", StringComparison.OrdinalIgnoreCase) ? "separated" : "unified";
         SaveSettings();
 
         SyncTaskbarAndWorkArea();
@@ -786,7 +806,7 @@ public class ShellStateService
         BroadcastState();
     }
 
-    public void UpdateDynamicIslandConfig(bool enabled, string placement, string slot, string timeFormat, bool showSeconds, bool showDate, bool enableAnimation = true, bool reserveWorkArea = true, bool enableMusicIsland = true)
+    public void UpdateDynamicIslandConfig(bool enabled, string placement, string slot, string timeFormat, bool showSeconds, bool showDate, bool enableAnimation = true, bool reserveWorkArea = true, bool enableMusicIsland = true, bool? pinLyrics = null, bool? widePill = null)
     {
         if (string.Equals(_settings.DockEdge, "Top", StringComparison.OrdinalIgnoreCase) && placement == "top-center")
         {
@@ -802,12 +822,32 @@ public class ShellStateService
         _settings.DynamicIsland.EnableAnimation = enableAnimation;
         _settings.DynamicIsland.ReserveWorkArea = reserveWorkArea;
         _settings.DynamicIsland.EnableMusicIsland = enableMusicIsland;
+        if (pinLyrics.HasValue)
+            _settings.DynamicIsland.PinLyrics = pinLyrics.Value;
+        if (widePill.HasValue)
+            _settings.DynamicIsland.WidePill = widePill.Value;
 
         SaveSettings();
         SyncTaskbarAndWorkArea();
         _statusBanner = enabled ? $"Dynamic Island ({placement}) enabled" : "Dynamic Island disabled";
         BroadcastState();
         DynamicIslandVisibilityChanged?.Invoke();
+    }
+
+    public void SetDynamicIslandPinLyrics(bool isPinned)
+    {
+        if (_settings.DynamicIsland.PinLyrics == isPinned) return;
+        _settings.DynamicIsland.PinLyrics = isPinned;
+        SaveSettings();
+        BroadcastState();
+    }
+
+    public void SetDynamicIslandWidePill(bool isWide)
+    {
+        if (_settings.DynamicIsland.WidePill == isWide) return;
+        _settings.DynamicIsland.WidePill = isWide;
+        SaveSettings();
+        BroadcastState();
     }
 
     public void SyncTaskbarAndWorkArea()
@@ -890,6 +930,7 @@ public class ShellStateService
         preset.TaskbarHeightPx = _settings.TaskbarHeightPx;
         preset.FloatingMarginPx = _settings.FloatingMarginPx;
         preset.TaskbarCornerRadiusPx = _settings.TaskbarCornerRadiusPx;
+        preset.TaskbarStyle = _settings.TaskbarStyle;
         preset.BackgroundOpacity = _settings.BackgroundOpacity;
         preset.BackgroundBlurStrength = _settings.BackgroundBlurStrength;
         preset.FlyoutBackgroundOpacity = _settings.FlyoutBackgroundOpacity;
@@ -941,6 +982,8 @@ public class ShellStateService
             _settings.FloatingMarginPx = Math.Clamp(preset.FloatingMarginPx.Value, 0, 32);
         if (preset.TaskbarCornerRadiusPx.HasValue)
             _settings.TaskbarCornerRadiusPx = Math.Clamp(preset.TaskbarCornerRadiusPx.Value, 0, 120);
+        if (!string.IsNullOrWhiteSpace(preset.TaskbarStyle))
+            _settings.TaskbarStyle = string.Equals(preset.TaskbarStyle, "separated", StringComparison.OrdinalIgnoreCase) ? "separated" : "unified";
         if (preset.BackgroundOpacity.HasValue)
             _settings.BackgroundOpacity = Math.Clamp(preset.BackgroundOpacity.Value, 0, 100);
         if (preset.BackgroundBlurStrength.HasValue)
