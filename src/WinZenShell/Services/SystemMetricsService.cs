@@ -79,6 +79,14 @@ public class SystemMetricsService
     public NetworkService? Network { get; set; }
     public BluetoothService? Bluetooth { get; set; }
     public TrayIconService? TrayIcons { get; set; }
+    public IconPackService? IconPacks { get; set; }
+
+    public void ClearIconCaches()
+    {
+        _hwndIconCache.Clear();
+        _exeIconCache.Clear();
+        _appIconMap.Clear();
+    }
 
     private DateTime _lastCpuCheck = DateTime.UtcNow;
     private TimeSpan _lastTotalProcTime = TimeSpan.Zero;
@@ -832,25 +840,32 @@ public class SystemMetricsService
                 return true;
             }
 
-            string iconDataUrl = "";
-            if (appId != "microsoft.notes" && !procName.Equals("Microsoft.Notes", StringComparison.OrdinalIgnoreCase) && !procName.Equals("ApplicationFrameHost", StringComparison.OrdinalIgnoreCase))
-            {
-                iconDataUrl = GetOrExtractWindowIcon(hWnd, pid);
-            }
-
             string? exePath = pid > 0 ? TryGetProcessExePath(pid) : null;
             if (!string.IsNullOrWhiteSpace(exePath))
             {
                 _appExePathMap[appId] = exePath;
                 _appExePathMap[procName] = exePath;
             }
+
+            string friendlyName = GetFriendlyAppName(procName, title);
+
+            string iconDataUrl = IconPacks?.ResolveAppIconDataUrl(appId, friendlyName, title, exePath) ?? "";
+            if (string.IsNullOrWhiteSpace(iconDataUrl) && !string.Equals(procName, friendlyName, StringComparison.OrdinalIgnoreCase))
+            {
+                iconDataUrl = IconPacks?.ResolveAppIconDataUrl(appId, procName, title, exePath) ?? "";
+            }
+            if (string.IsNullOrWhiteSpace(iconDataUrl) &&
+                appId != "microsoft.notes" &&
+                !procName.Equals("Microsoft.Notes", StringComparison.OrdinalIgnoreCase))
+            {
+                iconDataUrl = GetOrExtractWindowIcon(hWnd, pid, procName, title);
+            }
+
             if (!string.IsNullOrWhiteSpace(iconDataUrl))
             {
                 _appIconMap[appId] = iconDataUrl;
                 _appIconMap[procName] = iconDataUrl;
             }
-
-            string friendlyName = GetFriendlyAppName(procName, title);
 
             bool isMin = Win32Api.IsIconic(hWnd);
 
@@ -882,7 +897,7 @@ public class SystemMetricsService
         return discovered.OrderBy(w => w.OrderIndex).Take(8).ToList();
     }
 
-    private string GetOrExtractWindowIcon(IntPtr hWnd, uint pid)
+    private string GetOrExtractWindowIcon(IntPtr hWnd, uint pid, string procName = "", string title = "")
     {
         long key = hWnd.ToInt64();
         if (_hwndIconCache.TryGetValue(key, out string? cached) && !string.IsNullOrEmpty(cached))
@@ -890,6 +905,11 @@ public class SystemMetricsService
 
         try
         {
+            if (string.Equals(procName, "ApplicationFrameHost", StringComparison.OrdinalIgnoreCase) &&
+                !title.Contains("Microsoft Store", StringComparison.OrdinalIgnoreCase))
+            {
+                return "";
+            }
             // 1. Try window HICON via WM_GETICON or ClassLongPtr
             IntPtr hIcon = IntPtr.Zero;
             Win32Api.SendMessageTimeout(
@@ -924,12 +944,40 @@ public class SystemMetricsService
                 }
             }
 
-            // 2. Extract associated icon from process executable path (gives real yellow folder icon for explorer.exe, etc.)
+            // 2. UWP / Microsoft Store packaged app icon via AUMID + IShellItemImageFactory
+            //    (Must run BEFORE ExtractAssociatedIcon because WindowsApps .exe files return a generic white-box icon.)
+            string? aumid = pid > 0 ? UwpAppIconHelper.TryGetProcessAumid(pid) : null;
+            if (string.IsNullOrWhiteSpace(aumid) &&
+                (string.Equals(procName, "WinStore.App", StringComparison.OrdinalIgnoreCase) ||
+                 title.Contains("Microsoft Store", StringComparison.OrdinalIgnoreCase)))
+            {
+                aumid = UwpAppIconHelper.MicrosoftStoreAumid;
+            }
+
+            if (!string.IsNullOrWhiteSpace(aumid))
+            {
+                if (_exeIconCache.TryGetValue(aumid, out string? aumidCached) && !string.IsNullOrEmpty(aumidCached))
+                {
+                    _hwndIconCache[key] = aumidCached;
+                    return aumidCached;
+                }
+
+                string dataUrl = UwpAppIconHelper.ExtractIconDataUrlByAumid(aumid);
+                if (!string.IsNullOrEmpty(dataUrl))
+                {
+                    _exeIconCache[aumid] = dataUrl;
+                    _hwndIconCache[key] = dataUrl;
+                    return dataUrl;
+                }
+            }
+
+            // 3. Extract associated icon from process executable path (gives real yellow folder icon for explorer.exe, etc.)
             if (pid > 0)
             {
                 string? exePath = TryGetProcessExePath(pid);
                 if (!string.IsNullOrWhiteSpace(exePath) &&
-                    !exePath.EndsWith("ApplicationFrameHost.exe", StringComparison.OrdinalIgnoreCase))
+                    !exePath.EndsWith("ApplicationFrameHost.exe", StringComparison.OrdinalIgnoreCase) &&
+                    !exePath.Contains("\\WindowsApps\\", StringComparison.OrdinalIgnoreCase))
                 {
                     if (_exeIconCache.TryGetValue(exePath, out string? exeCached))
                     {
@@ -951,7 +999,7 @@ public class SystemMetricsService
                 }
             }
 
-            // 3. Fallback to window class icon
+            // 4. Fallback to window class icon
             hIcon = Win32Api.GetClassLongPtr(hWnd, Win32Api.GCLP_HICON);
             if (hIcon == IntPtr.Zero)
             {

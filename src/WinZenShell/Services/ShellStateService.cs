@@ -117,6 +117,9 @@ public class PinnedAppEntry
 
     [JsonPropertyName("iconDataUrl")]
     public string IconDataUrl { get; set; } = "";
+
+    [JsonPropertyName("nativeIconDataUrl")]
+    public string NativeIconDataUrl { get; set; } = "";
 }
 
 public class DynamicIslandConfig
@@ -198,6 +201,7 @@ public class ShellSettings
     public string BlurEngine { get; set; } = "wallpaper"; // "wallpaper" or "realtime"
     public string AccentColor { get; set; } = "#3684E3";
     public string Theme { get; set; } = "dark"; // "dark" or "light"
+    public string IconPack { get; set; } = "native";
     public string DateFormat { get; set; } = "DD-MM-YYYY";
     public bool EnableAnimations { get; set; } = true;
     public bool HighlightActiveAppIcon { get; set; } = true;
@@ -220,6 +224,8 @@ public class ShellFullStatePayload
     public List<WidgetManifest> Widgets { get; set; } = new();
     public List<ControlCenterItemPayload> ControlCenterWidgets { get; set; } = new();
     public List<HiddenAppEntry> HiddenApps { get; set; } = new();
+    public List<IconPackManifest> IconPacks { get; set; } = new();
+    public string IconPacksFolderPath { get; set; } = "";
     public string WidgetsFolderPath { get; set; } = "";
     public string StatusBanner { get; set; } = "Ready";
 }
@@ -230,6 +236,7 @@ public class ShellStateService
     private readonly WorkAreaAppBarService _workAreaService;
     private readonly WidgetManagerService _widgetManager;
     private readonly SystemMetricsService? _systemMetricsService;
+    private readonly IconPackService? _iconPackService;
     private readonly string _settingsFilePath;
     private readonly string _portableSettingsFilePath;
 
@@ -249,17 +256,20 @@ public class ShellStateService
     public NativeTaskbarService NativeTaskbar => _nativeTaskbarService;
     public WorkAreaAppBarService WorkArea => _workAreaService;
     public WidgetManagerService WidgetManager => _widgetManager;
+    public IconPackService? IconPacks => _iconPackService;
 
     public ShellStateService(
         NativeTaskbarService nativeTaskbarService,
         WorkAreaAppBarService workAreaService,
         WidgetManagerService widgetManager,
-        SystemMetricsService? systemMetricsService = null)
+        SystemMetricsService? systemMetricsService = null,
+        IconPackService? iconPackService = null)
     {
         _nativeTaskbarService = nativeTaskbarService;
         _workAreaService = workAreaService;
         _widgetManager = widgetManager;
         _systemMetricsService = systemMetricsService;
+        _iconPackService = iconPackService;
 
         string configDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -313,6 +323,22 @@ public class ShellStateService
         {
             _settings.DateFormat = "DD-MM-YYYY";
         }
+        if (string.IsNullOrWhiteSpace(_settings.IconPack))
+        {
+            _settings.IconPack = "native";
+        }
+        if (_settings.PinnedApps != null)
+        {
+            foreach (var pin in _settings.PinnedApps)
+            {
+                if (string.IsNullOrWhiteSpace(pin.NativeIconDataUrl) && !string.IsNullOrWhiteSpace(pin.IconDataUrl))
+                {
+                    pin.NativeIconDataUrl = pin.IconDataUrl;
+                }
+            }
+        }
+        _iconPackService?.SetActivePack(_settings.IconPack, notify: true);
+        ApplyIconPackToPinnedApps();
         _settings.LayoutPresets ??= new();
         if (string.Equals(_settings.DockEdge, "Top", StringComparison.OrdinalIgnoreCase) && _settings.DynamicIsland.Placement == "top-center")
         {
@@ -547,7 +573,9 @@ public class ShellStateService
         bool? showCpu = null,
         bool? showRam = null,
         bool? showGpu = null,
-        int? iconSizePx = null)
+        int? iconSizePx = null,
+        int? iconPaddingPx = null,
+        int? startIconScalePercent = null)
     {
         int? existingOrder = _settings.WidgetOverrides.TryGetValue(widgetId, out var prev) ? prev.Order : null;
         var existing = _settings.WidgetOverrides.TryGetValue(widgetId, out var existingOv) ? existingOv : null;
@@ -562,9 +590,11 @@ public class ShellStateService
             ShowAppName = showAppName,
             CombineApps = combineApps,
             ShowThumbnails = showThumbnails ?? (existing?.ShowThumbnails ?? true),
-            IconSizePx = Math.Clamp(iconSizePx ?? (existing?.IconSizePx ?? 18), 12, 32),
+            IconSizePx = Math.Clamp(iconSizePx ?? (existing?.IconSizePx ?? 18), 12, 56),
+            IconPaddingPx = Math.Clamp(iconPaddingPx ?? (existing?.IconPaddingPx ?? 9), 0, 18),
             StartIcon = !string.IsNullOrWhiteSpace(startIcon) ? startIcon : (existing?.StartIcon ?? "windows"),
             StartIconColorMode = !string.IsNullOrWhiteSpace(startIconColorMode) ? startIconColorMode : (existing?.StartIconColorMode ?? "text"),
+            StartIconScalePercent = Math.Clamp(startIconScalePercent ?? (existing != null && existing.StartIconScalePercent > 0 ? existing.StartIconScalePercent : 100), 40, 100),
             StartText = startText != null ? startText : (existing?.StartText ?? "Start"),
             ShowStartText = showStartText,
             DisplayMode = !string.IsNullOrWhiteSpace(displayMode) ? displayMode : (existing?.DisplayMode ?? "widget"),
@@ -727,13 +757,17 @@ public class ShellStateService
             iconDataUrl = _systemMetricsService.GetIconForApp(appId, processName);
         }
 
+        string nativeIcon = iconDataUrl ?? "";
+        string packIcon = _iconPackService?.ResolveAppIconDataUrl(appId, processName, title, exePath) ?? "";
+
         _settings.PinnedApps.Add(new PinnedAppEntry
         {
             AppId = appId,
             ProcessName = processName,
             Title = string.IsNullOrWhiteSpace(title) ? processName : title,
             ExePath = exePath ?? "",
-            IconDataUrl = iconDataUrl ?? ""
+            IconDataUrl = !string.IsNullOrWhiteSpace(packIcon) ? packIcon : nativeIcon,
+            NativeIconDataUrl = nativeIcon
         });
 
         SaveSettings();
@@ -1059,6 +1093,80 @@ public class ShellStateService
         BroadcastState();
     }
 
+    public void UpdateIconPack(string? packId)
+    {
+        string normalized = string.IsNullOrWhiteSpace(packId) ? "native" : packId.Trim();
+        _settings.IconPack = normalized;
+        _iconPackService?.SetActivePack(normalized, notify: true);
+        _settings.IconPack = _iconPackService?.ActivePackId ?? normalized;
+        ApplyIconPackToPinnedApps();
+        _systemMetricsService?.ClearIconCaches();
+        SaveSettings();
+        _statusBanner = string.Equals(_settings.IconPack, "native", StringComparison.OrdinalIgnoreCase)
+            ? "Using native Windows icons"
+            : $"Icon pack set to '{_settings.IconPack}'";
+        BroadcastState();
+    }
+
+    public void RefreshIconPacks()
+    {
+        _iconPackService?.RefreshPacks();
+        _settings.IconPack = _iconPackService?.ActivePackId ?? _settings.IconPack;
+        ApplyIconPackToPinnedApps();
+        _systemMetricsService?.ClearIconCaches();
+        _statusBanner = "Icon packs refreshed";
+        BroadcastState();
+    }
+
+    public void DeleteIconPack(string? packId)
+    {
+        if (_iconPackService == null || string.IsNullOrWhiteSpace(packId)) return;
+        if (_iconPackService.DeletePack(packId))
+        {
+            _settings.IconPack = _iconPackService.ActivePackId;
+            ApplyIconPackToPinnedApps();
+            _systemMetricsService?.ClearIconCaches();
+            SaveSettings();
+            _statusBanner = "Icon pack deleted";
+            BroadcastState();
+        }
+    }
+
+    public bool ImportIconPackFromPath(string sourcePath, out string message, Action<int, string>? onProgress = null)
+    {
+        if (_iconPackService == null)
+        {
+            message = "Icon pack service unavailable.";
+            return false;
+        }
+
+        bool ok = _iconPackService.ImportIconPack(sourcePath, out string importedId, out message, onProgress);
+        if (ok && !string.IsNullOrWhiteSpace(importedId))
+        {
+            _settings.IconPack = importedId;
+            ApplyIconPackToPinnedApps();
+            _systemMetricsService?.ClearIconCaches();
+            SaveSettings();
+        }
+        _statusBanner = message;
+        BroadcastState();
+        return ok;
+    }
+
+    private void ApplyIconPackToPinnedApps()
+    {
+        if (_settings.PinnedApps == null) return;
+        foreach (var pin in _settings.PinnedApps)
+        {
+            if (string.IsNullOrWhiteSpace(pin.NativeIconDataUrl) && !string.IsNullOrWhiteSpace(pin.IconDataUrl))
+            {
+                pin.NativeIconDataUrl = pin.IconDataUrl;
+            }
+            string packIcon = _iconPackService?.ResolveAppIconDataUrl(pin.AppId, pin.ProcessName, pin.Title, pin.ExePath) ?? "";
+            pin.IconDataUrl = !string.IsNullOrWhiteSpace(packIcon) ? packIcon : pin.NativeIconDataUrl;
+        }
+    }
+
     public ShellFullStatePayload BuildPayload()
     {
         var allWidgets = _widgetManager.DiscoverWidgets(_settings.WidgetOverrides);
@@ -1136,6 +1244,8 @@ public class ShellStateService
             Widgets = allWidgets,
             ControlCenterWidgets = ccPayload.OrderBy(c => c.Order).ToList(),
             HiddenApps = _systemMetricsService?.GetHiddenApps() ?? new(),
+            IconPacks = _iconPackService?.GetInstalledPacks() ?? new(),
+            IconPacksFolderPath = _iconPackService?.UserPacksDirectory ?? "",
             WidgetsFolderPath = _widgetManager.WidgetsRootPath,
             StatusBanner = _statusBanner
         };

@@ -6,7 +6,8 @@ function initSettingsPage() {
   const tabTitles = {
     'tab-shell': 'Shell',
     'tab-dynamic-island': 'Dynamic Island',
-    'tab-widgets': 'Layouts'
+    'tab-widgets': 'Layouts',
+    'tab-icons': 'Icon Packs'
   };
 
   function switchTab(targetId) {
@@ -61,6 +62,14 @@ function initSettingsPage() {
   const inputAppIconSize = document.getElementById('inputAppIconSize');
   const labelAppIconSizeVal = document.getElementById('labelAppIconSizeVal');
   const btnResetAppIconSize = document.getElementById('btnResetAppIconSize');
+  const inputAppIconPadding = document.getElementById('inputAppIconPadding');
+  const labelAppIconPaddingVal = document.getElementById('labelAppIconPaddingVal');
+  const btnResetAppIconPadding = document.getElementById('btnResetAppIconPadding');
+  const selectShellStartIcon = document.getElementById('selectShellStartIcon');
+  const selectShellStartIconColor = document.getElementById('selectShellStartIconColor');
+  const inputStartIconScale = document.getElementById('inputStartIconScale');
+  const labelStartIconScaleVal = document.getElementById('labelStartIconScaleVal');
+  const btnResetStartIconScale = document.getElementById('btnResetStartIconScale');
 
   const toggleEnableAnimations = document.getElementById('toggleEnableAnimations');
   const stateEnableAnimations = document.getElementById('stateEnableAnimations');
@@ -296,6 +305,158 @@ function initSettingsPage() {
     selectBlurEngineEl.addEventListener('change', sendWorkAreaConfig);
   }
 
+  const iconPacksCardsList = document.getElementById('iconPacksCardsList');
+  const iconPackProgressWrap = document.getElementById('iconPackProgressWrap');
+  const iconPackSpinner = document.getElementById('iconPackSpinner');
+  const iconPackImportStatus = document.getElementById('iconPackImportStatus');
+  const iconPackImportPct = document.getElementById('iconPackImportPct');
+  const iconPackProgressFill = document.getElementById('iconPackProgressFill');
+  const btnOpenGnomeLook = document.getElementById('btnOpenGnomeLook');
+  const btnImportIconPackArchive = document.getElementById('btnImportIconPackArchive');
+  const btnImportIconPackFolder = document.getElementById('btnImportIconPackFolder');
+  const btnOpenIconPacksFolder = document.getElementById('btnOpenIconPacksFolder');
+  const btnRefreshIconPacks = document.getElementById('btnRefreshIconPacks');
+
+  if (window.chrome && window.chrome.webview) {
+    window.chrome.webview.addEventListener('message', (ev) => {
+      const msg = ev.data;
+      if (msg && msg.type === 'icon_pack_import_status') {
+        const pct = Math.max(0, Math.min(100, Number(msg.percent) || 0));
+        if (iconPackProgressWrap) {
+          iconPackProgressWrap.style.display = 'flex';
+        }
+        if (iconPackSpinner) {
+          iconPackSpinner.style.display = msg.busy ? 'inline-block' : 'none';
+        }
+        if (iconPackImportStatus) {
+          iconPackImportStatus.textContent = msg.message || '';
+          iconPackImportStatus.style.color = msg.busy
+            ? 'var(--win11-text-primary)'
+            : (msg.ok ? 'var(--win11-success, #6ccb5f)' : 'var(--win11-danger, #ff99a4)');
+        }
+        if (iconPackImportPct) {
+          iconPackImportPct.textContent = `${pct}%`;
+        }
+        if (iconPackProgressFill) {
+          iconPackProgressFill.style.width = `${pct}%`;
+          iconPackProgressFill.style.background = msg.busy
+            ? 'var(--win11-accent)'
+            : (msg.ok ? 'var(--win11-success, #6ccb5f)' : 'var(--win11-danger, #ff99a4)');
+        }
+        if (btnImportIconPackArchive) btnImportIconPackArchive.disabled = !!msg.busy;
+        if (btnImportIconPackFolder) btnImportIconPackFolder.disabled = !!msg.busy;
+      }
+    });
+  }
+
+  if (btnOpenGnomeLook) {
+    btnOpenGnomeLook.addEventListener('click', () => {
+      window.winzen.send('open_gnome_look');
+    });
+  }
+  if (btnImportIconPackArchive) {
+    btnImportIconPackArchive.addEventListener('click', () => {
+      window.winzen.send('import_icon_pack_archive');
+    });
+  }
+  if (btnImportIconPackFolder) {
+    btnImportIconPackFolder.addEventListener('click', () => {
+      window.winzen.send('import_icon_pack_folder');
+    });
+  }
+  if (btnOpenIconPacksFolder) {
+    btnOpenIconPacksFolder.addEventListener('click', () => {
+      window.winzen.send('open_icon_packs_folder');
+    });
+  }
+  if (btnRefreshIconPacks) {
+    btnRefreshIconPacks.addEventListener('click', () => {
+      window.winzen.send('refresh_icon_packs');
+    });
+  }
+
+  function renderIconPacks(packs, activePackId) {
+    if (!iconPacksCardsList) return;
+    iconPacksCardsList.innerHTML = '';
+
+    const currentId = (activePackId || 'native').toLowerCase();
+    const sorted = (Array.isArray(packs) ? packs : []).slice().sort((a, b) =>
+      String(a?.name || '').localeCompare(String(b?.name || ''), undefined, { sensitivity: 'base' })
+    );
+
+    const allEntries = [
+      { id: 'native', name: 'Native Windows', subtitle: 'Default Windows 11 system & app icons', isNative: true },
+      ...sorted.map((p) => ({
+        id: p.id,
+        name: p.name || p.id,
+        subtitle: p.iconCount ? `${p.iconCount} app icons` : 'Custom icon pack',
+        isNative: false
+      }))
+    ];
+
+    allEntries.forEach((entry) => {
+      const isActive = entry.id.toLowerCase() === currentId;
+      const card = document.createElement('div');
+      card.className = 'layout-preset-row' + (isActive ? ' is-active' : '');
+
+      const info = document.createElement('div');
+      info.className = 'layout-preset-info';
+
+      const titleLine = document.createElement('div');
+      titleLine.className = 'layout-preset-title-line';
+
+      const nameEl = document.createElement('span');
+      nameEl.className = 'layout-preset-name';
+      nameEl.textContent = entry.name;
+      titleLine.appendChild(nameEl);
+
+      if (isActive) {
+        const badge = document.createElement('span');
+        badge.className = 'layout-preset-badge';
+        badge.textContent = 'Active';
+        titleLine.appendChild(badge);
+      }
+
+      const metaEl = document.createElement('span');
+      metaEl.className = 'layout-preset-meta';
+      metaEl.textContent = entry.subtitle;
+
+      info.appendChild(titleLine);
+      info.appendChild(metaEl);
+
+      const actions = document.createElement('div');
+      actions.className = 'layout-preset-actions';
+
+      const btnApply = document.createElement('button');
+      btnApply.type = 'button';
+      btnApply.className = 'win11-btn layout-preset-icon-btn';
+      btnApply.title = 'Apply';
+      btnApply.setAttribute('aria-label', 'Apply');
+      btnApply.innerHTML = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 8.5 6.5 12 13 4.5"/></svg>';
+      btnApply.addEventListener('click', () => {
+        window.winzen.send('update_icon_pack', { iconPack: entry.id });
+      });
+      actions.appendChild(btnApply);
+
+      if (!entry.isNative) {
+        const btnDelete = document.createElement('button');
+        btnDelete.type = 'button';
+        btnDelete.className = 'win11-btn-danger layout-preset-icon-btn';
+        btnDelete.title = 'Delete';
+        btnDelete.setAttribute('aria-label', 'Delete');
+        btnDelete.innerHTML = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4h11"/><path d="M6 4V2.5h4V4"/><path d="M4 4l.8 9.5a1 1 0 0 0 1 .9h4.4a1 1 0 0 0 1-.9L12 4"/><line x1="6.5" y1="6.8" x2="6.5" y2="11.5"/><line x1="9.5" y1="6.8" x2="9.5" y2="11.5"/></svg>';
+        btnDelete.addEventListener('click', () => {
+          window.winzen.send('delete_icon_pack', { id: entry.id });
+        });
+        actions.appendChild(btnDelete);
+      }
+
+      card.appendChild(info);
+      card.appendChild(actions);
+      iconPacksCardsList.appendChild(card);
+    });
+  }
+
   const selectTaskbarStyleEl = document.getElementById('selectTaskbarStyle');
   if (selectTaskbarStyleEl) {
     selectTaskbarStyleEl.addEventListener('change', sendWorkAreaConfig);
@@ -354,7 +515,8 @@ function initSettingsPage() {
       showAppName: true,
       combineApps: false,
       showThumbnails: true,
-      iconSizePx: 18
+      iconSizePx: 18,
+      iconPaddingPx: 9
     };
 
     window.winzen.send('update_widget_state', {
@@ -367,7 +529,8 @@ function initSettingsPage() {
       showAppName: patch.showAppName !== undefined ? patch.showAppName : (activeWinWidget.showAppName !== false),
       combineApps: patch.combineApps !== undefined ? patch.combineApps : !!activeWinWidget.combineApps,
       showThumbnails: patch.showThumbnails !== undefined ? patch.showThumbnails : (activeWinWidget.showThumbnails !== false),
-      iconSizePx: patch.iconSizePx !== undefined ? patch.iconSizePx : (activeWinWidget.iconSizePx ?? 18)
+      iconSizePx: patch.iconSizePx !== undefined ? patch.iconSizePx : (activeWinWidget.iconSizePx ?? 18),
+      iconPaddingPx: patch.iconPaddingPx !== undefined ? patch.iconPaddingPx : (activeWinWidget.iconPaddingPx ?? 9)
     });
   }
 
@@ -429,6 +592,112 @@ function initSettingsPage() {
       if (labelAppIconSizeVal) labelAppIconSizeVal.textContent = '18px';
       if (!isUpdatingFromHost) {
         updateActiveWindowsWidgetConfig({ iconSizePx: 18 });
+      }
+    });
+  }
+
+  let appIconPaddingTimer = null;
+  if (inputAppIconPadding) {
+    inputAppIconPadding.addEventListener('input', () => {
+      const pad = parseInt(inputAppIconPadding.value, 10);
+      const val = Number.isNaN(pad) ? 9 : pad;
+      if (labelAppIconPaddingVal) labelAppIconPaddingVal.textContent = `${val}px`;
+      updateSliderTrackFill(inputAppIconPadding);
+      if (isUpdatingFromHost) return;
+      if (appIconPaddingTimer) clearTimeout(appIconPaddingTimer);
+      appIconPaddingTimer = setTimeout(() => updateActiveWindowsWidgetConfig({ iconPaddingPx: val }), 40);
+    });
+    inputAppIconPadding.addEventListener('change', () => {
+      if (isUpdatingFromHost) return;
+      const pad = parseInt(inputAppIconPadding.value, 10);
+      const val = Number.isNaN(pad) ? 9 : pad;
+      updateActiveWindowsWidgetConfig({ iconPaddingPx: val });
+    });
+  }
+
+  if (btnResetAppIconPadding) {
+    btnResetAppIconPadding.addEventListener('click', () => {
+      if (inputAppIconPadding) {
+        inputAppIconPadding.value = 9;
+        updateSliderTrackFill(inputAppIconPadding);
+      }
+      if (labelAppIconPaddingVal) labelAppIconPaddingVal.textContent = '9px';
+      if (!isUpdatingFromHost) {
+        updateActiveWindowsWidgetConfig({ iconPaddingPx: 9 });
+      }
+    });
+  }
+
+  function updateStartButtonWidgetConfig(patch) {
+    const startWidget = latestWidgets.find((w) => w.id === 'community.zen-start-button' || w.id === 'zen-start-button') || {
+      id: 'community.zen-start-button',
+      enabled: true,
+      slot: 'left',
+      order: 10,
+      width: 120,
+      autoWidth: true,
+      startIcon: 'chromeos',
+      startIconColorMode: 'text',
+      startIconScalePercent: 100,
+      startText: 'Launcher',
+      showStartText: false
+    };
+
+    window.winzen.send('update_widget_state', {
+      id: startWidget.id,
+      enabled: startWidget.enabled !== false,
+      slot: startWidget.slot || 'left',
+      order: startWidget.order ?? 10,
+      width: startWidget.width || 120,
+      autoWidth: startWidget.autoWidth !== false,
+      startIcon: patch.startIcon !== undefined ? patch.startIcon : (startWidget.startIcon || 'chromeos'),
+      startIconColorMode: patch.startIconColorMode !== undefined ? patch.startIconColorMode : (startWidget.startIconColorMode || 'text'),
+      startIconScalePercent: patch.startIconScalePercent !== undefined ? patch.startIconScalePercent : (startWidget.startIconScalePercent ?? 100),
+      startText: startWidget.startText || 'Launcher',
+      showStartText: !!startWidget.showStartText
+    });
+  }
+
+  if (selectShellStartIcon) {
+    selectShellStartIcon.addEventListener('change', () => {
+      if (isUpdatingFromHost) return;
+      updateStartButtonWidgetConfig({ startIcon: selectShellStartIcon.value || 'chromeos' });
+    });
+  }
+
+  if (selectShellStartIconColor) {
+    selectShellStartIconColor.addEventListener('change', () => {
+      if (isUpdatingFromHost) return;
+      updateStartButtonWidgetConfig({ startIconColorMode: selectShellStartIconColor.value || 'text' });
+    });
+  }
+
+  let startIconScaleTimer = null;
+  if (inputStartIconScale) {
+    inputStartIconScale.addEventListener('input', () => {
+      const sc = parseInt(inputStartIconScale.value, 10) || 100;
+      if (labelStartIconScaleVal) labelStartIconScaleVal.textContent = `${sc}%`;
+      updateSliderTrackFill(inputStartIconScale);
+      if (isUpdatingFromHost) return;
+      if (startIconScaleTimer) clearTimeout(startIconScaleTimer);
+      startIconScaleTimer = setTimeout(() => updateStartButtonWidgetConfig({ startIconScalePercent: sc }), 40);
+    });
+    inputStartIconScale.addEventListener('change', () => {
+      if (isUpdatingFromHost) return;
+      const sc = parseInt(inputStartIconScale.value, 10) || 100;
+      updateStartButtonWidgetConfig({ startIconScalePercent: sc });
+    });
+  }
+
+  if (btnResetStartIconScale) {
+    btnResetStartIconScale.addEventListener('click', () => {
+      if (inputStartIconScale) {
+        inputStartIconScale.value = 100;
+        updateSliderTrackFill(inputStartIconScale);
+      }
+      if (labelStartIconScaleVal) labelStartIconScaleVal.textContent = '100%';
+      if (!isUpdatingFromHost) {
+        updateStartButtonWidgetConfig({ startIconScalePercent: 100 });
       }
     });
   }
@@ -965,6 +1234,8 @@ function initSettingsPage() {
         updateAccentColorUI(s.accentColor);
       }
 
+      renderIconPacks(data.iconPacks, s.iconPack || 'native');
+
       const di = s.dynamicIsland || s.DynamicIsland || {};
       if (toggleDynamicIsland) {
         toggleDynamicIsland.checked = !!di.enabled;
@@ -1043,6 +1314,28 @@ function initSettingsPage() {
         inputAppIconSize.value = iconSz;
         if (labelAppIconSizeVal) labelAppIconSizeVal.textContent = `${iconSz}px`;
         updateSliderTrackFill(inputAppIconSize);
+      }
+      if (inputAppIconPadding) {
+        const iconPad = activeWinWidget ? (activeWinWidget.iconPaddingPx ?? 9) : 9;
+        inputAppIconPadding.value = iconPad;
+        if (labelAppIconPaddingVal) labelAppIconPaddingVal.textContent = `${iconPad}px`;
+        updateSliderTrackFill(inputAppIconPadding);
+      }
+
+      const startBtnWidget = latestWidgets.find((w) => w.id === 'community.zen-start-button' || w.id === 'zen-start-button');
+      if (selectShellStartIcon) {
+        selectShellStartIcon.value = (startBtnWidget && startBtnWidget.startIcon) ? startBtnWidget.startIcon : 'chromeos';
+      }
+      if (selectShellStartIconColor) {
+        selectShellStartIconColor.value = (startBtnWidget && startBtnWidget.startIconColorMode) ? startBtnWidget.startIconColorMode : 'text';
+      }
+      if (inputStartIconScale) {
+        const sc = (startBtnWidget && typeof startBtnWidget.startIconScalePercent === 'number' && startBtnWidget.startIconScalePercent > 0)
+          ? startBtnWidget.startIconScalePercent
+          : 100;
+        inputStartIconScale.value = sc;
+        if (labelStartIconScaleVal) labelStartIconScaleVal.textContent = `${sc}%`;
+        updateSliderTrackFill(inputStartIconScale);
       }
 
       renderHiddenApps(data.hiddenApps || []);
@@ -1497,6 +1790,7 @@ function initSettingsPage() {
           showThumbnails: showThumbnailsInput ? showThumbnailsInput.checked : (w.showThumbnails !== false),
           startIcon: startIconSelect ? startIconSelect.value : (w.startIcon || 'chromeos'),
           startIconColorMode: startIconColorSelect ? startIconColorSelect.value : (w.startIconColorMode || 'text'),
+          startIconScalePercent: w.startIconScalePercent ?? 100,
           startText: startTextInput ? startTextInput.value : (w.startText || 'Start'),
           showStartText: showStartTextInput ? showStartTextInput.checked : !!w.showStartText,
           batteryIconStyle: batteryIconSelect ? batteryIconSelect.value : (w.batteryIconStyle || 'win11'),

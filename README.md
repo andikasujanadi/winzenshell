@@ -5,7 +5,7 @@
 [![Platform: Windows 11](https://img.shields.io/badge/Platform-Windows%2011%20(64--bit)-0078D4?logo=windows11&logoColor=white)](https://microsoft.com/windows)
 [![Runtime: .NET 10](https://img.shields.io/badge/Runtime-.NET%2010%20(WPF)-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 [![Frontend: WebView2](https://img.shields.io/badge/Frontend-WebView2%20%7C%20Web%20Components-008080?logo=microsoftedge&logoColor=white)](https://developer.microsoft.com/microsoft-edge/webview2/)
-[![Release: v0.3.4](https://img.shields.io/badge/Release-v0.3.4-0078D4)](README.md#changelog)
+[![Release: v0.4.0](https://img.shields.io/badge/Release-v0.4.0-0078D4)](README.md#changelog)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 **WinZenShell** is a customizable, lightweight Windows 11 taskbar and widget studio.  
@@ -16,8 +16,8 @@ It pairs a modern web interface (HTML, CSS, and JavaScript) with a fast native W
 ---
 
 > [!IMPORTANT]
-> **Release Notice (`v0.3.4`)**:  
-> WinZenShell v0.3.4 introduces **Separated Taskbar Style** with per-island blur clipping, **Gnome 3×3** launcher icon and **Highlight Active App Icon** toggle, **concentric corner radius & dynamic padding**, cached **flyout blur** with smooth cross-fade, persistent **Pin Lyrics** and **Wide Pill** settings, and a cleaner **Settings** layout with card-based **Layout Presets**.
+> **Release Notice (`v0.4.0`)**:  
+> WinZenShell v0.4.0 introduces **GNOME-Look & Custom Icon Packs** with a dedicated **Icon Packs** settings page, archive/folder importer with Linux symlink resolution and live progress bar, **Icon Padding (`0px–18px`)**, larger **Icon Size (`12px–56px`)**, **App Launcher Icon Scale (`40%–100%`)**, **Live Wallpaper Blur** support (Lively Wallpaper / `WorkerW`) across taskbar and flyouts, and full **`shell:AppsFolder` UWP / Microsoft Store** app discovery.
 
 ---
 
@@ -52,9 +52,11 @@ It pairs a modern web interface (HTML, CSS, and JavaScript) with a fast native W
 * **Live Visual Editor**: Drag and drop widgets in Settings to reorder your taskbar in real time.
 * **Unused Drawer**: Temporarily disable widgets you do not need without deleting them.
 
-### Windows 11 Light & Dark Themes
+### Windows 11 Light & Dark Themes & Icon Packs
 * Matches the native **Windows 11 Dark** and **Windows 11 Light** appearances across the taskbar, flyout menus, widgets, and Settings window.
-* **Custom Accent Colors & Transparency**: Choose your favorite highlight color and adjust taskbar height, floating margin, corner roundness, opacity, and background blur.
+* **Custom Accent Colors & Transparency**: Choose your favorite highlight color and adjust taskbar height, floating margin, corner roundness, opacity, and background blur (including **Live Wallpaper** blur support for Lively Wallpaper / Wallpaper Engine).
+* **GNOME-Look & Custom Icon Packs**: Import icon themes (`.zip`, `.tar.xz`, `.tar.gz`, `.tgz`, `.tar`, or extracted folders) from the dedicated **Icon Packs** page with automatic Linux symlink resolution, Windows-to-FreeDesktop app mapping, and automatic fallback to native Windows icons.
+* **Flexible Icon Geometry**: Fine-tune **Icon Size** (`12px–56px`), **Icon Padding** (`0px–18px`), **App Launcher Icon** style, and **App Launcher Icon Scale** (`40%–100%`).
 
 ### Built-In Widgets & Quick Menus
 1. **App Launcher (`zen-start-button`)**:
@@ -202,6 +204,22 @@ window.winzen.shell.onMetricsUpdate((metrics) => {
 ---
 
 ## Changelog
+
+### v0.4.0 (2026-11-21)
+* **GNOME-Look & Custom Icon Packs (`IconPackService`)**:
+  * Added a dedicated **Icon Packs** page in Settings with an **Open GNOME-Look.org** shortcut, **Import Archive** (`.zip`, `.tar.xz`, `.tar.gz`, `.tgz`, `.tar`) and **Import Folder** actions, a live progress indicator, and an alphabetically sorted card grid for applying or deleting packs.
+  * Automatically extracts `apps/` icons (`scalable` SVGs prioritized over `64x64` / `48x48` PNGs), resolves Linux tar symlink entries into real files on Windows, and maps Windows process names, `.lnk` target executables, and versioned app names (e.g. `Blender 5.2`, `Git for Windows`, `File Explorer`, `Microsoft Store`) to FreeDesktop icon names.
+  * Instant in-memory icon pack switching across running taskbar apps, closed pinned apps, and the App Launcher with automatic fallback to native Windows icons.
+* **Taskbar Icon Padding, Extended Size & Launcher Icon Scale**:
+  * Increased maximum **Icon Size** to `56px` (`12px–56px`).
+  * Added **Icon Padding** (`0px–18px`, default `9px`) to tighten or widen button padding around taskbar app icons.
+  * Added **App Launcher Icon** style/color selectors and **App Launcher Icon Scale** (`40%–100%`) directly under **Settings → Shell → Taskbar Apps**.
+* **Live Wallpaper Blur Support**:
+  * Updated **Realtime GPU** taskbar blur (`RealtimeBlurService`) and widget flyout blur (`FlyoutBackdropHelper`) to detect and composite live wallpaper windows (such as **Lively Wallpaper**) hosted under `WorkerW` / `Progman`, throttled to 2 FPS on the taskbar for minimal GPU usage.
+* **UWP / Microsoft Store Discovery & App Launcher Auto-Refresh**:
+  * Added native UWP / Microsoft Store icon extraction via `GetApplicationUserModelId` and `IShellItemImageFactory` (`UwpAppIconHelper`) for both the App Switcher and App Launcher.
+  * Added `shell:AppsFolder` packaged app scanning so Store/MSIX apps (e.g. **Lively Wallpaper**, **Microsoft Store**) appear and launch in the App Launcher.
+  * Added debounced `FileSystemWatcher`s on Start Menu and Desktop shortcut directories plus on-open stale refresh so newly installed apps appear automatically without restarting the shell.
 
 ### v0.3.4 (2026-11-20)
 * **Separated Taskbar Style & Adaptive Geometry**:

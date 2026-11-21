@@ -11,6 +11,7 @@ using System.Runtime.InteropServices.ComTypes;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using WinZenShell.Native;
 
 namespace WinZenShell.Services;
 
@@ -19,7 +20,9 @@ public class AppLauncherItem
     public string Id { get; set; } = "";
     public string Name { get; set; } = "";
     public string TargetPath { get; set; } = "";
+    public string ResolvedExePath { get; set; } = "";
     public string IconDataUrl { get; set; } = "";
+    public string NativeIconDataUrl { get; set; } = "";
     public bool IsRecent { get; set; }
     public int LaunchCount { get; set; }
 }
@@ -29,14 +32,27 @@ public class AppLauncherService
     private readonly string _recentsFilePath;
     private readonly List<AppLauncherItem> _apps = new();
     private readonly HashSet<string> _seenNames = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, string> _iconCache = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, string> _shortcutExeCache = new(StringComparer.OrdinalIgnoreCase);
+    private readonly List<FileSystemWatcher> _watchers = new();
     private readonly object _lock = new();
+    private IconPackService? _iconPackService;
+    private System.Threading.Timer? _debounceTimer;
+    private int _isScanning;
+    private DateTime _lastScanUtc = DateTime.MinValue;
     private Dictionary<string, int> _launchStats = new(StringComparer.OrdinalIgnoreCase);
 
     public bool IsLoaded { get; private set; }
     public event Action? AppsLoaded;
 
-    public AppLauncherService()
+    public AppLauncherService(IconPackService? iconPackService = null)
     {
+        _iconPackService = iconPackService;
+        if (_iconPackService != null)
+        {
+            _iconPackService.ActivePackChanged += ApplyActiveIconPack;
+        }
+
         string dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WinZenShell");
         Directory.CreateDirectory(dir);
         _recentsFilePath = Path.Combine(dir, "recent_apps.json");
@@ -44,10 +60,111 @@ public class AppLauncherService
         LoadRecentStats();
 
         // Load built-ins immediately so launcher is instantly usable
-        LoadBuiltinApps();
+        var builtins = BuildBuiltinApps();
+        lock (_lock)
+        {
+            foreach (var item in builtins)
+            {
+                if (_seenNames.Add(item.Name))
+                {
+                    _apps.Add(item);
+                }
+            }
+        }
+
+        StartDirectoryWatchers();
 
         // Scan shortcuts asynchronously
         Task.Run(ScanInstalledShortcuts);
+    }
+
+    public void ApplyActiveIconPack()
+    {
+        bool anyChanged = false;
+        lock (_lock)
+        {
+            foreach (var item in _apps)
+            {
+                string exeStem = !string.IsNullOrWhiteSpace(item.ResolvedExePath)
+                    ? Path.GetFileNameWithoutExtension(item.ResolvedExePath)
+                    : item.Name;
+                string exeOrTarget = !string.IsNullOrWhiteSpace(item.ResolvedExePath)
+                    ? item.ResolvedExePath
+                    : item.TargetPath;
+
+                string packIcon = _iconPackService?.ResolveAppIconDataUrl(item.Name, exeStem, item.Name, exeOrTarget) ?? "";
+                string nextIcon = !string.IsNullOrEmpty(packIcon) ? packIcon : item.NativeIconDataUrl;
+                if (!string.Equals(item.IconDataUrl, nextIcon, StringComparison.Ordinal))
+                {
+                    item.IconDataUrl = nextIcon;
+                    anyChanged = true;
+                }
+            }
+        }
+
+        if (anyChanged)
+        {
+            AppsLoaded?.Invoke();
+        }
+    }
+
+    public void ForceRescan()
+    {
+        ApplyActiveIconPack();
+        _lastScanUtc = DateTime.MinValue;
+        _ = Task.Run(ScanInstalledShortcuts);
+    }
+
+    public void RefreshIfStale(TimeSpan? maxAge = null)
+    {
+        var threshold = maxAge ?? TimeSpan.FromSeconds(5);
+        if (DateTime.UtcNow - _lastScanUtc < threshold)
+            return;
+
+        _ = Task.Run(ScanInstalledShortcuts);
+    }
+
+    private void StartDirectoryWatchers()
+    {
+        var dirs = new[]
+        {
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonStartMenu), "Programs"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.StartMenu), "Programs"),
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonDesktopDirectory),
+            Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory)
+        };
+
+        foreach (var dir in dirs)
+        {
+            if (!Directory.Exists(dir)) continue;
+            try
+            {
+                var watcher = new FileSystemWatcher(dir, "*.lnk")
+                {
+                    IncludeSubdirectories = true,
+                    NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite,
+                    EnableRaisingEvents = true
+                };
+                watcher.Created += OnShortcutDirectoryChanged;
+                watcher.Deleted += OnShortcutDirectoryChanged;
+                watcher.Renamed += OnShortcutDirectoryChanged;
+                _watchers.Add(watcher);
+            }
+            catch { }
+        }
+    }
+
+    private void OnShortcutDirectoryChanged(object sender, FileSystemEventArgs e)
+    {
+        try
+        {
+            _debounceTimer?.Dispose();
+            _debounceTimer = new System.Threading.Timer(_ =>
+            {
+                _ = Task.Run(ScanInstalledShortcuts);
+            }, null, 1200, System.Threading.Timeout.Infinite);
+        }
+        catch { }
     }
 
     private void LoadRecentStats()
@@ -80,11 +197,12 @@ public class AppLauncherService
         catch { }
     }
 
-    private void LoadBuiltinApps()
+    private List<AppLauncherItem> BuildBuiltinApps()
     {
         var builtins = new[]
         {
             ("File Explorer", "explorer.exe", Environment.GetFolderPath(Environment.SpecialFolder.Windows) + @"\explorer.exe"),
+            ("Microsoft Store", "ms-windows-store:", ""),
             ("Settings", "ms-settings:", Environment.GetFolderPath(Environment.SpecialFolder.Windows) + @"\ImmersiveControlPanel\SystemSettings.exe"),
             ("Windows Terminal", "wt.exe", ""),
             ("Notepad", "notepad.exe", Environment.GetFolderPath(Environment.SpecialFolder.System) + @"\notepad.exe"),
@@ -93,153 +211,330 @@ public class AppLauncherService
             ("Snipping Tool", "snippingtool.exe", "")
         };
 
-        lock (_lock)
+        var list = new List<AppLauncherItem>();
+        foreach (var (name, target, iconSource) in builtins)
         {
-            foreach (var (name, target, iconSource) in builtins)
+            string cacheKey = $"builtin:{name}";
+            if (!_iconCache.TryGetValue(cacheKey, out string? iconUrl) || string.IsNullOrEmpty(iconUrl))
             {
-                if (_seenNames.Add(name))
+                iconUrl = "";
+                if (!string.IsNullOrEmpty(iconSource) && File.Exists(iconSource))
                 {
-                    string iconUrl = "";
-                    if (!string.IsNullOrEmpty(iconSource) && File.Exists(iconSource))
-                    {
-                        iconUrl = ExtractIconDataUrl(iconSource);
-                    }
-                    if (string.IsNullOrEmpty(iconUrl))
-                    {
-                        iconUrl = GetBuiltinFallbackIconDataUrl(name);
-                    }
-
-                    int count = _launchStats.TryGetValue(name, out int c) ? c : 0;
-                    _apps.Add(new AppLauncherItem
-                    {
-                        Id = name.ToLowerInvariant().Replace(" ", "-"),
-                        Name = name,
-                        TargetPath = target,
-                        IconDataUrl = iconUrl,
-                        LaunchCount = count,
-                        IsRecent = count > 0
-                    });
+                    iconUrl = ExtractIconDataUrl(iconSource);
+                }
+                if (string.IsNullOrEmpty(iconUrl) && string.Equals(name, "Microsoft Store", StringComparison.OrdinalIgnoreCase))
+                {
+                    iconUrl = UwpAppIconHelper.ExtractIconDataUrlByAumid(UwpAppIconHelper.MicrosoftStoreAumid);
+                }
+                if (string.IsNullOrEmpty(iconUrl))
+                {
+                    iconUrl = GetBuiltinFallbackIconDataUrl(name);
+                }
+                if (!string.IsNullOrEmpty(iconUrl))
+                {
+                    _iconCache[cacheKey] = iconUrl;
                 }
             }
+
+            string nativeIcon = iconUrl ?? "";
+            string packIcon = _iconPackService?.ResolveAppIconDataUrl(name, name, name, !string.IsNullOrEmpty(iconSource) ? iconSource : target) ?? "";
+            string finalIcon = !string.IsNullOrEmpty(packIcon) ? packIcon : nativeIcon;
+
+            int count = _launchStats.TryGetValue(name, out int c) ? c : 0;
+            list.Add(new AppLauncherItem
+            {
+                Id = name.ToLowerInvariant().Replace(" ", "-"),
+                Name = name,
+                TargetPath = target,
+                ResolvedExePath = !string.IsNullOrEmpty(iconSource) ? iconSource : target,
+                IconDataUrl = finalIcon,
+                NativeIconDataUrl = nativeIcon,
+                LaunchCount = count,
+                IsRecent = count > 0
+            });
         }
+        return list;
     }
 
     private void ScanInstalledShortcuts()
     {
-        var dirsToScan = new List<string>
+        if (System.Threading.Interlocked.CompareExchange(ref _isScanning, 1, 0) != 0)
+            return;
+
+        try
         {
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonStartMenu), "Programs"),
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.StartMenu), "Programs"),
-            Environment.GetFolderPath(Environment.SpecialFolder.CommonDesktopDirectory),
-            Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory)
-        };
-
-        var ignoredKeywords = new[]
-        {
-            "uninstall", "help", "readme", "documentation", "release notes",
-            "license", "licence", "website", "manual", "eula", "feedback",
-            "administrative tools", "application verifier", "windows app cert",
-            "software development kit", "sample desktop apps", "sample uwp apps",
-            "tools for desktop apps", "tools for uwp apps", "reset preferences",
-            "install additional tools", "module docs", "reload configuration",
-            "steps recorder", "telemetry log", "recording manager",
-            "language preferences", "debuggable package manager",
-            "native tools command prompt", "cross tools command prompt",
-            "developer command prompt", "developer powershell",
-            "recycle bin", "dfrgui", "recoverydrive"
-        };
-
-        var ignoredExactNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-        {
-            "services", "component services", "computer management", "disk cleanup",
-            "event viewer", "iscsi initiator", "memory diagnostics tool",
-            "performance monitor", "registry editor", "resource monitor",
-            "system configuration", "system information", "task scheduler",
-            "windows defender firewall with advanced security",
-            "character map", "vlc media player skinned", "gpuview",
-            "windows performance analyzer", "windows performance recorder",
-            "livecaptions", "magnify", "narrator", "on-screen keyboard", "voiceaccess",
-            "run", "command prompt"
-        };
-
-        var ignoredFolderSegments = new[]
-        {
-            "\\administrative tools\\",
-            "\\windows kits\\",
-            "\\visual studio tools\\",
-            "\\accessibility\\",
-            "\\startup\\",
-            "\\system tools\\",
-            "\\microsoft office tools\\"
-        };
-
-        var foundItems = new List<AppLauncherItem>();
-
-        foreach (var dir in dirsToScan)
-        {
-            if (!Directory.Exists(dir)) continue;
-
-            try
+            var dirsToScan = new List<string>
             {
-                var files = Directory.EnumerateFiles(dir, "*.lnk", SearchOption.AllDirectories);
-                foreach (var file in files)
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonStartMenu), "Programs"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.StartMenu), "Programs"),
+                Environment.GetFolderPath(Environment.SpecialFolder.CommonDesktopDirectory),
+                Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory)
+            };
+
+            var ignoredKeywords = new[]
+            {
+                "uninstall", "help", "readme", "documentation", "release notes",
+                "license", "licence", "website", "manual", "eula", "feedback",
+                "administrative tools", "application verifier", "windows app cert",
+                "software development kit", "sample desktop apps", "sample uwp apps",
+                "tools for desktop apps", "tools for uwp apps", "reset preferences",
+                "install additional tools", "module docs", "reload configuration",
+                "steps recorder", "telemetry log", "recording manager",
+                "language preferences", "debuggable package manager",
+                "native tools command prompt", "cross tools command prompt",
+                "developer command prompt", "developer powershell",
+                "recycle bin", "dfrgui", "recoverydrive"
+            };
+
+            var ignoredExactNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "services", "component services", "computer management", "disk cleanup",
+                "event viewer", "iscsi initiator", "memory diagnostics tool",
+                "performance monitor", "registry editor", "resource monitor",
+                "system configuration", "system information", "task scheduler",
+                "windows defender firewall with advanced security",
+                "character map", "vlc media player skinned", "gpuview",
+                "windows performance analyzer", "windows performance recorder",
+                "livecaptions", "magnify", "narrator", "on-screen keyboard", "voiceaccess",
+                "run", "command prompt"
+            };
+
+            var ignoredFolderSegments = new[]
+            {
+                "\\administrative tools\\",
+                "\\windows kits\\",
+                "\\visual studio tools\\",
+                "\\accessibility\\",
+                "\\startup\\",
+                "\\system tools\\",
+                "\\microsoft office tools\\"
+            };
+
+            var localSeen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var rebuilt = BuildBuiltinApps();
+            foreach (var b in rebuilt)
+            {
+                localSeen.Add(b.Name);
+            }
+
+            foreach (var dir in dirsToScan)
+            {
+                if (!Directory.Exists(dir)) continue;
+
+                try
                 {
-                    try
+                    var files = Directory.EnumerateFiles(dir, "*.lnk", SearchOption.AllDirectories);
+                    foreach (var file in files)
                     {
-                        string lowerFullPath = file.ToLowerInvariant();
-                        if (ignoredFolderSegments.Any(seg => lowerFullPath.Contains(seg))) continue;
-
-                        string fileName = Path.GetFileNameWithoutExtension(file);
-                        if (string.IsNullOrWhiteSpace(fileName)) continue;
-
-                        string lowerName = fileName.ToLowerInvariant();
-                        if (ignoredExactNames.Contains(fileName)) continue;
-                        if (ignoredKeywords.Any(k => lowerName.Contains(k))) continue;
-                        if (lowerName.Contains("(x86)") || lowerName.Contains("(32-bit)")) continue;
-
-                        lock (_lock)
+                        try
                         {
-                            if (_seenNames.Contains(fileName)) continue;
+                            string lowerFullPath = file.ToLowerInvariant();
+                            if (ignoredFolderSegments.Any(seg => lowerFullPath.Contains(seg))) continue;
+
+                            string fileName = Path.GetFileNameWithoutExtension(file);
+                            if (string.IsNullOrWhiteSpace(fileName)) continue;
+
+                            string lowerName = fileName.ToLowerInvariant();
+                            if (ignoredExactNames.Contains(fileName)) continue;
+                            if (ignoredKeywords.Any(k => lowerName.Contains(k))) continue;
+                            if (lowerName.Contains("(x86)") || lowerName.Contains("(32-bit)")) continue;
+
+                            if (!localSeen.Add(fileName)) continue;
+
+                            if (!_iconCache.TryGetValue(file, out string? iconUrl) || string.IsNullOrEmpty(iconUrl))
+                            {
+                                iconUrl = ExtractIconDataUrl(file);
+                                if (string.IsNullOrEmpty(iconUrl))
+                                {
+                                    iconUrl = GetBuiltinFallbackIconDataUrl(fileName);
+                                }
+                                if (!string.IsNullOrEmpty(iconUrl))
+                                {
+                                    _iconCache[file] = iconUrl;
+                                }
+                            }
+
+                            if (!_shortcutExeCache.TryGetValue(file, out string? resolvedExe))
+                            {
+                                resolvedExe = TryResolveShortcutTargetExe(file) ?? "";
+                                _shortcutExeCache[file] = resolvedExe;
+                            }
+
+                            string exeStem = !string.IsNullOrWhiteSpace(resolvedExe)
+                                ? Path.GetFileNameWithoutExtension(resolvedExe)
+                                : fileName;
+                            string exeOrTarget = !string.IsNullOrWhiteSpace(resolvedExe) ? resolvedExe : file;
+
+                            string nativeIcon = iconUrl ?? "";
+                            string packIcon = _iconPackService?.ResolveAppIconDataUrl(fileName, exeStem, fileName, exeOrTarget) ?? "";
+                            string finalIcon = !string.IsNullOrEmpty(packIcon) ? packIcon : nativeIcon;
+
+                            int count = _launchStats.TryGetValue(fileName, out int c) ? c : 0;
+
+                            rebuilt.Add(new AppLauncherItem
+                            {
+                                Id = Guid.NewGuid().ToString("N")[..8],
+                                Name = fileName,
+                                TargetPath = file,
+                                ResolvedExePath = resolvedExe ?? "",
+                                IconDataUrl = finalIcon,
+                                NativeIconDataUrl = nativeIcon,
+                                LaunchCount = count,
+                                IsRecent = count > 0
+                            });
                         }
-
-                        string iconUrl = ExtractIconDataUrl(file);
-                        int count = _launchStats.TryGetValue(fileName, out int c) ? c : 0;
-
-                        foundItems.Add(new AppLauncherItem
-                        {
-                            Id = Guid.NewGuid().ToString("N")[..8],
-                            Name = fileName,
-                            TargetPath = file,
-                            IconDataUrl = iconUrl,
-                            LaunchCount = count,
-                            IsRecent = count > 0
-                        });
+                        catch { }
                     }
-                    catch { }
                 }
+                catch { }
             }
-            catch { }
-        }
 
-        lock (_lock)
-        {
-            foreach (var item in foundItems)
+            // Also scan Microsoft Store / UWP packaged apps from shell:AppsFolder
+            var ignoredUwpAumidPrefixes = new[]
             {
-                if (_seenNames.Add(item.Name))
+                "Microsoft.Windows.ShellExperienceHost",
+                "Microsoft.Windows.StartMenuExperienceHost",
+                "Microsoft.Windows.Search",
+                "Microsoft.Windows.Apprep.ChxApp",
+                "Microsoft.Windows.AssignedAccessLockApp",
+                "Microsoft.Windows.CapturePicker",
+                "Microsoft.Windows.CloudExperienceHost",
+                "Microsoft.Windows.ContentDeliveryManager",
+                "Microsoft.Windows.NarratorQuickStart",
+                "Microsoft.Windows.OOBENetwork",
+                "Microsoft.Windows.ParentalControls",
+                "Microsoft.Windows.PeopleExperienceHost",
+                "Microsoft.Windows.PinningConfirmationDialog",
+                "Microsoft.Windows.PrintQueueActionCenter",
+                "Microsoft.Windows.SecHealthUI",
+                "Microsoft.Windows.XGpuEjectDialog",
+                "MicrosoftWindows.Client.",
+                "MicrosoftWindows.UndockedDevKit",
+                "Windows.CBSPreview",
+                "Windows.PrintDialog",
+                "windows.immersivecontrolpanel",
+                "Microsoft.AAD.BrokerPlugin",
+                "Microsoft.AccountsControl",
+                "Microsoft.AsyncTextService",
+                "Microsoft.BioEnrollment",
+                "Microsoft.CredDialogHost",
+                "Microsoft.ECApp",
+                "Microsoft.LockApp",
+                "Microsoft.MicrosoftEdgeDevToolsClient",
+                "Microsoft.Win32WebViewHost",
+                "Microsoft.XboxGameCallableUI"
+            };
+
+            foreach (var (uwpName, aumid) in UwpAppIconHelper.EnumerateAppsFolderUwpApps())
+            {
+                try
                 {
-                    _apps.Add(item);
+                    if (ignoredUwpAumidPrefixes.Any(p => aumid.StartsWith(p, StringComparison.OrdinalIgnoreCase)))
+                        continue;
+
+                    string lowerUwpName = uwpName.ToLowerInvariant();
+                    if (ignoredExactNames.Contains(uwpName)) continue;
+                    if (ignoredKeywords.Any(k => lowerUwpName.Contains(k))) continue;
+                    if (!localSeen.Add(uwpName)) continue;
+
+                    string target = $"shell:AppsFolder\\{aumid}";
+                    if (!_iconCache.TryGetValue(target, out string? iconUrl) || string.IsNullOrEmpty(iconUrl))
+                    {
+                        iconUrl = UwpAppIconHelper.ExtractIconDataUrlByAumid(aumid);
+                        if (!string.IsNullOrEmpty(iconUrl))
+                        {
+                            _iconCache[target] = iconUrl;
+                        }
+                    }
+
+                    string nativeIcon = iconUrl ?? "";
+                    string packIcon = _iconPackService?.ResolveAppIconDataUrl(uwpName, uwpName, uwpName, target) ?? "";
+                    string finalIcon = !string.IsNullOrEmpty(packIcon) ? packIcon : nativeIcon;
+
+                    int count = _launchStats.TryGetValue(uwpName, out int c) ? c : 0;
+
+                    rebuilt.Add(new AppLauncherItem
+                    {
+                        Id = Guid.NewGuid().ToString("N")[..8],
+                        Name = uwpName,
+                        TargetPath = target,
+                        ResolvedExePath = target,
+                        IconDataUrl = finalIcon,
+                        NativeIconDataUrl = nativeIcon,
+                        LaunchCount = count,
+                        IsRecent = count > 0
+                    });
                 }
+                catch { }
             }
 
-            _apps.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
-            IsLoaded = true;
-        }
+            rebuilt.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
 
-        AppsLoaded?.Invoke();
+            // Re-evaluate against active icon pack right before committing in case the active pack changed during the scan
+            foreach (var item in rebuilt)
+            {
+                string exeStem = !string.IsNullOrWhiteSpace(item.ResolvedExePath)
+                    ? Path.GetFileNameWithoutExtension(item.ResolvedExePath)
+                    : item.Name;
+                string exeOrTarget = !string.IsNullOrWhiteSpace(item.ResolvedExePath)
+                    ? item.ResolvedExePath
+                    : item.TargetPath;
+                string packIcon = _iconPackService?.ResolveAppIconDataUrl(item.Name, exeStem, item.Name, exeOrTarget) ?? "";
+                item.IconDataUrl = !string.IsNullOrEmpty(packIcon) ? packIcon : item.NativeIconDataUrl;
+            }
+
+            bool changed;
+            lock (_lock)
+            {
+                changed = !IsLoaded || _apps.Count != rebuilt.Count;
+                if (!changed)
+                {
+                    for (int i = 0; i < rebuilt.Count; i++)
+                    {
+                        if (!string.Equals(_apps[i].Name, rebuilt[i].Name, StringComparison.OrdinalIgnoreCase) ||
+                            !string.Equals(_apps[i].TargetPath, rebuilt[i].TargetPath, StringComparison.OrdinalIgnoreCase) ||
+                            !string.Equals(_apps[i].IconDataUrl, rebuilt[i].IconDataUrl, StringComparison.Ordinal))
+                        {
+                            changed = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (changed)
+                {
+                    _apps.Clear();
+                    _apps.AddRange(rebuilt);
+                    _seenNames.Clear();
+                    foreach (var item in rebuilt)
+                    {
+                        _seenNames.Add(item.Name);
+                    }
+                }
+
+                IsLoaded = true;
+                _lastScanUtc = DateTime.UtcNow;
+            }
+
+            if (changed)
+            {
+                AppsLoaded?.Invoke();
+            }
+        }
+        finally
+        {
+            System.Threading.Interlocked.Exchange(ref _isScanning, 0);
+        }
     }
 
     private static string GetBuiltinFallbackIconDataUrl(string appName)
     {
+        if (string.Equals(appName, "Microsoft Store", StringComparison.OrdinalIgnoreCase))
+        {
+            const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'><path d='M16 14v-2a8 8 0 0 1 16 0v2h6a2 2 0 0 1 2 2l2 24a4 4 0 0 1-4 4H10a4 4 0 0 1-4-4l2-24a2 2 0 0 1 2-2h6zm3 0h10v-2a5 5 0 0 0-10 0v2z' fill='#2b88d8'/><rect x='17' y='21' width='6' height='6' rx='1' fill='#f25022'/><rect x='25' y='21' width='6' height='6' rx='1' fill='#7fba00'/><rect x='17' y='29' width='6' height='6' rx='1' fill='#00a4ef'/><rect x='25' y='29' width='6' height='6' rx='1' fill='#ffb900'/></svg>";
+            return "data:image/svg+xml;base64," + Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg));
+        }
+
         if (string.Equals(appName, "Windows Terminal", StringComparison.OrdinalIgnoreCase))
         {
             const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'><rect x='4' y='8' width='40' height='32' rx='6' fill='#2b2b2b' stroke='#484848' stroke-width='1.5'/><rect x='4' y='8' width='40' height='8' rx='4' fill='#3a3a3a'/><path d='M13 22l6 5-6 5' fill='none' stroke='#ffffff' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/><line x1='22' y1='32' x2='32' y2='32' stroke='#ffffff' stroke-width='2.6' stroke-linecap='round'/></svg>";
@@ -249,6 +544,12 @@ public class AppLauncherService
         if (string.Equals(appName, "Snipping Tool", StringComparison.OrdinalIgnoreCase))
         {
             const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'><rect x='8' y='10' width='32' height='26' rx='4' fill='none' stroke='#60a5fa' stroke-width='2.4' stroke-dasharray='5 3'/><circle cx='16' cy='34' r='4.5' fill='none' stroke='#e5e7eb' stroke-width='2.4'/><circle cx='32' cy='34' r='4.5' fill='none' stroke='#e5e7eb' stroke-width='2.4'/><path d='M19.5 30.5L31 15M28.5 30.5L17 15' stroke='#e5e7eb' stroke-width='2.4' stroke-linecap='round'/></svg>";
+            return "data:image/svg+xml;base64," + Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg));
+        }
+
+        if (appName.StartsWith("Git", StringComparison.OrdinalIgnoreCase))
+        {
+            const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'><path d='M44.4 21.8L26.2 3.6a3.1 3.1 0 0 0-4.4 0l-3.8 3.8 4.8 4.8a3.7 3.7 0 0 1 4.7 4.7l4.6 4.6a3.7 3.7 0 1 1-2.2 2.1l-4.3-4.3v11.3a3.7 3.7 0 1 1-3.1-.1V19a3.7 3.7 0 0 1-2-4.9L15.8 9.4 3.6 21.6a3.1 3.1 0 0 0 0 4.4l18.2 18.2a3.1 3.1 0 0 0 4.4 0l18.2-18.2a3.1 3.1 0 0 0 0-4.2z' fill='#F05032'/></svg>";
             return "data:image/svg+xml;base64," + Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg));
         }
 
@@ -368,6 +669,24 @@ public class AppLauncherService
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool DestroyIcon(IntPtr hIcon);
 
+    private static string? TryResolveShortcutTargetExe(string lnkPath)
+    {
+        try
+        {
+            var link = (IShellLinkW)new ShellLink();
+            ((IPersistFile)link).Load(lnkPath, 0);
+            var targetSb = new StringBuilder(260);
+            link.GetPath(targetSb, targetSb.Capacity, IntPtr.Zero, 0);
+            string targetPath = Environment.ExpandEnvironmentVariables(targetSb.ToString().Trim().Trim('"'));
+            if (!string.IsNullOrWhiteSpace(targetPath))
+            {
+                return targetPath;
+            }
+        }
+        catch { }
+        return null;
+    }
+
     private static (string? Path, int IconIndex) TryResolveShortcutIconSource(string lnkPath)
     {
         try
@@ -386,9 +705,25 @@ public class AppLauncherService
             var targetSb = new StringBuilder(260);
             link.GetPath(targetSb, targetSb.Capacity, IntPtr.Zero, 0);
             string targetPath = Environment.ExpandEnvironmentVariables(targetSb.ToString().Trim().Trim('"'));
-            if (!string.IsNullOrWhiteSpace(targetPath) && File.Exists(targetPath))
+            if (!string.IsNullOrWhiteSpace(targetPath))
             {
-                return (targetPath, 0);
+                // Git for Windows.lnk targets mingw64\bin\wintoast.exe which has no embedded icon;
+                // redirect icon extraction to git-for-windows.ico or git-bash.exe in the Git root
+                if (targetPath.EndsWith("wintoast.exe", StringComparison.OrdinalIgnoreCase))
+                {
+                    string gitIco = @"C:\Program Files\Git\mingw64\share\git\git-for-windows.ico";
+                    if (File.Exists(gitIco))
+                        return (gitIco, 0);
+
+                    string gitBash = @"C:\Program Files\Git\git-bash.exe";
+                    if (File.Exists(gitBash))
+                        return (gitBash, 0);
+                }
+
+                if (File.Exists(targetPath))
+                {
+                    return (targetPath, 0);
+                }
             }
         }
         catch { }
@@ -458,11 +793,18 @@ public class AppLauncherService
 
         try
         {
-            var psi = new ProcessStartInfo
-            {
-                FileName = targetPath,
-                UseShellExecute = true
-            };
+            var psi = targetPath.StartsWith("shell:AppsFolder\\", StringComparison.OrdinalIgnoreCase)
+                ? new ProcessStartInfo
+                {
+                    FileName = "explorer.exe",
+                    Arguments = targetPath,
+                    UseShellExecute = true
+                }
+                : new ProcessStartInfo
+                {
+                    FileName = targetPath,
+                    UseShellExecute = true
+                };
             Process.Start(psi);
 
             if (!string.IsNullOrWhiteSpace(appName))

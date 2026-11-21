@@ -303,6 +303,50 @@ public static class Win32Api
     [DllImport("gdi32.dll")]
     public static extern IntPtr CreateRoundRectRgn(int nLeftRect, int nTopRect, int nRightRect, int nBottomRect, int nWidthEllipse, int nHeightEllipse);
 
+    public static IntPtr FindLiveWallpaperWindow(RECT targetRect)
+    {
+        IntPtr shellWnd = GetShellWindow();
+        uint explorerPid = 0;
+        if (shellWnd != IntPtr.Zero)
+        {
+            GetWindowThreadProcessId(shellWnd, out explorerPid);
+        }
+
+        IntPtr found = IntPtr.Zero;
+        EnumWindows((wnd, _) =>
+        {
+            if (wnd == IntPtr.Zero || !IsWindowVisible(wnd)) return true;
+
+            var classSb = new StringBuilder(64);
+            GetClassName(wnd, classSb, classSb.Capacity);
+            string cls = classSb.ToString();
+            if (cls != "WorkerW" && cls != "Progman") return true;
+
+            EnumChildWindows(wnd, (child, _) =>
+            {
+                if (child == IntPtr.Zero || !IsWindowVisible(child)) return true;
+
+                GetWindowThreadProcessId(child, out uint childPid);
+                if (explorerPid != 0 && childPid == explorerPid) return true;
+
+                if (!GetWindowRect(child, out var childRect)) return true;
+                if (childRect.Width < 400 || childRect.Height < 300) return true;
+                if (childRect.Right <= targetRect.Left || childRect.Left >= targetRect.Right ||
+                    childRect.Bottom <= targetRect.Top || childRect.Top >= targetRect.Bottom)
+                {
+                    return true;
+                }
+
+                found = child;
+                return false;
+            }, IntPtr.Zero);
+
+            return found == IntPtr.Zero;
+        }, IntPtr.Zero);
+
+        return found;
+    }
+
     [DllImport("gdi32.dll")]
     public static extern IntPtr CreateRectRgn(int nLeftRect, int nTopRect, int nRightRect, int nBottomRect);
 

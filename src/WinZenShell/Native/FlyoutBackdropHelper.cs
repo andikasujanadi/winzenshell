@@ -242,6 +242,7 @@ public static class FlyoutBackdropHelper
 
                 if (includeWindows)
                 {
+                    CompositeLiveWallpaper(g, leftPx, topPx, widthPx, heightPx, outW, outH);
                     CompositeIntersectingWindows(g, leftPx, topPx, widthPx, heightPx, outW, outH, excludeHwnd);
                 }
             }
@@ -313,6 +314,60 @@ public static class FlyoutBackdropHelper
             attrs.SetWrapMode(WrapMode.TileFlipXY);
             g.DrawImage(_wpScreenBmpCache, new Rectangle(0, 0, outW, outH), leftPx, topPx, widthPx, heightPx, GraphicsUnit.Pixel, attrs);
         }
+    }
+
+    private static void CompositeLiveWallpaper(
+        Graphics g, int leftPx, int topPx, int widthPx, int heightPx, int outW, int outH)
+    {
+        var targetRect = new Win32Api.RECT
+        {
+            Left = leftPx,
+            Top = topPx,
+            Right = leftPx + widthPx,
+            Bottom = topPx + heightPx
+        };
+
+        IntPtr liveWnd = Win32Api.FindLiveWallpaperWindow(targetRect);
+        if (liveWnd == IntPtr.Zero) return;
+        if (!Win32Api.GetWindowRect(liveWnd, out var rawRect)) return;
+
+        int w = rawRect.Width;
+        int h = rawRect.Height;
+        if (w <= 0 || h <= 0 || w > 4096 || h > 2560) return;
+
+        using var wndBmp = new Bitmap(w, h, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+        bool ok;
+        using (var wg = Graphics.FromImage(wndBmp))
+        {
+            IntPtr hdc = wg.GetHdc();
+            ok = Win32Api.PrintWindow(liveWnd, hdc, Win32Api.PW_RENDERFULLCONTENT);
+            wg.ReleaseHdc(hdc);
+        }
+        if (!ok) return;
+
+        int rightPx = leftPx + widthPx;
+        int bottomPx = topPx + heightPx;
+        int interLeft = Math.Max(leftPx, rawRect.Left);
+        int interTop = Math.Max(topPx, rawRect.Top);
+        int interRight = Math.Min(rightPx, rawRect.Right);
+        int interBottom = Math.Min(bottomPx, rawRect.Bottom);
+        int interW = interRight - interLeft;
+        int interH = interBottom - interTop;
+        if (interW <= 0 || interH <= 0) return;
+
+        double sx = (double)outW / widthPx;
+        double sy = (double)outH / heightPx;
+        var dstRect = new RectangleF(
+            (float)((interLeft - leftPx) * sx),
+            (float)((interTop - topPx) * sy),
+            (float)(interW * sx),
+            (float)(interH * sy));
+
+        g.DrawImage(
+            wndBmp,
+            dstRect,
+            new RectangleF(interLeft - rawRect.Left, interTop - rawRect.Top, interW, interH),
+            GraphicsUnit.Pixel);
     }
 
     private static void CompositeIntersectingWindows(

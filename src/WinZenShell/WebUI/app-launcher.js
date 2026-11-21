@@ -280,8 +280,8 @@
       const nextAll = Array.isArray(payload.all) ? payload.all : [];
       const nextRecent = Array.isArray(payload.recent) ? payload.recent : [];
       const sig = JSON.stringify({
-        r: nextRecent.map((a) => `${a.targetPath}|${a.name}|${a.iconDataUrl ? a.iconDataUrl.length : 0}`),
-        a: nextAll.map((a) => `${a.targetPath}|${a.name}|${a.iconDataUrl ? a.iconDataUrl.length : 0}`)
+        r: nextRecent.map((a) => `${a.targetPath}|${a.name}|${a.iconDataUrl ? `${a.iconDataUrl.length}:${a.iconDataUrl.slice(-24)}` : 0}`),
+        a: nextAll.map((a) => `${a.targetPath}|${a.name}|${a.iconDataUrl ? `${a.iconDataUrl.length}:${a.iconDataUrl.slice(-24)}` : 0}`)
       });
       if (sig !== lastAppsSig) {
         lastAppsSig = sig;

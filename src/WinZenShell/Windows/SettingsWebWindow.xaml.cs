@@ -150,6 +150,24 @@ public partial class SettingsWebWindow : Window
         });
     }
 
+    private void PostIconPackImportStatus(bool busy, bool ok, string message, int percent = 0)
+    {
+        if (!_webViewReady || SettingsWebView.CoreWebView2 == null) return;
+        try
+        {
+            string json = JsonSerializer.Serialize(new
+            {
+                type = "icon_pack_import_status",
+                busy,
+                ok,
+                percent,
+                message
+            });
+            SettingsWebView.CoreWebView2.PostWebMessageAsJson(json);
+        }
+        catch { }
+    }
+
     private void PushStateToWeb(ShellFullStatePayload payload)
     {
         if (!_webViewReady || SettingsWebView.CoreWebView2 == null) return;
@@ -291,6 +309,12 @@ public partial class SettingsWebWindow : Window
                     int? wIconSizePx = root.TryGetProperty("iconSizePx", out var wispProp) && wispProp.ValueKind == JsonValueKind.Number
                         ? wispProp.GetInt32()
                         : null;
+                    int? wIconPaddingPx = root.TryGetProperty("iconPaddingPx", out var wippProp) && wippProp.ValueKind == JsonValueKind.Number
+                        ? wippProp.GetInt32()
+                        : null;
+                    int? wStartIconScalePercent = root.TryGetProperty("startIconScalePercent", out var wsiscProp) && wsiscProp.ValueKind == JsonValueKind.Number
+                        ? wsiscProp.GetInt32()
+                        : null;
                     int? wOrder = root.TryGetProperty("order", out var woProp) && woProp.ValueKind == JsonValueKind.Number
                         ? woProp.GetInt32()
                         : null;
@@ -319,7 +343,9 @@ public partial class SettingsWebWindow : Window
                             wShowCpu,
                             wShowRam,
                             wShowGpu,
-                            wIconSizePx);
+                            wIconSizePx,
+                            wIconPaddingPx,
+                            wStartIconScalePercent);
                     }
                     break;
 
@@ -437,6 +463,98 @@ public partial class SettingsWebWindow : Window
 
                 case "reload_widgets":
                     _shellState.BroadcastState();
+                    break;
+
+                case "update_icon_pack":
+                    {
+                        string? packId = root.TryGetProperty("iconPack", out var ipProp) ? ipProp.GetString() : "native";
+                        _shellState.UpdateIconPack(packId);
+                    }
+                    break;
+
+                case "refresh_icon_packs":
+                    _shellState.RefreshIconPacks();
+                    break;
+
+                case "delete_icon_pack":
+                    if (root.TryGetProperty("id", out var dipIdProp) && !string.IsNullOrWhiteSpace(dipIdProp.GetString()))
+                    {
+                        _shellState.DeleteIconPack(dipIdProp.GetString());
+                    }
+                    break;
+
+                case "open_gnome_look":
+                    try
+                    {
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = "https://www.gnome-look.org/browse?cat=132&ord=rating",
+                            UseShellExecute = true
+                        });
+                    }
+                    catch { }
+                    break;
+
+                case "open_icon_packs_folder":
+                    if (_shellState.IconPacks != null)
+                    {
+                        try
+                        {
+                            Directory.CreateDirectory(_shellState.IconPacks.UserPacksDirectory);
+                            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                            {
+                                FileName = _shellState.IconPacks.UserPacksDirectory,
+                                UseShellExecute = true
+                            });
+                        }
+                        catch { }
+                    }
+                    break;
+
+                case "import_icon_pack_archive":
+                    {
+                        var dlg = new Microsoft.Win32.OpenFileDialog
+                        {
+                            Title = "Import Icon Pack Archive (GNOME-Look / ZIP / TAR)",
+                            Filter = "Icon Pack Archives (*.zip;*.tar.xz;*.tar.gz;*.tgz;*.tar)|*.zip;*.tar.xz;*.tar.gz;*.tgz;*.tar|All Files (*.*)|*.*"
+                        };
+                        if (dlg.ShowDialog(this) == true && !string.IsNullOrWhiteSpace(dlg.FileName))
+                        {
+                            string selectedPath = dlg.FileName;
+                            PostIconPackImportStatus(true, true, $"Extracting '{Path.GetFileName(selectedPath)}'...", 8);
+                            _ = System.Threading.Tasks.Task.Run(() =>
+                            {
+                                bool ok = _shellState.ImportIconPackFromPath(
+                                    selectedPath,
+                                    out string msg,
+                                    (pct, stage) => Dispatcher.BeginInvoke(() => PostIconPackImportStatus(true, true, stage, pct)));
+                                Dispatcher.Invoke(() => PostIconPackImportStatus(false, ok, msg, ok ? 100 : 0));
+                            });
+                        }
+                    }
+                    break;
+
+                case "import_icon_pack_folder":
+                    {
+                        using var fbd = new System.Windows.Forms.FolderBrowserDialog
+                        {
+                            Description = "Select an extracted Icon Pack folder (containing index.theme or apps/)",
+                            UseDescriptionForTitle = true
+                        };
+                        if (fbd.ShowDialog() == System.Windows.Forms.DialogResult.OK && !string.IsNullOrWhiteSpace(fbd.SelectedPath))
+                        {
+                            string selectedDir = fbd.SelectedPath;
+                            PostIconPackImportStatus(true, true, $"Scanning folder '{Path.GetFileName(selectedDir)}'...", 10);
+                            _ = System.Threading.Tasks.Task.Run(() =>
+                            {
+                                bool ok = _shellState.ImportIconPackFromPath(
+                                    selectedDir,
+                                    out string msg,
+                                    (pct, stage) => Dispatcher.BeginInvoke(() => PostIconPackImportStatus(true, true, stage, pct)));
+                                Dispatcher.Invoke(() => PostIconPackImportStatus(false, ok, msg, ok ? 100 : 0));
+                            });
+                        }
+                    }
                     break;
 
                 case "emergency_restore":

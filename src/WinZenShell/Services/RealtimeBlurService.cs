@@ -57,6 +57,11 @@ public sealed class RealtimeBlurService : IDisposable
     // Cached wallpaper strip matching taskbar bounds
     private string _wpCacheKey = "";
     private byte[] _wpBgraBytes = Array.Empty<byte>();
+    private IntPtr _liveWallpaperHwnd;
+    private long _liveWallpaperProbeTick;
+    private long _liveWallpaperCaptureTick;
+    private byte[] _liveWpStripBytes = Array.Empty<byte>();
+    private string _liveWpStripKey = "";
 
     private byte[] _srcScratch = Array.Empty<byte>();
     private byte[] _rgbaScratch = new byte[MaxBufferBytes];
@@ -214,6 +219,9 @@ public sealed class RealtimeBlurService : IDisposable
                 Marshal.Copy(_wpBgraBytes, 0, _dibBits, srcBytes);
             }
 
+            // 1b. Live Wallpaper Layer (e.g. Lively Wallpaper, Wallpaper Engine hosted under WorkerW/Progman)
+            CompositeLiveWallpaperLayer(screenDc, rc);
+
             // 2. Live Windows Layer: Composite visible windows intersecting the taskbar rect
             CompositeIntersectingWindows(screenDc, hwnd, rc);
 
@@ -307,6 +315,77 @@ public sealed class RealtimeBlurService : IDisposable
             }
             catch { }
         });
+    }
+
+    private IntPtr ResolveLiveWallpaperHwnd(Win32Api.RECT tbRect)
+    {
+        long now = Environment.TickCount64;
+        if (_liveWallpaperHwnd != IntPtr.Zero &&
+            Win32Api.IsWindowVisible(_liveWallpaperHwnd) &&
+            now - _liveWallpaperProbeTick < 2000)
+        {
+            return _liveWallpaperHwnd;
+        }
+
+        if (now - _liveWallpaperProbeTick < 2000 && _liveWallpaperHwnd == IntPtr.Zero)
+        {
+            return IntPtr.Zero;
+        }
+
+        _liveWallpaperProbeTick = now;
+        _liveWallpaperHwnd = Win32Api.FindLiveWallpaperWindow(tbRect);
+        return _liveWallpaperHwnd;
+    }
+
+    private void CompositeLiveWallpaperLayer(IntPtr screenDc, Win32Api.RECT tbRect)
+    {
+        IntPtr liveWnd = ResolveLiveWallpaperHwnd(tbRect);
+        if (liveWnd == IntPtr.Zero) return;
+
+        int capW = tbRect.Width;
+        int capH = tbRect.Height;
+        int stripBytes = capW * capH * 4;
+        string stripKey = $"{liveWnd.ToInt64()}|{tbRect.Left}|{tbRect.Top}|{capW}|{capH}";
+        long now = Environment.TickCount64;
+
+        // Throttle full-screen PrintWindow GPU readback of live wallpaper (~2 FPS) and reuse cached strip
+        if (_liveWpStripKey == stripKey &&
+            _liveWpStripBytes.Length == stripBytes &&
+            now - _liveWallpaperCaptureTick < 500)
+        {
+            Marshal.Copy(_liveWpStripBytes, 0, _dibBits, stripBytes);
+            return;
+        }
+
+        if (!Win32Api.GetWindowRect(liveWnd, out var rawRect)) return;
+        int w = rawRect.Width;
+        int h = rawRect.Height;
+        if (w <= 0 || h <= 0 || w > 4096 || h > 2560) return;
+
+        if (!EnsureWindowCaptureBuffer(screenDc, w, h)) return;
+        if (!Win32Api.PrintWindow(liveWnd, _wndDc, Win32Api.PW_RENDERFULLCONTENT))
+            return;
+
+        int interLeft = Math.Max(tbRect.Left, rawRect.Left);
+        int interTop = Math.Max(tbRect.Top, rawRect.Top);
+        int interRight = Math.Min(tbRect.Right, rawRect.Right);
+        int interBottom = Math.Min(tbRect.Bottom, rawRect.Bottom);
+        int interW = interRight - interLeft;
+        int interH = interBottom - interTop;
+        if (interW <= 0 || interH <= 0) return;
+
+        int dstX = interLeft - tbRect.Left;
+        int dstY = interTop - tbRect.Top;
+        int srcX = interLeft - rawRect.Left;
+        int srcY = interTop - rawRect.Top;
+
+        Win32Api.BitBlt(_memDc, dstX, dstY, interW, interH, _wndDc, srcX, srcY, Win32Api.SRCCOPY);
+
+        if (_liveWpStripBytes.Length != stripBytes)
+            _liveWpStripBytes = new byte[stripBytes];
+        Marshal.Copy(_dibBits, _liveWpStripBytes, 0, stripBytes);
+        _liveWpStripKey = stripKey;
+        _liveWallpaperCaptureTick = now;
     }
 
     private void CompositeIntersectingWindows(IntPtr screenDc, IntPtr taskbarHwnd, Win32Api.RECT tbRect)

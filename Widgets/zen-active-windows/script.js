@@ -9,10 +9,14 @@ let showThumbnails = typeof widgetConfig !== 'undefined' && widgetConfig
   ? widgetConfig.showThumbnails !== false
   : true;
 let iconSizePx = typeof widgetConfig !== 'undefined' && widgetConfig && typeof widgetConfig.iconSizePx === 'number'
-  ? Math.max(12, Math.min(32, widgetConfig.iconSizePx))
+  ? Math.max(12, Math.min(56, widgetConfig.iconSizePx))
   : 18;
+let iconPaddingPx = typeof widgetConfig !== 'undefined' && widgetConfig && typeof widgetConfig.iconPaddingPx === 'number'
+  ? Math.max(0, Math.min(18, widgetConfig.iconPaddingPx))
+  : 9;
 if (strip) {
   strip.style.setProperty('--aw-icon-size', `${iconSizePx}px`);
+  strip.style.setProperty('--aw-icon-padding', `${iconPaddingPx}px`);
 }
 let animationsEnabled = typeof widgetConfig !== 'undefined' && widgetConfig
   ? widgetConfig.animations !== false
@@ -81,14 +85,14 @@ const STICKY_NOTES_SVG = `<svg class="win-icon" viewBox="0 0 24 24" fill="none">
 const SETTINGS_SVG = `<svg class="win-icon" viewBox="0 0 24 24" fill="none"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 0 0-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 0 0-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" fill="#2B88D8"/><circle cx="12" cy="12" r="3" fill="#ffffff"/></svg>`;
 
 function getAppIconHtml(item) {
+  if (item.iconDataUrl) {
+    return `<img class="win-icon" draggable="false" src="${item.iconDataUrl}" alt="" />`;
+  }
   const id = (item.appId || '').toLowerCase();
   const proc = (item.processName || '').toLowerCase();
   const tit = (item.title || '').toLowerCase();
   if (id.includes('notes') || proc.includes('notes') || proc.includes('sticky') || tit.includes('sticky')) {
     return STICKY_NOTES_SVG;
-  }
-  if (item.iconDataUrl) {
-    return `<img class="win-icon" draggable="false" src="${item.iconDataUrl}" alt="" />`;
   }
   if (id.includes('systemsettings') || proc.includes('systemsettings') || tit === 'settings') {
     return SETTINGS_SVG;
@@ -125,16 +129,19 @@ window.addEventListener('winzen:state', (e) => {
   const newShowAppName = cfg.showAppName !== false;
   const newCombineApps = !!cfg.combineApps;
   const newShowThumbnails = cfg.showThumbnails !== false;
-  const newIconSizePx = typeof cfg.iconSizePx === 'number' ? Math.max(12, Math.min(32, cfg.iconSizePx)) : 18;
+  const newIconSizePx = typeof cfg.iconSizePx === 'number' ? Math.max(12, Math.min(56, cfg.iconSizePx)) : 18;
+  const newIconPaddingPx = typeof cfg.iconPaddingPx === 'number' ? Math.max(0, Math.min(18, cfg.iconPaddingPx)) : 9;
 
-  if (newShowAppName !== showAppName || newCombineApps !== combineApps || newShowThumbnails !== showThumbnails || newIconSizePx !== iconSizePx) {
+  if (newShowAppName !== showAppName || newCombineApps !== combineApps || newShowThumbnails !== showThumbnails || newIconSizePx !== iconSizePx || newIconPaddingPx !== iconPaddingPx) {
     const combineChanged = newCombineApps !== combineApps;
     showAppName = newShowAppName;
     combineApps = newCombineApps;
     showThumbnails = newShowThumbnails;
     iconSizePx = newIconSizePx;
+    iconPaddingPx = newIconPaddingPx;
     if (strip) {
       strip.style.setProperty('--aw-icon-size', `${iconSizePx}px`);
+      strip.style.setProperty('--aw-icon-padding', `${iconPaddingPx}px`);
     }
     if (combineChanged) {
       customOrder = [];
@@ -415,7 +422,7 @@ function renderWindows(m) {
       hasActive: it.windows.some((w) => w.isActive),
       allMin: it.windows.length > 0 && it.windows.every((w) => w.isMinimized),
       t: it.title,
-      i: !!it.iconDataUrl
+      i: it.iconDataUrl ? `${it.iconDataUrl.length}:${it.iconDataUrl.slice(-24)}` : ''
     }))
   });
 
@@ -509,7 +516,7 @@ function renderWindows(m) {
     btn.dataset.isPinned = item.isPinned ? 'true' : 'false';
     btn.dataset.hwnds = item.windows.map((w) => w.hwnd).join(',');
 
-    const iconSig = `${item.appId}|${item.processName}|${item.title === 'Settings' ? 's' : ''}|${item.iconDataUrl ? item.iconDataUrl.length : 0}`;
+    const iconSig = `${item.appId}|${item.processName}|${item.title === 'Settings' ? 's' : ''}|${item.iconDataUrl ? `${item.iconDataUrl.length}:${item.iconDataUrl.slice(-24)}` : 0}`;
     if (btn.dataset.iconSig !== iconSig) {
       btn.dataset.iconSig = iconSig;
       btn.dataset.labelSig = '';

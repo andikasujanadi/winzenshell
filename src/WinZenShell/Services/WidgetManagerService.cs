@@ -53,11 +53,17 @@ public class WidgetManifest
     [JsonPropertyName("iconSizePx")]
     public int IconSizePx { get; set; } = 18;
 
+    [JsonPropertyName("iconPaddingPx")]
+    public int IconPaddingPx { get; set; } = 9;
+
     [JsonPropertyName("startIcon")]
     public string StartIcon { get; set; } = "windows";
 
     [JsonPropertyName("startIconColorMode")]
     public string StartIconColorMode { get; set; } = "text";
+
+    [JsonPropertyName("startIconScalePercent")]
+    public int StartIconScalePercent { get; set; } = 100;
 
     [JsonPropertyName("startText")]
     public string StartText { get; set; } = "Start";
@@ -212,11 +218,13 @@ public class WidgetManagerService
                     manifest.ShowAppName = ov.ShowAppName;
                     manifest.CombineApps = ov.CombineApps;
                     manifest.ShowThumbnails = ov.ShowThumbnails;
-                    manifest.IconSizePx = Math.Clamp(ov.IconSizePx, 12, 32);
+                    manifest.IconSizePx = Math.Clamp(ov.IconSizePx, 12, 56);
+                    manifest.IconPaddingPx = Math.Clamp(ov.IconPaddingPx, 0, 18);
                     if (!string.IsNullOrWhiteSpace(ov.StartIcon))
                         manifest.StartIcon = ov.StartIcon;
                     if (!string.IsNullOrWhiteSpace(ov.StartIconColorMode))
                         manifest.StartIconColorMode = ov.StartIconColorMode;
+                    manifest.StartIconScalePercent = Math.Clamp(ov.StartIconScalePercent > 0 ? ov.StartIconScalePercent : 100, 40, 100);
                     if (ov.StartText != null)
                         manifest.StartText = ov.StartText;
                     manifest.ShowStartText = ov.ShowStartText;
@@ -411,8 +419,10 @@ public class WidgetStateOverride
     public bool CombineApps { get; set; } = false;
     public bool ShowThumbnails { get; set; } = true;
     public int IconSizePx { get; set; } = 18;
+    public int IconPaddingPx { get; set; } = 9;
     public string StartIcon { get; set; } = "windows";
     public string StartIconColorMode { get; set; } = "text";
+    public int StartIconScalePercent { get; set; } = 100;
     public string StartText { get; set; } = "Start";
     public bool ShowStartText { get; set; } = false;
     public string DisplayMode { get; set; } = "widget";

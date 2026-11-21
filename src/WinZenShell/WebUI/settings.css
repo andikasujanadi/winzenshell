@@ -2440,6 +2440,65 @@ body.winzen-no-anim *:active {
   justify-content: center;
 }
 
+.icon-pack-progress-wrap {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 440px;
+}
+
+.icon-pack-progress-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.icon-pack-spinner {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  border-top-color: var(--win11-accent);
+  animation: iconPackSpin 0.75s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes iconPackSpin {
+  to { transform: rotate(360deg); }
+}
+
+.icon-pack-progress-label {
+  color: var(--win11-text-primary);
+  font-weight: 500;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.icon-pack-progress-pct {
+  color: var(--win11-text-secondary);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.icon-pack-progress-track {
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.icon-pack-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--win11-accent);
+  transition: width 0.18s ease, background-color 0.18s ease;
+}
+
 .layout-preset-rename-input {
   height: 28px;
   font-size: 13px;

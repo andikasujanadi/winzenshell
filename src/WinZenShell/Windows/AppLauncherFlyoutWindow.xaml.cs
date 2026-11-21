@@ -308,6 +308,7 @@ public partial class AppLauncherFlyoutWindow : Window
         {
             PushAppsData();
         }
+        _appLauncherService.RefreshIfStale();
         FocusSearchInput();
     }
 

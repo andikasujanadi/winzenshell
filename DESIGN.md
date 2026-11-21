@@ -76,4 +76,7 @@
     - `zen-power`: Compact taskbar icon (`32px × 32px`) and Control Center (`1:1` / `1:2`) button opening `PowerFlyoutWindow` (`236px` width, `14px` corner radius) with Sleep, Lock, Restart, and Shutdown actions.
     - `zen-lock-button`: One-click workstation lock (`Win32Api.LockWorkStation()`), supporting taskbar icon and Control Center tile modes without native browser tooltip popovers.
   - **Layout Presets (`settings.html` / `Layouts` tab)**:
-    - Inline preset creator and list supporting **Apply**, **Rename**, **Update**, and **Delete** across full Shell, Dynamic Island, Taskbar, and Control Center configurations.
+    - Alphabetically sorted card grid supporting **Apply**, **Rename**, **Update**, and **Delete** icon actions across full Shell, Dynamic Island, Taskbar, and Control Center configurations.
+  - **Icon Packs & Taskbar Icon Sizing (`settings.html` / `Icon Packs` & `Shell` tabs)**:
+    - Dedicated **Icon Packs** page with **Open GNOME-Look.org** shortcut, archive/folder importer (`.zip`, `.tar.xz`, `.tar.gz`, `.tgz`, `.tar`) with live progress bar and Linux symlink resolution, and installed icon pack card grid.
+    - Taskbar icon sizing supports `12px–56px` **Icon Size**, `0px–18px` **Icon Padding**, **App Launcher Icon** selector (`ChromeOS`, `Gnome`, `Windows 11`, `Windows 10`, `Apple`), and `40%–100%` **App Launcher Icon Scale**.

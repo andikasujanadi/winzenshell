@@ -7,7 +7,7 @@
 
 .start-pill {
   width: max-content;
-  height: max(36px, calc(var(--aw-icon-size, var(--winzen-app-icon-size, 18px)) + 18px));
+  height: calc(var(--aw-icon-size, var(--winzen-app-icon-size, 18px)) + (var(--aw-icon-padding, 9px) * 2));
   max-height: 100%;
   border-radius: var(--winzen-radius-xs, 4px);
   border: 1px solid transparent;
@@ -17,16 +17,16 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 0 10px;
+  padding: 0 var(--aw-icon-padding, 10px);
   cursor: pointer;
   transition: background-color 0.1s ease, border-color 0.1s ease;
   font-family: var(--winzen-font, 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, sans-serif);
 }
 
 .start-pill.icon-only {
-  width: max(36px, calc(var(--aw-icon-size, var(--winzen-app-icon-size, 18px)) + 18px));
-  min-width: max(36px, calc(var(--aw-icon-size, var(--winzen-app-icon-size, 18px)) + 18px));
-  height: max(36px, calc(var(--aw-icon-size, var(--winzen-app-icon-size, 18px)) + 18px));
+  width: calc(var(--aw-icon-size, var(--winzen-app-icon-size, 18px)) + (var(--aw-icon-padding, 9px) * 2));
+  min-width: calc(var(--aw-icon-size, var(--winzen-app-icon-size, 18px)) + (var(--aw-icon-padding, 9px) * 2));
+  height: calc(var(--aw-icon-size, var(--winzen-app-icon-size, 18px)) + (var(--aw-icon-padding, 9px) * 2));
   padding: 0;
 }
 
@@ -76,14 +76,14 @@ body.theme-light .start-pill:active {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: var(--aw-icon-size, var(--winzen-app-icon-size, 18px));
-  height: var(--aw-icon-size, var(--winzen-app-icon-size, 18px));
+  width: calc(var(--aw-icon-size, var(--winzen-app-icon-size, 18px)) * var(--start-icon-scale, 1));
+  height: calc(var(--aw-icon-size, var(--winzen-app-icon-size, 18px)) * var(--start-icon-scale, 1));
   flex-shrink: 0;
 }
 
 .start-icon svg {
-  width: var(--aw-icon-size, var(--winzen-app-icon-size, 18px));
-  height: var(--aw-icon-size, var(--winzen-app-icon-size, 18px));
+  width: calc(var(--aw-icon-size, var(--winzen-app-icon-size, 18px)) * var(--start-icon-scale, 1));
+  height: calc(var(--aw-icon-size, var(--winzen-app-icon-size, 18px)) * var(--start-icon-scale, 1));
   display: block;
 }
 
@@ -94,7 +94,7 @@ body.theme-light .start-pill:active {
   height: 100%;
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr;
-  gap: max(1.5px, calc(var(--aw-icon-size, var(--winzen-app-icon-size, 18px)) * 0.11));
+  gap: max(1.5px, calc(var(--aw-icon-size, var(--winzen-app-icon-size, 18px)) * var(--start-icon-scale, 1) * 0.11));
   flex-shrink: 0;
 }
 

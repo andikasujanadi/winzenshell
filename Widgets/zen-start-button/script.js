@@ -29,27 +29,38 @@ function renderStartButton(iconKey, colorMode, customText, showText) {
 
 let iconKey = (typeof widgetConfig !== 'undefined' && widgetConfig && widgetConfig.startIcon) || 'chromeos';
 let colorMode = (typeof widgetConfig !== 'undefined' && widgetConfig && widgetConfig.startIconColorMode) || 'text';
+let scalePercent = (typeof widgetConfig !== 'undefined' && widgetConfig && typeof widgetConfig.startIconScalePercent === 'number' && widgetConfig.startIconScalePercent > 0)
+  ? widgetConfig.startIconScalePercent
+  : 100;
 let customText = (typeof widgetConfig !== 'undefined' && widgetConfig && widgetConfig.startText) || 'Launcher';
 let showText = typeof widgetConfig !== 'undefined' && widgetConfig ? !!widgetConfig.showStartText : false;
 let iconSizePx = 18;
+let iconPaddingPx = 9;
 try {
   const initWidgets = window.winzen && window.winzen.state && window.winzen.state.widgets;
   if (Array.isArray(initWidgets)) {
     const aw = initWidgets.find((w) => w.id === 'community.zen-active-windows');
     if (aw && typeof aw.iconSizePx === 'number') iconSizePx = aw.iconSizePx;
+    if (aw && typeof aw.iconPaddingPx === 'number') iconPaddingPx = aw.iconPaddingPx;
   }
 } catch { }
 
-function applyLauncherIconSize(sizePx) {
-  const clamped = Math.max(12, Math.min(32, Number(sizePx) || 18));
+function applyLauncherIconSize(sizePx, padPx, scalePct) {
+  const clamped = Math.max(12, Math.min(56, Number(sizePx) || 18));
+  const clampedPad = Math.max(0, Math.min(18, Number.isFinite(Number(padPx)) ? Number(padPx) : 9));
+  const clampedScale = Math.max(40, Math.min(100, Number(scalePct) || 100));
   iconSizePx = clamped;
+  iconPaddingPx = clampedPad;
+  scalePercent = clampedScale;
   if (startBtn) {
     startBtn.style.setProperty('--aw-icon-size', `${clamped}px`);
+    startBtn.style.setProperty('--aw-icon-padding', `${clampedPad}px`);
+    startBtn.style.setProperty('--start-icon-scale', `${(clampedScale / 100).toFixed(2)}`);
   }
 }
 
 renderStartButton(iconKey, colorMode, customText, showText);
-applyLauncherIconSize(iconSizePx);
+applyLauncherIconSize(iconSizePx, iconPaddingPx, scalePercent);
 
 if (startBtn) {
   startBtn.addEventListener('click', (ev) => {
@@ -74,12 +85,14 @@ window.addEventListener('winzen:state', (e) => {
   const state = e.detail;
   if (!state || !Array.isArray(state.widgets)) return;
   const activeWinCfg = state.widgets.find((w) => w.id === 'community.zen-active-windows');
-  if (activeWinCfg && typeof activeWinCfg.iconSizePx === 'number') {
-    if (activeWinCfg.iconSizePx !== iconSizePx) {
-      applyLauncherIconSize(activeWinCfg.iconSizePx);
-    }
-  }
   const cfg = state.widgets.find((w) => w.id === 'community.zen-start-button' || w.id === 'zen-start-button');
+
+  const nextSz = (activeWinCfg && typeof activeWinCfg.iconSizePx === 'number') ? activeWinCfg.iconSizePx : iconSizePx;
+  const nextPad = (activeWinCfg && typeof activeWinCfg.iconPaddingPx === 'number') ? activeWinCfg.iconPaddingPx : iconPaddingPx;
+  const nextScale = (cfg && typeof cfg.startIconScalePercent === 'number' && cfg.startIconScalePercent > 0) ? cfg.startIconScalePercent : scalePercent;
+  if (nextSz !== iconSizePx || nextPad !== iconPaddingPx || nextScale !== scalePercent) {
+    applyLauncherIconSize(nextSz, nextPad, nextScale);
+  }
   if (!cfg) return;
 
   const newIconKey = cfg.startIcon || 'chromeos';

@@ -16,6 +16,7 @@ public partial class App : System.Windows.Application
     private WidgetManagerService? _widgetManagerService;
     private SystemMetricsService? _systemMetricsService;
     private BrightnessService? _brightnessService;
+    private IconPackService? _iconPackService;
     private AppLauncherService? _appLauncherService;
     private ShellStateService? _shellStateService;
 
@@ -100,14 +101,21 @@ public partial class App : System.Windows.Application
             _workAreaService = new WorkAreaAppBarService();
             _widgetManagerService = new WidgetManagerService();
             _brightnessService = new BrightnessService();
-            _appLauncherService = new AppLauncherService();
-            _systemMetricsService = new SystemMetricsService { Brightness = _brightnessService };
+            _iconPackService = new IconPackService();
+            _appLauncherService = new AppLauncherService(_iconPackService);
+            _systemMetricsService = new SystemMetricsService
+            {
+                Brightness = _brightnessService,
+                IconPacks = _iconPackService
+            };
+            _iconPackService.ActivePackChanged += () => _systemMetricsService.ClearIconCaches();
 
             _shellStateService = new ShellStateService(
                 _nativeTaskbarService,
                 _workAreaService,
                 _widgetManagerService,
-                _systemMetricsService);
+                _systemMetricsService,
+                _iconPackService);
 
             System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] Creating TaskbarWebWindow...\n");
             _taskbarWindow = new TaskbarWebWindow(
