@@ -5,7 +5,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 Write-Host "Stopping running WinZenShell processes..."
-taskkill /F /IM WinZenShell.exe /T 2>$null | Out-Null
+Get-Process WinZenShell -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 Start-Sleep -Milliseconds 600
 
 Write-Host "Publishing standard release to publish\WinZenShell..."

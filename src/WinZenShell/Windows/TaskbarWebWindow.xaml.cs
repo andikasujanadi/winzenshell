@@ -1816,9 +1816,8 @@ public partial class TaskbarWebWindow : Window
             Renderer = new Win11DarkContextMenuRenderer(),
             ForeColor = Color.FromArgb(245, 245, 245),
             BackColor = Color.FromArgb(44, 44, 44),
-            ShowImageMargin = true,
+            ShowImageMargin = false,
             ShowCheckMargin = false,
-            ImageScalingSize = new System.Drawing.Size(16, 16),
             Font = new Font("Segoe UI", 9.5f, System.Drawing.FontStyle.Regular),
             Padding = new Forms.Padding(4, 4, 4, 4)
         };
@@ -1837,15 +1836,14 @@ public partial class TaskbarWebWindow : Window
             : (!string.IsNullOrWhiteSpace(title) ? title : processName);
 
         Color accentDrawingColor = ParseDrawingAccentColor(_shellState.Settings.AccentColor);
+        var itemPadding = new Forms.Padding(0, 6, 0, 6);
 
-        Bitmap? appIcon = GetBitmapFromDataUrl(iconDataUrl);
         var headerItem = new Forms.ToolStripMenuItem(headerText)
         {
             Enabled = false,
             ForeColor = Color.FromArgb(170, 170, 170),
             Font = new Font("Segoe UI", 9.0f, System.Drawing.FontStyle.Bold),
-            Padding = new Forms.Padding(6, 6, 10, 5),
-            Image = appIcon ?? CreateFluentIcon("window", false, accentDrawingColor)
+            Padding = itemPadding
         };
         menu.Items.Add(headerItem);
         menu.Items.Add(new Forms.ToolStripSeparator());
@@ -1856,8 +1854,7 @@ public partial class TaskbarWebWindow : Window
             var launchItem = new Forms.ToolStripMenuItem("Open")
             {
                 ForeColor = Color.FromArgb(245, 245, 245),
-                Padding = new Forms.Padding(6, 5, 10, 5),
-                Image = CreateFluentIcon("launch", false, accentDrawingColor)
+                Padding = itemPadding
             };
             launchItem.Click += (_, _) =>
             {
@@ -1873,8 +1870,7 @@ public partial class TaskbarWebWindow : Window
             var unpinClosedItem = new Forms.ToolStripMenuItem("Unpin from taskbar")
             {
                 ForeColor = Color.FromArgb(245, 245, 245),
-                Padding = new Forms.Padding(6, 5, 10, 5),
-                Image = CreateFluentIcon("unpin", false, accentDrawingColor)
+                Padding = itemPadding
             };
             unpinClosedItem.Click += (_, _) =>
             {
@@ -1898,8 +1894,7 @@ public partial class TaskbarWebWindow : Window
                 var winItem = new Forms.ToolStripMenuItem(itemLabel)
                 {
                     ForeColor = w.IsActive ? accentDrawingColor : Color.FromArgb(245, 245, 245),
-                    Padding = new Forms.Padding(6, 5, 10, 5),
-                    Image = CreateFluentIcon("window", w.IsActive, accentDrawingColor)
+                    Padding = itemPadding
                 };
                 long targetHwnd = w.Hwnd;
                 winItem.Click += (_, _) =>
@@ -1917,8 +1912,7 @@ public partial class TaskbarWebWindow : Window
             var switchItem = new Forms.ToolStripMenuItem("Switch to window")
             {
                 ForeColor = Color.FromArgb(245, 245, 245),
-                Padding = new Forms.Padding(6, 5, 10, 5),
-                Image = CreateFluentIcon("focus", false, accentDrawingColor)
+                Padding = itemPadding
             };
             switchItem.Click += (_, _) =>
             {
@@ -1931,8 +1925,7 @@ public partial class TaskbarWebWindow : Window
         var minimizeItem = new Forms.ToolStripMenuItem(isMulti ? "Minimize all" : "Minimize")
         {
             ForeColor = Color.FromArgb(245, 245, 245),
-            Padding = new Forms.Padding(6, 5, 10, 5),
-            Image = CreateFluentIcon("minimize")
+            Padding = itemPadding
         };
         minimizeItem.Click += (_, _) =>
         {
@@ -1955,8 +1948,7 @@ public partial class TaskbarWebWindow : Window
             var unpinItem = new Forms.ToolStripMenuItem("Unpin from taskbar")
             {
                 ForeColor = Color.FromArgb(245, 245, 245),
-                Padding = new Forms.Padding(6, 5, 10, 5),
-                Image = CreateFluentIcon("unpin")
+                Padding = itemPadding
             };
             unpinItem.Click += (_, _) =>
             {
@@ -1970,8 +1962,7 @@ public partial class TaskbarWebWindow : Window
             var pinItem = new Forms.ToolStripMenuItem("Pin to taskbar")
             {
                 ForeColor = Color.FromArgb(245, 245, 245),
-                Padding = new Forms.Padding(6, 5, 10, 5),
-                Image = CreateFluentIcon("pin")
+                Padding = itemPadding
             };
             pinItem.Click += (_, _) =>
             {
@@ -1984,8 +1975,7 @@ public partial class TaskbarWebWindow : Window
         var hideItem = new Forms.ToolStripMenuItem("Hide app from taskbar")
         {
             ForeColor = Color.FromArgb(220, 220, 220),
-            Padding = new Forms.Padding(6, 5, 10, 5),
-            Image = CreateFluentIcon("hide")
+            Padding = itemPadding
         };
         hideItem.Click += (_, _) =>
         {
@@ -1997,8 +1987,7 @@ public partial class TaskbarWebWindow : Window
         var closeItem = new Forms.ToolStripMenuItem(isMulti ? "Close all windows" : "Close window")
         {
             ForeColor = Color.FromArgb(255, 153, 164),
-            Padding = new Forms.Padding(6, 5, 10, 5),
-            Image = CreateFluentIcon("close"),
+            Padding = itemPadding,
             Tag = "danger"
         };
         closeItem.Click += (_, _) =>
@@ -2244,7 +2233,8 @@ public partial class TaskbarWebWindow : Window
 
             if (e.Item.Selected || e.Item.Pressed)
             {
-                var bounds = new Rectangle(4, 1, e.Item.Width - 8, e.Item.Height - 2);
+                int menuWidth = e.ToolStrip != null ? e.ToolStrip.ClientSize.Width : e.Item.Width;
+                var bounds = new Rectangle(4, 1, Math.Max(10, menuWidth - 8), e.Item.Height - 2);
                 bool isDanger = string.Equals(e.Item.Tag as string, "danger", StringComparison.OrdinalIgnoreCase);
                 Color bgColor = isDanger ? Color.FromArgb(68, 32, 38) : Color.FromArgb(60, 60, 60);
                 using var brush = new SolidBrush(bgColor);
@@ -2262,14 +2252,28 @@ public partial class TaskbarWebWindow : Window
                 : (e.Item.Selected ? Color.White : e.TextColor);
 
             e.TextColor = textColor;
+            if (e.ToolStrip is Forms.ToolStripDropDownMenu ddm && !ddm.ShowImageMargin)
+            {
+                int menuWidth = e.ToolStrip != null ? e.ToolStrip.ClientSize.Width : e.Item.Width;
+                var rect = new Rectangle(14, 0, Math.Max(10, menuWidth - 28), e.Item.Height);
+                Forms.TextRenderer.DrawText(
+                    e.Graphics,
+                    e.Text,
+                    e.TextFont,
+                    rect,
+                    textColor,
+                    Forms.TextFormatFlags.Left | Forms.TextFormatFlags.VerticalCenter | Forms.TextFormatFlags.EndEllipsis | Forms.TextFormatFlags.SingleLine);
+                return;
+            }
             base.OnRenderItemText(e);
         }
 
         protected override void OnRenderSeparator(Forms.ToolStripSeparatorRenderEventArgs e)
         {
             int y = e.Item.Height / 2;
+            int menuWidth = e.ToolStrip != null ? e.ToolStrip.ClientSize.Width : e.Item.Width;
             using var pen = new Pen(Color.FromArgb(58, 58, 58), 1);
-            e.Graphics.DrawLine(pen, 10, y, e.Item.Width - 10, y);
+            e.Graphics.DrawLine(pen, 10, y, Math.Max(10, menuWidth - 10), y);
         }
 
         private static System.Drawing.Drawing2D.GraphicsPath CreateRoundedRect(Rectangle bounds, int radius)
