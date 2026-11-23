@@ -2081,7 +2081,10 @@ public partial class TaskbarWebWindow : Window
         {
             _trayIconService.EndTask(item);
             BroadcastMetrics();
-            _trayOverflowFlyout?.RefreshIcons(forceScan: true);
+            if (_trayOverflowFlyout != null && _trayOverflowFlyout.IsVisible)
+            {
+                _trayOverflowFlyout.RefreshIcons(forceScan: false);
+            }
         };
         menu.Items.Add(endTaskItem);
 

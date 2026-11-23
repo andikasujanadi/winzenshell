@@ -34,6 +34,8 @@ public class TrayIconItem
 public class TrayIconService
 {
     private readonly ConcurrentDictionary<string, string> _iconCache = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, DateTime> _suppressedTrayIds = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<int, DateTime> _suppressedPids = new();
     private readonly object _cacheLock = new();
     private List<TrayIconItem> _cachedItems = new();
     private DateTime _lastRefreshUtc = DateTime.MinValue;
@@ -230,6 +232,24 @@ public class TrayIconService
         }
     }
 
+    private bool IsSuppressed(TrayIconItem item)
+    {
+        var now = DateTime.UtcNow;
+        if (!string.IsNullOrWhiteSpace(item.Id) &&
+            _suppressedTrayIds.TryGetValue(item.Id, out var idExp) && now < idExp)
+            return true;
+
+        if (item.ProcessId > 0 &&
+            _suppressedPids.TryGetValue(item.ProcessId, out var pidExp) && now < pidExp)
+            return true;
+
+        if (!string.IsNullOrWhiteSpace(item.RegistryKeyName) &&
+            _suppressedTrayIds.TryGetValue(item.RegistryKeyName, out var regExp) && now < regExp)
+            return true;
+
+        return false;
+    }
+
     private List<TrayIconItem> BuildTrayIconList()
     {
         var results = new List<TrayIconItem>();
@@ -239,6 +259,7 @@ public class TrayIconService
         var classicItems = ReadAllToolbarTrayIcons();
         foreach (var item in classicItems)
         {
+            if (IsSuppressed(item)) continue;
             string sig = $"{item.TargetHwnd}:{item.Uid}";
             if (seenSignatures.Add(sig))
             {
@@ -250,6 +271,7 @@ public class TrayIconService
         var regItems = ReadNotifyIconRegistryItems();
         foreach (var item in regItems)
         {
+            if (IsSuppressed(item)) continue;
             string exeKey = Path.GetFileName(item.ExecutablePath);
             // Avoid duplicating an icon already read live from ToolbarWindow32 for the same executable/tooltip
             bool alreadyLive = results.Any(r =>
@@ -607,6 +629,14 @@ public class TrayIconService
         bool killed = false;
         int pidToKill = item.ProcessId;
 
+        // Suppress this tray icon immediately so subsequent background scans won't bring it back as a ghost
+        if (!string.IsNullOrWhiteSpace(item.Id))
+            _suppressedTrayIds[item.Id] = DateTime.UtcNow.AddSeconds(15);
+        if (!string.IsNullOrWhiteSpace(item.RegistryKeyName))
+            _suppressedTrayIds[item.RegistryKeyName] = DateTime.UtcNow.AddSeconds(15);
+        if (pidToKill > 0)
+            _suppressedPids[pidToKill] = DateTime.UtcNow.AddSeconds(15);
+
         if (pidToKill > 0)
         {
             try
@@ -617,6 +647,7 @@ public class TrayIconService
                     !string.Equals(pName, "WinZenShell", StringComparison.OrdinalIgnoreCase))
                 {
                     p.Kill(entireProcessTree: true);
+                    try { p.WaitForExit(250); } catch { }
                     killed = true;
                 }
             }
@@ -637,6 +668,7 @@ public class TrayIconService
                         try
                         {
                             p.Kill(entireProcessTree: true);
+                            try { p.WaitForExit(200); } catch { }
                             killed = true;
                         }
                         catch { }
@@ -650,15 +682,14 @@ public class TrayIconService
             catch { }
         }
 
-        if (killed)
+        // Always remove immediately from active cache regardless
+        lock (_cacheLock)
         {
-            lock (_cacheLock)
-            {
-                _cachedItems.RemoveAll(i =>
-                    string.Equals(i.Id, item.Id, StringComparison.Ordinal) ||
-                    (pidToKill > 0 && i.ProcessId == pidToKill));
-                _lastRefreshUtc = DateTime.UtcNow;
-            }
+            _cachedItems.RemoveAll(i =>
+                string.Equals(i.Id, item.Id, StringComparison.Ordinal) ||
+                (!string.IsNullOrWhiteSpace(item.RegistryKeyName) && string.Equals(i.RegistryKeyName, item.RegistryKeyName, StringComparison.OrdinalIgnoreCase)) ||
+                (pidToKill > 0 && i.ProcessId == pidToKill));
+            _lastRefreshUtc = DateTime.UtcNow;
         }
 
         return killed;

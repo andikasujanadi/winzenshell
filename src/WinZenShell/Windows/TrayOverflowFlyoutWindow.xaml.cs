@@ -229,6 +229,7 @@ public partial class TrayOverflowFlyoutWindow : Window
         pinItem.Click += (_, _) =>
         {
             _trayService.TogglePromoted(item);
+            _lastRenderSignature = "";
             RefreshIcons(forceScan: false);
             _onChanged?.Invoke();
         };
@@ -243,7 +244,8 @@ public partial class TrayOverflowFlyoutWindow : Window
         endTaskItem.Click += (_, _) =>
         {
             _trayService.EndTask(item);
-            RefreshIcons(forceScan: true);
+            _lastRenderSignature = "";
+            RefreshIcons(forceScan: false);
             _onChanged?.Invoke();
         };
         menu.Items.Add(endTaskItem);
