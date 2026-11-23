@@ -57,7 +57,7 @@
                        TextWrapping="Wrap"/>
 
             <TextBlock x:Name="TxtHint"
-                       Text="Right-click icon to pin/unpin"
+                       Text="Right-click icon for options"
                        Foreground="{DynamicResource MutedFg}"
                        FontSize="10"
                        Margin="2,6,2,0"

@@ -1586,14 +1586,13 @@ public partial class TaskbarWebWindow : Window
                     bool trayRight = root.TryGetProperty("rightClick", out var trayRightProp) && trayRightProp.GetBoolean();
                     Dispatcher.Invoke(() =>
                     {
-                        if (trayRight && trayId.StartsWith("reg:", StringComparison.Ordinal))
+                        if (trayRight)
                         {
-                            _trayIconService.TogglePromoted(trayId[4..]);
-                            BroadcastMetrics();
+                            ShowTrayIconContextMenu(trayId);
                         }
                         else
                         {
-                            _trayIconService.ActivateTrayIcon(trayId, trayRight, _openSettingsCallback);
+                            _trayIconService.ActivateTrayIcon(trayId, false, _openSettingsCallback);
                         }
                     });
                     break;
@@ -2005,6 +2004,95 @@ public partial class TaskbarWebWindow : Window
         menu.Show(cursorPos, Forms.ToolStripDropDownDirection.AboveRight);
     }
 
+    private void ShowTrayIconContextMenu(string trayId, System.Drawing.Point? screenPos = null)
+    {
+        var item = _trayIconService.GetTrayItemById(trayId);
+        if (item == null) return;
+
+        _activeNativeMenu?.Close();
+
+        var menu = new Forms.ContextMenuStrip
+        {
+            Renderer = new Win11DarkContextMenuRenderer(),
+            ForeColor = Color.FromArgb(245, 245, 245),
+            BackColor = Color.FromArgb(44, 44, 44),
+            ShowImageMargin = false,
+            ShowCheckMargin = false,
+            Font = new Font("Segoe UI", 9.5f, System.Drawing.FontStyle.Regular),
+            Padding = new Forms.Padding(4, 4, 4, 4)
+        };
+
+        menu.HandleCreated += (_, _) =>
+        {
+            int corner = 2; // DWMWCP_ROUND
+            Win32Api.DwmSetWindowAttribute(menu.Handle, 33, ref corner, sizeof(int));
+            int dark = 1;
+            Win32Api.DwmSetWindowAttribute(menu.Handle, 20, ref dark, sizeof(int));
+        };
+
+        string headerText = !string.IsNullOrWhiteSpace(item.Name)
+            ? item.Name
+            : (!string.IsNullOrWhiteSpace(item.Tooltip) ? item.Tooltip.Split('\n')[0].Trim() : "Tray App");
+
+        var itemPadding = new Forms.Padding(0, 6, 0, 6);
+
+        var headerItem = new Forms.ToolStripMenuItem(headerText)
+        {
+            Enabled = false,
+            ForeColor = Color.FromArgb(170, 170, 170),
+            Font = new Font("Segoe UI", 9.0f, System.Drawing.FontStyle.Bold),
+            Padding = itemPadding
+        };
+        menu.Items.Add(headerItem);
+        menu.Items.Add(new Forms.ToolStripSeparator());
+
+        var openItem = new Forms.ToolStripMenuItem("Open")
+        {
+            ForeColor = Color.FromArgb(245, 245, 245),
+            Padding = itemPadding
+        };
+        openItem.Click += (_, _) =>
+        {
+            _trayIconService.ActivateTrayIcon(item.Id, false, _openSettingsCallback);
+        };
+        menu.Items.Add(openItem);
+
+        string pinText = item.IsPromoted ? "Unpin from taskbar" : "Pin to taskbar";
+        var pinItem = new Forms.ToolStripMenuItem(pinText)
+        {
+            ForeColor = Color.FromArgb(245, 245, 245),
+            Padding = itemPadding
+        };
+        pinItem.Click += (_, _) =>
+        {
+            _trayIconService.TogglePromoted(item);
+            BroadcastMetrics();
+            _trayOverflowFlyout?.RefreshIcons(forceScan: false);
+        };
+        menu.Items.Add(pinItem);
+
+        var endTaskItem = new Forms.ToolStripMenuItem("End task")
+        {
+            ForeColor = Color.FromArgb(255, 153, 164),
+            Padding = itemPadding,
+            Tag = "danger"
+        };
+        endTaskItem.Click += (_, _) =>
+        {
+            _trayIconService.EndTask(item);
+            BroadcastMetrics();
+            _trayOverflowFlyout?.RefreshIcons(forceScan: true);
+        };
+        menu.Items.Add(endTaskItem);
+
+        var cursorPos = screenPos ?? Forms.Cursor.Position;
+        _activeNativeMenu = menu;
+        var dir = string.Equals(_shellState.Settings.DockEdge, "top", StringComparison.OrdinalIgnoreCase)
+            ? Forms.ToolStripDropDownDirection.BelowRight
+            : Forms.ToolStripDropDownDirection.AboveRight;
+        menu.Show(cursorPos, dir);
+    }
+
     public static Color ParseDrawingAccentColor(string? hex)
     {
         if (!string.IsNullOrWhiteSpace(hex))
@@ -2327,14 +2415,13 @@ public partial class TaskbarWebWindow : Window
                 bool rightClick = root.TryGetProperty("rightClick", out var r) && r.GetBoolean();
                 Dispatcher.Invoke(() =>
                 {
-                    if (rightClick && trayId.StartsWith("reg:", StringComparison.Ordinal))
+                    if (rightClick)
                     {
-                        _trayIconService.TogglePromoted(trayId[4..]);
-                        BroadcastMetrics();
+                        ShowTrayIconContextMenu(trayId);
                     }
                     else
                     {
-                        _trayIconService.ActivateTrayIcon(trayId, rightClick, _openSettingsCallback);
+                        _trayIconService.ActivateTrayIcon(trayId, false, _openSettingsCallback);
                     }
                 });
             }

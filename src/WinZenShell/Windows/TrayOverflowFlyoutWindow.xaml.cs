@@ -15,6 +15,7 @@ using Brush = System.Windows.Media.Brush;
 using Brushes = System.Windows.Media.Brushes;
 using Color = System.Windows.Media.Color;
 using ColorConverter = System.Windows.Media.ColorConverter;
+using Forms = System.Windows.Forms;
 
 namespace WinZenShell.Windows;
 
@@ -27,6 +28,7 @@ public partial class TrayOverflowFlyoutWindow : Window
     private string _lastRenderSignature = "";
     private SolidColorBrush _accentBrush = new(Color.FromRgb(0x36, 0x84, 0xE3));
     private bool _isLightTheme;
+    private bool _isContextMenuOpen;
     public DateTime LastDeactivatedTime { get; private set; } = DateTime.MinValue;
 
     public TrayOverflowFlyoutWindow(TrayIconService trayService, Action? onWinZenSelfClick = null, Action? onChanged = null)
@@ -38,6 +40,7 @@ public partial class TrayOverflowFlyoutWindow : Window
 
         Deactivated += (_, _) =>
         {
+            if (_isContextMenuOpen) return;
             FlyoutAnimationHelper.HandleDeactivated(this, () => LastDeactivatedTime = DateTime.UtcNow);
         };
     }
@@ -139,7 +142,7 @@ public partial class TrayOverflowFlyoutWindow : Window
             Margin = new Thickness(3),
             Content = innerGrid,
             Template = template,
-            ToolTip = item.Tooltip + (item.IsPromoted ? "\n(Pinned — right-click to move here)" : "\n(Right-click to pin to taskbar)"),
+            ToolTip = item.Tooltip + (item.IsPromoted ? "\n(Pinned to taskbar — right-click for options)" : "\n(Right-click for options)"),
             Cursor = System.Windows.Input.Cursors.Hand
         };
 
@@ -152,20 +155,101 @@ public partial class TrayOverflowFlyoutWindow : Window
         btn.MouseRightButtonUp += (_, e) =>
         {
             e.Handled = true;
-            if (!string.IsNullOrWhiteSpace(item.RegistryKeyName))
-            {
-                _trayService.TogglePromoted(item.RegistryKeyName);
-                RefreshIcons(forceScan: false);
-                _onChanged?.Invoke();
-            }
-            else if (item.IsClassicToolbarItem)
-            {
-                Hide();
-                _trayService.ActivateTrayIcon(item.Id, rightClick: true, onWinZenSelfClick: _onWinZenSelfClick);
-            }
+            ShowTrayItemContextMenu(item);
         };
 
         return btn;
+    }
+
+    private void ShowTrayItemContextMenu(TrayIconItem item)
+    {
+        var menu = new Forms.ContextMenuStrip
+        {
+            Renderer = new TaskbarWebWindow.Win11DarkContextMenuRenderer(),
+            ForeColor = System.Drawing.Color.FromArgb(245, 245, 245),
+            BackColor = System.Drawing.Color.FromArgb(44, 44, 44),
+            ShowImageMargin = false,
+            ShowCheckMargin = false,
+            Font = new System.Drawing.Font("Segoe UI", 9.5f, System.Drawing.FontStyle.Regular),
+            Padding = new Forms.Padding(4, 4, 4, 4)
+        };
+
+        menu.HandleCreated += (_, _) =>
+        {
+            int corner = 2; // DWMWCP_ROUND
+            Win32Api.DwmSetWindowAttribute(menu.Handle, 33, ref corner, sizeof(int));
+            int dark = 1;
+            Win32Api.DwmSetWindowAttribute(menu.Handle, 20, ref dark, sizeof(int));
+        };
+
+        _isContextMenuOpen = true;
+        menu.Closed += (_, _) =>
+        {
+            _isContextMenuOpen = false;
+            if (!IsActive)
+            {
+                FlyoutAnimationHelper.HandleDeactivated(this, () => LastDeactivatedTime = DateTime.UtcNow);
+            }
+        };
+
+        string headerText = !string.IsNullOrWhiteSpace(item.Name)
+            ? item.Name
+            : (!string.IsNullOrWhiteSpace(item.Tooltip) ? item.Tooltip.Split('\n')[0].Trim() : "Tray App");
+
+        var itemPadding = new Forms.Padding(0, 6, 0, 6);
+
+        var headerItem = new Forms.ToolStripMenuItem(headerText)
+        {
+            Enabled = false,
+            ForeColor = System.Drawing.Color.FromArgb(170, 170, 170),
+            Font = new System.Drawing.Font("Segoe UI", 9.0f, System.Drawing.FontStyle.Bold),
+            Padding = itemPadding
+        };
+        menu.Items.Add(headerItem);
+        menu.Items.Add(new Forms.ToolStripSeparator());
+
+        var openItem = new Forms.ToolStripMenuItem("Open")
+        {
+            ForeColor = System.Drawing.Color.FromArgb(245, 245, 245),
+            Padding = itemPadding
+        };
+        openItem.Click += (_, _) =>
+        {
+            Hide();
+            _trayService.ActivateTrayIcon(item.Id, false, _onWinZenSelfClick);
+        };
+        menu.Items.Add(openItem);
+
+        string pinText = item.IsPromoted ? "Unpin from taskbar" : "Pin to taskbar";
+        var pinItem = new Forms.ToolStripMenuItem(pinText)
+        {
+            ForeColor = System.Drawing.Color.FromArgb(245, 245, 245),
+            Padding = itemPadding
+        };
+        pinItem.Click += (_, _) =>
+        {
+            _trayService.TogglePromoted(item);
+            RefreshIcons(forceScan: false);
+            _onChanged?.Invoke();
+        };
+        menu.Items.Add(pinItem);
+
+        var endTaskItem = new Forms.ToolStripMenuItem("End task")
+        {
+            ForeColor = System.Drawing.Color.FromArgb(255, 153, 164),
+            Padding = itemPadding,
+            Tag = "danger"
+        };
+        endTaskItem.Click += (_, _) =>
+        {
+            _trayService.EndTask(item);
+            RefreshIcons(forceScan: true);
+            _onChanged?.Invoke();
+        };
+        menu.Items.Add(endTaskItem);
+
+        var cPos = Forms.Cursor.Position;
+        menu.Show(cPos, Forms.ToolStripDropDownDirection.AboveRight);
     }
 
     private UIElement CreateIconElement(TrayIconItem item)

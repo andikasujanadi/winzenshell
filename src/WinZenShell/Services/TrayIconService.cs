@@ -541,6 +541,129 @@ public class TrayIconService
         return list;
     }
 
+    public TrayIconItem? GetTrayItemById(string id)
+    {
+        if (string.IsNullOrWhiteSpace(id)) return null;
+        lock (_cacheLock)
+        {
+            var match = _cachedItems.FirstOrDefault(i => string.Equals(i.Id, id, StringComparison.Ordinal));
+            if (match != null) return match;
+        }
+        return GetActiveTrayIcons().FirstOrDefault(i => string.Equals(i.Id, id, StringComparison.Ordinal));
+    }
+
+    public bool TogglePromoted(TrayIconItem item)
+    {
+        if (item == null) return false;
+        if (!string.IsNullOrWhiteSpace(item.RegistryKeyName))
+        {
+            return TogglePromoted(item.RegistryKeyName);
+        }
+
+        if (!string.IsNullOrWhiteSpace(item.ExecutablePath))
+        {
+            try
+            {
+                using var root = Registry.CurrentUser.OpenSubKey(@"Control Panel\NotifyIconSettings");
+                if (root != null)
+                {
+                    string targetFile = Path.GetFileName(item.ExecutablePath);
+                    foreach (string subName in root.GetSubKeyNames())
+                    {
+                        using var sub = root.OpenSubKey(subName);
+                        if (sub == null) continue;
+                        string exe = sub.GetValue("ExecutablePath") as string ?? "";
+                        if (!string.IsNullOrWhiteSpace(exe))
+                        {
+                            string resolved = ResolveKnownFolderPath(exe);
+                            if (string.Equals(resolved, item.ExecutablePath, StringComparison.OrdinalIgnoreCase) ||
+                                (!string.IsNullOrWhiteSpace(targetFile) && string.Equals(Path.GetFileName(resolved), targetFile, StringComparison.OrdinalIgnoreCase)))
+                            {
+                                item.RegistryKeyName = subName;
+                                return TogglePromoted(subName);
+                            }
+                        }
+                    }
+                }
+            }
+            catch { }
+        }
+
+        lock (_cacheLock)
+        {
+            item.IsPromoted = !item.IsPromoted;
+            _cachedItems = _cachedItems
+                .OrderByDescending(i => i.IsPromoted)
+                .ThenBy(i => i.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            _lastRefreshUtc = DateTime.UtcNow;
+        }
+        return true;
+    }
+
+    public bool EndTask(TrayIconItem item)
+    {
+        if (item == null) return false;
+        bool killed = false;
+        int pidToKill = item.ProcessId;
+
+        if (pidToKill > 0)
+        {
+            try
+            {
+                using var p = Process.GetProcessById(pidToKill);
+                string pName = p.ProcessName;
+                if (!IgnoredProcessNames.Contains(pName) &&
+                    !string.Equals(pName, "WinZenShell", StringComparison.OrdinalIgnoreCase))
+                {
+                    p.Kill(entireProcessTree: true);
+                    killed = true;
+                }
+            }
+            catch { }
+        }
+
+        if (!killed && !string.IsNullOrWhiteSpace(item.ExecutablePath))
+        {
+            try
+            {
+                string pName = Path.GetFileNameWithoutExtension(item.ExecutablePath);
+                if (!string.IsNullOrWhiteSpace(pName) &&
+                    !IgnoredProcessNames.Contains(pName) &&
+                    !string.Equals(pName, "WinZenShell", StringComparison.OrdinalIgnoreCase))
+                {
+                    foreach (var p in Process.GetProcessesByName(pName))
+                    {
+                        try
+                        {
+                            p.Kill(entireProcessTree: true);
+                            killed = true;
+                        }
+                        catch { }
+                        finally
+                        {
+                            p.Dispose();
+                        }
+                    }
+                }
+            }
+            catch { }
+        }
+
+        if (killed)
+        {
+            lock (_cacheLock)
+            {
+                _cachedItems.RemoveAll(i =>
+                    string.Equals(i.Id, item.Id, StringComparison.Ordinal) ||
+                    (pidToKill > 0 && i.ProcessId == pidToKill));
+                _lastRefreshUtc = DateTime.UtcNow;
+            }
+        }
+
+        return killed;
+    }
+
     public bool TogglePromoted(string registryKeyName)
     {
         if (string.IsNullOrWhiteSpace(registryKeyName)) return false;
