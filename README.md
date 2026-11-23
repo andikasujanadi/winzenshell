@@ -5,7 +5,7 @@
 [![Platform: Windows 11](https://img.shields.io/badge/Platform-Windows%2011%20(64--bit)-0078D4?logo=windows11&logoColor=white)](https://microsoft.com/windows)
 [![Runtime: .NET 10](https://img.shields.io/badge/Runtime-.NET%2010%20(WPF)-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 [![Frontend: WebView2](https://img.shields.io/badge/Frontend-WebView2%20%7C%20Web%20Components-008080?logo=microsoftedge&logoColor=white)](https://developer.microsoft.com/microsoft-edge/webview2/)
-[![Release: v0.4.0](https://img.shields.io/badge/Release-v0.4.0-0078D4)](README.md#changelog)
+[![Release: v0.4.1](https://img.shields.io/badge/Release-v0.4.1-0078D4)](README.md#changelog)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 **WinZenShell** is a customizable, lightweight Windows 11 taskbar and widget studio.  
@@ -16,8 +16,8 @@ It pairs a modern web interface (HTML, CSS, and JavaScript) with a fast native W
 ---
 
 > [!IMPORTANT]
-> **Release Notice (`v0.4.0`)**:  
-> WinZenShell v0.4.0 introduces **GNOME-Look & Custom Icon Packs** with a dedicated **Icon Packs** settings page, archive/folder importer with Linux symlink resolution and live progress bar, **Icon Padding (`0px–18px`)**, larger **Icon Size (`12px–56px`)**, **App Launcher Icon Scale (`40%–100%`)**, **Live Wallpaper Blur** support (Lively Wallpaper / `WorkerW`) across taskbar and flyouts, and full **`shell:AppsFolder` UWP / Microsoft Store** app discovery.
+> **Release Notice (`v0.4.1`)**:  
+> WinZenShell v0.4.1 adds **Steam Game & `.url` Game Shortcut Discovery** in the App Launcher, an **Android 17-style 2×2 Circular Power Flyout**, persistent **Pin Lyrics** across song changes without needing to click the pill, a compact **3-dots (`...`) sidebar menu** in Settings, and an inline two-column layout for **Accent Color** and all **Shell Sliders**.
 
 ---
 
@@ -84,7 +84,7 @@ It pairs a modern web interface (HTML, CSS, and JavaScript) with a fast native W
 12. **Media Player Widget (`zen-media-player`)**:
     * Controls your currently playing music or video from any app (Spotify, browser, media players) with album art, track scrubbing, and multiple card sizes in Control Center.
 13. **Power Menu (`zen-power`)**:
-    * Opens a compact power flyout with Sleep, Lock, Restart, and Shutdown actions.
+    * Opens a titleless Android 17-style 2×2 circular power flyout with Sleep, Lock, Power off, and Restart actions.
 14. **Lock Screen (`zen-lock-button`)**:
     * One-click button to lock your Windows workstation (`Win + L`).
 
@@ -204,6 +204,18 @@ window.winzen.shell.onMetricsUpdate((metrics) => {
 ---
 
 ## Changelog
+
+### v0.4.1 (2026-11-24)
+* **Steam Game & `.url` Game Launcher Discovery (`AppLauncherService`)**:
+  * Automatically discovers installed Steam games across all Steam libraries (`libraryfolders.vdf` + `appmanifest_*.acf`) even without Desktop/Start Menu shortcuts, while filtering out non-game utilities (*Steamworks Common Redistributables*, *SteamVR*, *Proton*, etc.).
+  * Resolves high-resolution game icons from the Windows Registry (`Uninstall\Steam App <AppId>` `DisplayIcon`), `.url` `IconFile`, Steam `appcache\librarycache` + `steam\games\*.ico`, or the game's primary executable, and watches `appmanifest_*.acf` + `*.url` files for live install/uninstall updates.
+* **Android 17-Style Power Flyout (`PowerFlyoutWindow`)**:
+  * Redesigned the Power flyout into a titleless `26px`-rounded 2×2 grid of circular action buttons (**Sleep**, **Lock**, coral-red **Power off**, and **Restart**) with centered labels underneath.
+* **Persistent Pin Lyrics Across Track Changes**:
+  * Fixed **Pin Lyrics** turning off when the song changed or during instrumental intros, and ensured `metrics_update` ticks continue streaming to the Dynamic Island lyrics engine while collapsed so the pill automatically displays synced lyrics when the next track plays.
+* **Settings UI Refinements**:
+  * Added a 3-dots (`...`) menu button next to the **WinZenShell** header in the sidebar containing **Widgets Folder**, **Refresh**, **Restart**, and **Quit WinZenShell**.
+  * Aligned **Accent Color** swatches and all **Shell** sliders (**Background Opacity**, **Background Blur**, **Flyout Opacity**, **Flyout Blur**, **Height**, **Floating Margin**, **Corner Radius**, **Icon Size**, **Icon Padding**, and **App Launcher Icon Scale**) into a clean two-column layout (title on the left, control on the right) with concise **Reset** buttons.
 
 ### v0.4.0 (2026-11-21)
 * **GNOME-Look & Custom Icon Packs (`IconPackService`)**:

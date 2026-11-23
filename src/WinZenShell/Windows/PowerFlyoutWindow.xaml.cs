@@ -45,93 +45,108 @@ public partial class PowerFlyoutWindow : Window
 
     private void BuildActions()
     {
-        PowerActionsPanel.Children.Clear();
+        PowerActionsGrid.Children.Clear();
 
-        PowerActionsPanel.Children.Add(CreateActionButton(
+        // Top-Left: Sleep
+        PowerActionsGrid.Children.Add(CreateCircleActionTile(
             "Sleep",
             "M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1z",
-            isDanger: false,
+            isHighlighted: false,
             onClick: ExecuteSleep));
 
-        PowerActionsPanel.Children.Add(CreateActionButton(
+        // Top-Right: Lock
+        PowerActionsGrid.Children.Add(CreateCircleActionTile(
             "Lock",
             "M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z",
-            isDanger: false,
+            isHighlighted: false,
             onClick: ExecuteLock));
 
-        PowerActionsPanel.Children.Add(CreateActionButton(
+        // Bottom-Left: Power off (highlighted coral/red circle like Android 17)
+        PowerActionsGrid.Children.Add(CreateCircleActionTile(
+            "Power off",
+            "M13 3h-2v10h2V3zm4.83 2.17l-1.42 1.42A6.92 6.92 0 0 1 19 12c0 3.87-3.13 7-7 7s-7-3.13-7-7c0-2.27 1.09-4.29 2.77-5.58L6.35 5.01A8.932 8.932 0 0 0 3 12c0 4.97 4.03 9 9 9s9-4.03 9-9c0-2.74-1.23-5.18-3.17-6.83z",
+            isHighlighted: true,
+            onClick: ExecuteShutdown));
+
+        // Bottom-Right: Restart
+        PowerActionsGrid.Children.Add(CreateCircleActionTile(
             "Restart",
             "M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z",
-            isDanger: false,
+            isHighlighted: false,
             onClick: ExecuteRestart));
-
-        PowerActionsPanel.Children.Add(CreateActionButton(
-            "Shutdown",
-            "M13 3h-2v10h2V3zm4.83 2.17l-1.42 1.42A6.92 6.92 0 0 1 19 12c0 3.87-3.13 7-7 7s-7-3.13-7-7c0-2.27 1.09-4.29 2.77-5.58L6.35 5.01A8.932 8.932 0 0 0 3 12c0 4.97 4.03 9 9 9s9-4.03 9-9c0-2.74-1.23-5.18-3.17-6.83z",
-            isDanger: true,
-            onClick: ExecuteShutdown));
     }
 
-    private Button CreateActionButton(string label, string iconPathData, bool isDanger, Action onClick)
+    private UIElement CreateCircleActionTile(string label, string iconPathData, bool isHighlighted, Action onClick)
     {
-        Color hoverBg = _isLightTheme ? Color.FromArgb(0x0F, 0, 0, 0) : Color.FromArgb(0x16, 0xFF, 0xFF, 0xFF);
-        Brush fg = isDanger
-            ? (Brush)Resources["DangerFg"]
-            : new SolidColorBrush(_isLightTheme ? Color.FromRgb(0x1B, 0x1B, 0x1B) : Color.FromRgb(0xF3, 0xF3, 0xF3));
+        Color normalCircleBg;
+        Color hoverCircleBg;
+        Color pressedCircleBg;
+        Brush iconBrush;
+        Brush labelBrush = new SolidColorBrush(_isLightTheme ? Color.FromRgb(0x1B, 0x1B, 0x1B) : Color.FromRgb(0xF5, 0xF5, 0xF5));
 
-        var row = new StackPanel
+        if (isHighlighted)
         {
-            Orientation = System.Windows.Controls.Orientation.Horizontal,
-            VerticalAlignment = VerticalAlignment.Center
-        };
+            normalCircleBg = Color.FromRgb(0xF2, 0x64, 0x57);
+            hoverCircleBg = Color.FromRgb(0xFF, 0x76, 0x6A);
+            pressedCircleBg = Color.FromRgb(0xDC, 0x52, 0x46);
+            iconBrush = new SolidColorBrush(Color.FromRgb(0x1F, 0x0B, 0x0A));
+        }
+        else if (_isLightTheme)
+        {
+            normalCircleBg = Color.FromArgb(0x14, 0x00, 0x00, 0x00);
+            hoverCircleBg = Color.FromArgb(0x24, 0x00, 0x00, 0x00);
+            pressedCircleBg = Color.FromArgb(0x32, 0x00, 0x00, 0x00);
+            iconBrush = new SolidColorBrush(Color.FromRgb(0x1B, 0x1B, 0x1B));
+        }
+        else
+        {
+            normalCircleBg = Color.FromArgb(0x66, 0x14, 0x14, 0x16);
+            hoverCircleBg = Color.FromArgb(0x8C, 0x26, 0x26, 0x2A);
+            pressedCircleBg = Color.FromArgb(0xAA, 0x32, 0x32, 0x38);
+            iconBrush = new SolidColorBrush(Color.FromRgb(0xF5, 0xF5, 0xF5));
+        }
 
         var icon = new Path
         {
             Data = Geometry.Parse(iconPathData),
-            Fill = fg,
-            Width = 15,
-            Height = 15,
+            Fill = iconBrush,
+            Width = 20,
+            Height = 20,
             Stretch = Stretch.Uniform,
-            Margin = new Thickness(0, 0, 12, 0),
+            HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center
         };
-
-        var text = new TextBlock
-        {
-            Text = label,
-            Foreground = fg,
-            FontSize = 13,
-            FontWeight = FontWeights.Medium,
-            VerticalAlignment = VerticalAlignment.Center
-        };
-
-        row.Children.Add(icon);
-        row.Children.Add(text);
 
         var template = new ControlTemplate(typeof(Button));
-        var borderFactory = new FrameworkElementFactory(typeof(Border));
-        borderFactory.Name = "RowBorder";
-        borderFactory.SetValue(Border.BackgroundProperty, Brushes.Transparent);
-        borderFactory.SetValue(Border.CornerRadiusProperty, new CornerRadius(8));
-        borderFactory.SetValue(Border.PaddingProperty, new Thickness(10, 9, 10, 9));
+        var circleFactory = new FrameworkElementFactory(typeof(Border));
+        circleFactory.Name = "CircleBorder";
+        circleFactory.SetValue(Border.WidthProperty, 68.0);
+        circleFactory.SetValue(Border.HeightProperty, 68.0);
+        circleFactory.SetValue(Border.CornerRadiusProperty, new CornerRadius(34));
+        circleFactory.SetValue(Border.BackgroundProperty, new SolidColorBrush(normalCircleBg));
 
         var presenterFactory = new FrameworkElementFactory(typeof(ContentPresenter));
-        presenterFactory.SetValue(HorizontalAlignmentProperty, System.Windows.HorizontalAlignment.Stretch);
+        presenterFactory.SetValue(HorizontalAlignmentProperty, System.Windows.HorizontalAlignment.Center);
         presenterFactory.SetValue(VerticalAlignmentProperty, VerticalAlignment.Center);
-        borderFactory.AppendChild(presenterFactory);
-        template.VisualTree = borderFactory;
+        circleFactory.AppendChild(presenterFactory);
+        template.VisualTree = circleFactory;
 
         var hoverTrigger = new Trigger { Property = IsMouseOverProperty, Value = true };
-        hoverTrigger.Setters.Add(new Setter(Border.BackgroundProperty, new SolidColorBrush(hoverBg), "RowBorder"));
+        hoverTrigger.Setters.Add(new Setter(Border.BackgroundProperty, new SolidColorBrush(hoverCircleBg), "CircleBorder"));
         template.Triggers.Add(hoverTrigger);
+
+        var pressedTrigger = new Trigger { Property = System.Windows.Controls.Primitives.ButtonBase.IsPressedProperty, Value = true };
+        pressedTrigger.Setters.Add(new Setter(Border.BackgroundProperty, new SolidColorBrush(pressedCircleBg), "CircleBorder"));
+        template.Triggers.Add(pressedTrigger);
 
         var btn = new Button
         {
-            Content = row,
+            Content = icon,
             Template = template,
+            Width = 68,
+            Height = 68,
             Cursor = System.Windows.Input.Cursors.Hand,
-            HorizontalContentAlignment = System.Windows.HorizontalAlignment.Stretch,
-            Margin = new Thickness(0, 1, 0, 1)
+            HorizontalAlignment = System.Windows.HorizontalAlignment.Center
         };
         btn.Click += (_, _) =>
         {
@@ -139,7 +154,27 @@ public partial class PowerFlyoutWindow : Window
             onClick();
         };
 
-        return btn;
+        var text = new TextBlock
+        {
+            Text = label,
+            Foreground = labelBrush,
+            FontSize = 12.5,
+            FontWeight = FontWeights.SemiBold,
+            HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+            Margin = new Thickness(0, 8, 0, 0)
+        };
+
+        var cell = new StackPanel
+        {
+            Orientation = System.Windows.Controls.Orientation.Vertical,
+            HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(6, 6, 6, 6)
+        };
+        cell.Children.Add(btn);
+        cell.Children.Add(text);
+
+        return cell;
     }
 
     private static void ExecuteSleep()
@@ -259,7 +294,6 @@ public partial class PowerFlyoutWindow : Window
             var color = (Color)ColorConverter.ConvertFromString(hex);
             _accentBrush = new SolidColorBrush(color);
             Resources["AccentBrush"] = _accentBrush;
-            if (HeaderIcon != null) HeaderIcon.Fill = _accentBrush;
         }
         catch { }
     }
@@ -276,7 +310,6 @@ public partial class PowerFlyoutWindow : Window
 
             OuterBorder.Background = new SolidColorBrush(Color.FromRgb(0xF3, 0xF3, 0xF3));
             OuterBorder.BorderBrush = new SolidColorBrush(Color.FromArgb(0x28, 0, 0, 0));
-            TxtHeaderTitle.Foreground = new SolidColorBrush(Color.FromRgb(0x1B, 0x1B, 0x1B));
         }
         else
         {
@@ -287,10 +320,7 @@ public partial class PowerFlyoutWindow : Window
 
             OuterBorder.Background = new SolidColorBrush(Color.FromRgb(0x1E, 0x1E, 0x1E));
             OuterBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(0x3E, 0x3E, 0x3E));
-            TxtHeaderTitle.Foreground = new SolidColorBrush(Color.FromRgb(0xFF, 0xFF, 0xFF));
         }
-
-        if (HeaderIcon != null) HeaderIcon.Fill = _accentBrush;
     }
 
     protected override void OnClosing(System.ComponentModel.CancelEventArgs e)

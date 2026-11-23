@@ -1087,7 +1087,8 @@ public partial class TaskbarWebWindow : Window
         });
 
         TaskbarWebView.CoreWebView2.PostWebMessageAsJson(json);
-        if (DynamicIslandOverlayWindow?.DiWebView?.CoreWebView2 != null && DynamicIslandOverlayWindow.IsVisible)
+        if (DynamicIslandOverlayWindow?.DiWebView?.CoreWebView2 != null &&
+            (DynamicIslandOverlayWindow.IsVisible || (_shellState.Settings.DynamicIsland.Enabled && _shellState.Settings.DynamicIsland.PinLyrics)))
         {
             DynamicIslandOverlayWindow.DiWebView.CoreWebView2.PostWebMessageAsJson(json);
         }
@@ -1109,7 +1110,8 @@ public partial class TaskbarWebWindow : Window
         });
 
         TaskbarWebView.CoreWebView2.PostWebMessageAsJson(json);
-        if (DynamicIslandOverlayWindow?.DiWebView?.CoreWebView2 != null && DynamicIslandOverlayWindow.IsVisible)
+        if (DynamicIslandOverlayWindow?.DiWebView?.CoreWebView2 != null &&
+            (DynamicIslandOverlayWindow.IsVisible || (_shellState.Settings.DynamicIsland.Enabled && _shellState.Settings.DynamicIsland.PinLyrics)))
         {
             DynamicIslandOverlayWindow.DiWebView.CoreWebView2.PostWebMessageAsJson(json);
         }

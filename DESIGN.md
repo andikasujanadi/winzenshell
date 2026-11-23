@@ -73,7 +73,7 @@
     - **Bluetooth Flyout**: Dedicated Fluent 2 floating window (360px width, 14px radius, Acrylic/Solid surface) featuring Radio On/Off toggle switch, live paired devices list categorized with dedicated SVG hardware glyphs (audio headphones, phone, PC, mouse/keyboard), one-click Connect/Disconnect actions, and system settings navigation.
     - **Vector Icon Geometry**: Crisp vector stroke path (`m7 7 10 10-5 5V2l5 5L7 17` with `fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;`) ensuring clean rendering at all sizes without fill inversion bugs.
   - `zen-power` & `zen-lock-button`:
-    - `zen-power`: Compact taskbar icon (`32px × 32px`) and Control Center (`1:1` / `1:2`) button opening `PowerFlyoutWindow` (`236px` width, `14px` corner radius) with Sleep, Lock, Restart, and Shutdown actions.
+    - `zen-power`: Compact taskbar icon (`32px × 32px`) and Control Center (`1:1` / `1:2`) button opening `PowerFlyoutWindow` (`228px` width, `26px` corner radius, titleless Android 17-style 2×2 circular button grid for Sleep, Lock, coral-red `#F26457` Power off, and Restart).
     - `zen-lock-button`: One-click workstation lock (`Win32Api.LockWorkStation()`), supporting taskbar icon and Control Center tile modes without native browser tooltip popovers.
   - **Layout Presets (`settings.html` / `Layouts` tab)**:
     - Alphabetically sorted card grid supporting **Apply**, **Rename**, **Update**, and **Delete** icon actions across full Shell, Dynamic Island, Taskbar, and Control Center configurations.

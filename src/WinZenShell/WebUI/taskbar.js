@@ -302,11 +302,8 @@ function initTaskbar() {
 
     if (!isEnabled || !media || !media.hasMedia) {
       lastMediaTrackKey = '';
-      if (isMusicLyricsPinnedMode) {
-        isMusicLyricsPinnedMode = false;
-        musicEl.classList.remove('is-lyrics-pill');
-        musicEl.style.width = isMusicWidePillMode ? '210px' : '';
-      }
+      musicEl.classList.remove('is-lyrics-pill');
+      musicEl.style.width = isMusicWidePillMode ? '210px' : '';
       musicEl.classList.remove('is-hovered');
       if (noAnim || !isEnabled) {
         musicEl.classList.add('is-music-absent');
@@ -320,18 +317,15 @@ function initTaskbar() {
     const trackKey = `${(media.title || '').toLowerCase()}|${(media.artist || '').toLowerCase()}`;
     const isFinished = (media.durationSeconds > 0 && media.positionSeconds >= media.durationSeconds - 0.3 && !media.isPlaying);
     if ((lastMediaTrackKey && trackKey !== lastMediaTrackKey) || isFinished) {
-      if (isMusicLyricsPinnedMode) {
-        isMusicLyricsPinnedMode = false;
-        musicEl.classList.remove('is-lyrics-pill');
-        if (isMusicWidePillMode) {
-          musicEl.classList.add('is-wide-pill');
-          musicEl.classList.add('is-hovered');
-          musicEl.style.width = '210px';
-        } else {
-          musicEl.classList.remove('is-wide-pill');
-          musicEl.classList.remove('is-hovered');
-          musicEl.style.width = '';
-        }
+      musicEl.classList.remove('is-lyrics-pill');
+      if (isMusicWidePillMode) {
+        musicEl.classList.add('is-wide-pill');
+        musicEl.classList.add('is-hovered');
+        musicEl.style.width = '210px';
+      } else {
+        musicEl.classList.remove('is-wide-pill');
+        musicEl.classList.remove('is-hovered');
+        musicEl.style.width = '';
       }
     }
     lastMediaTrackKey = trackKey;
@@ -352,7 +346,9 @@ function initTaskbar() {
       musicEl.classList.remove('is-music-absent');
     }
 
-    if (isMusicWidePillMode && !isMusicLyricsPinnedMode) {
+    const hasActiveLyricPill = isMusicLyricsPinnedMode && musicEl.classList.contains('is-lyrics-pill');
+
+    if (isMusicWidePillMode && !hasActiveLyricPill) {
       musicEl.classList.add('is-wide-pill');
       musicEl.classList.add('is-hovered');
       musicEl.style.width = '210px';
@@ -372,7 +368,7 @@ function initTaskbar() {
     }
 
     const titleEl = document.getElementById('tbDiMusicTitle');
-    if (titleEl && !isMusicLyricsPinnedMode) {
+    if (titleEl && !hasActiveLyricPill) {
       titleEl.textContent = media.title || 'Playing';
     }
 
@@ -576,10 +572,11 @@ function initTaskbar() {
     window.winzenSetMusicWideMode = (wide) => {
       isMusicWidePillMode = !!wide;
       if (musicEl) {
+        const hasActiveLyric = isMusicLyricsPinnedMode && musicEl.classList.contains('is-lyrics-pill');
         if (isMusicWidePillMode) {
           musicEl.classList.add('is-wide-pill');
           musicEl.classList.add('is-hovered');
-          if (!isMusicLyricsPinnedMode) {
+          if (!hasActiveLyric) {
             musicEl.style.width = '210px';
           }
           if (lastMediaSnapshot) {
@@ -588,7 +585,7 @@ function initTaskbar() {
         } else {
           musicEl.classList.remove('is-wide-pill');
           musicEl.classList.remove('is-hovered');
-          if (!isMusicLyricsPinnedMode) {
+          if (!hasActiveLyric) {
             musicEl.style.width = '';
           }
         }
@@ -602,17 +599,20 @@ function initTaskbar() {
     }
 
     musicEl.addEventListener('mouseenter', () => {
-      if (wrapper.classList.contains('island-hidden') || isMusicWidePillMode || isMusicLyricsPinnedMode) return;
+      const hasActiveLyric = isMusicLyricsPinnedMode && musicEl.classList.contains('is-lyrics-pill');
+      if (wrapper.classList.contains('island-hidden') || isMusicWidePillMode || hasActiveLyric) return;
       clearTimeout(musicHoverTimer);
       musicHoverTimer = setTimeout(() => {
-        if (!wrapper.classList.contains('island-hidden') && !isMusicWidePillMode && !isMusicLyricsPinnedMode) {
+        const activeLyricNow = isMusicLyricsPinnedMode && musicEl.classList.contains('is-lyrics-pill');
+        if (!wrapper.classList.contains('island-hidden') && !isMusicWidePillMode && !activeLyricNow) {
           musicEl.classList.add('is-hovered');
         }
       }, 260);
     });
 
     musicEl.addEventListener('mouseleave', () => {
-      if (isMusicWidePillMode || isMusicLyricsPinnedMode) return;
+      const hasActiveLyric = isMusicLyricsPinnedMode && musicEl.classList.contains('is-lyrics-pill');
+      if (isMusicWidePillMode || hasActiveLyric) return;
       clearTimeout(musicHoverTimer);
       musicEl.classList.remove('is-hovered');
     });

@@ -10,7 +10,9 @@ using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Microsoft.Win32;
 using WinZenShell.Native;
 
 namespace WinZenShell.Services;
@@ -137,20 +139,48 @@ public class AppLauncherService
         foreach (var dir in dirs)
         {
             if (!Directory.Exists(dir)) continue;
-            try
+            foreach (var filter in new[] { "*.lnk", "*.url" })
             {
-                var watcher = new FileSystemWatcher(dir, "*.lnk")
+                try
                 {
-                    IncludeSubdirectories = true,
-                    NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite,
-                    EnableRaisingEvents = true
-                };
-                watcher.Created += OnShortcutDirectoryChanged;
-                watcher.Deleted += OnShortcutDirectoryChanged;
-                watcher.Renamed += OnShortcutDirectoryChanged;
-                _watchers.Add(watcher);
+                    var watcher = new FileSystemWatcher(dir, filter)
+                    {
+                        IncludeSubdirectories = true,
+                        NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite,
+                        EnableRaisingEvents = true
+                    };
+                    watcher.Created += OnShortcutDirectoryChanged;
+                    watcher.Deleted += OnShortcutDirectoryChanged;
+                    watcher.Renamed += OnShortcutDirectoryChanged;
+                    _watchers.Add(watcher);
+                }
+                catch { }
             }
-            catch { }
+        }
+
+        string? steamPath = TryGetSteamRootPath();
+        if (!string.IsNullOrWhiteSpace(steamPath))
+        {
+            foreach (var libPath in GetSteamLibraryFolders(steamPath))
+            {
+                string steamAppsDir = Path.Combine(libPath, "steamapps");
+                if (!Directory.Exists(steamAppsDir)) continue;
+                try
+                {
+                    var watcher = new FileSystemWatcher(steamAppsDir, "appmanifest_*.acf")
+                    {
+                        IncludeSubdirectories = false,
+                        NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite,
+                        EnableRaisingEvents = true
+                    };
+                    watcher.Created += OnShortcutDirectoryChanged;
+                    watcher.Deleted += OnShortcutDirectoryChanged;
+                    watcher.Changed += OnShortcutDirectoryChanged;
+                    watcher.Renamed += OnShortcutDirectoryChanged;
+                    _watchers.Add(watcher);
+                }
+                catch { }
+            }
         }
     }
 
@@ -389,6 +419,9 @@ public class AppLauncherService
                 catch { }
             }
 
+            // Scan installed Steam games from libraryfolders.vdf + appmanifest_*.acf and game .url shortcuts
+            ScanSteamAndUrlGameShortcuts(dirsToScan, rebuilt, localSeen, ignoredExactNames, ignoredKeywords, ignoredFolderSegments);
+
             // Also scan Microsoft Store / UWP packaged apps from shell:AppsFolder
             var ignoredUwpAumidPrefixes = new[]
             {
@@ -616,6 +649,549 @@ public class AppLauncherService
         {
             return "";
         }
+    }
+
+    private void ScanSteamAndUrlGameShortcuts(
+        List<string> dirsToScan,
+        List<AppLauncherItem> rebuilt,
+        HashSet<string> localSeen,
+        HashSet<string> ignoredExactNames,
+        string[] ignoredKeywords,
+        string[] ignoredFolderSegments)
+    {
+        var seenSteamAppIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        // 1. Scan installed Steam games via Steam library manifests (appmanifest_*.acf) + Uninstall registry
+        try
+        {
+            string? steamRoot = TryGetSteamRootPath();
+            if (!string.IsNullOrWhiteSpace(steamRoot))
+            {
+                var registryIcons = GetSteamUninstallRegistryIcons();
+                var urlShortcutIcons = GetSteamUrlShortcutIcons(dirsToScan);
+                var nonGameAppIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    "228980",  // Steamworks Common Redistributables
+                    "250820",  // SteamVR
+                    "1070560", // Steam Linux Runtime
+                    "1391110", // Steam Linux Runtime - Soldier
+                    "1628350"  // Steam Linux Runtime - Sniper
+                };
+
+                foreach (var libFolder in GetSteamLibraryFolders(steamRoot))
+                {
+                    string steamAppsDir = Path.Combine(libFolder, "steamapps");
+                    if (!Directory.Exists(steamAppsDir)) continue;
+
+                    foreach (var acfFile in Directory.EnumerateFiles(steamAppsDir, "appmanifest_*.acf", SearchOption.TopDirectoryOnly))
+                    {
+                        try
+                        {
+                            var (appId, gameName, installDir) = ParseSteamAppManifest(acfFile);
+                            if (string.IsNullOrWhiteSpace(appId) || string.IsNullOrWhiteSpace(gameName))
+                                continue;
+
+                            if (nonGameAppIds.Contains(appId))
+                                continue;
+
+                            string lowerGameName = gameName.ToLowerInvariant();
+                            if (lowerGameName.Contains("steamworks") ||
+                                lowerGameName.StartsWith("proton ") ||
+                                lowerGameName.StartsWith("steam linux runtime") ||
+                                lowerGameName.EndsWith(" dedicated server"))
+                            {
+                                continue;
+                            }
+
+                            if (ignoredExactNames.Contains(gameName)) continue;
+                            if (ignoredKeywords.Any(k => lowerGameName.Contains(k))) continue;
+
+                            seenSteamAppIds.Add(appId);
+                            if (!localSeen.Add(gameName)) continue;
+
+                            string targetUrl = $"steam://rungameid/{appId}";
+                            string? fullInstallDir = !string.IsNullOrWhiteSpace(installDir)
+                                ? Path.Combine(steamAppsDir, "common", installDir)
+                                : null;
+                            string? gameExePath = FindPrimaryExecutableInDir(fullInstallDir);
+
+                            if (!_iconCache.TryGetValue(targetUrl, out string? iconUrl) || string.IsNullOrEmpty(iconUrl))
+                            {
+                                iconUrl = ResolveSteamGameIconDataUrl(
+                                    steamRoot,
+                                    appId,
+                                    registryIcons.TryGetValue(appId, out var regIcon) ? regIcon : null,
+                                    urlShortcutIcons.TryGetValue(appId, out var urlIcon) ? urlIcon : null,
+                                    gameExePath);
+
+                                if (!string.IsNullOrEmpty(iconUrl))
+                                {
+                                    _iconCache[targetUrl] = iconUrl;
+                                }
+                            }
+
+                            string exeStem = !string.IsNullOrWhiteSpace(gameExePath)
+                                ? Path.GetFileNameWithoutExtension(gameExePath)
+                                : gameName;
+                            string exeOrTarget = !string.IsNullOrWhiteSpace(gameExePath) ? gameExePath : targetUrl;
+
+                            string nativeIcon = iconUrl ?? "";
+                            string packIcon = _iconPackService?.ResolveAppIconDataUrl(gameName, exeStem, gameName, exeOrTarget) ?? "";
+                            string finalIcon = !string.IsNullOrEmpty(packIcon) ? packIcon : nativeIcon;
+
+                            int count = _launchStats.TryGetValue(gameName, out int c) ? c : 0;
+
+                            rebuilt.Add(new AppLauncherItem
+                            {
+                                Id = $"steam-{appId}",
+                                Name = gameName,
+                                TargetPath = targetUrl,
+                                ResolvedExePath = gameExePath ?? targetUrl,
+                                IconDataUrl = finalIcon,
+                                NativeIconDataUrl = nativeIcon,
+                                LaunchCount = count,
+                                IsRecent = count > 0
+                            });
+                        }
+                        catch { }
+                    }
+                }
+            }
+        }
+        catch { }
+
+        // 2. Scan *.url game launcher shortcuts (Steam, Epic Games, GOG, Riot, Xbox, etc.) in Start Menu / Desktop
+        foreach (var dir in dirsToScan)
+        {
+            if (!Directory.Exists(dir)) continue;
+
+            try
+            {
+                foreach (var urlFile in Directory.EnumerateFiles(dir, "*.url", SearchOption.AllDirectories))
+                {
+                    try
+                    {
+                        string lowerFullPath = urlFile.ToLowerInvariant();
+                        if (ignoredFolderSegments.Any(seg => lowerFullPath.Contains(seg))) continue;
+
+                        string fileName = Path.GetFileNameWithoutExtension(urlFile);
+                        if (string.IsNullOrWhiteSpace(fileName)) continue;
+
+                        string lowerName = fileName.ToLowerInvariant();
+                        if (ignoredExactNames.Contains(fileName)) continue;
+                        if (ignoredKeywords.Any(k => lowerName.Contains(k))) continue;
+
+                        var (urlTarget, iconFile, iconIndex) = ParseInternetShortcutFile(urlFile);
+                        if (string.IsNullOrWhiteSpace(urlTarget)) continue;
+
+                        // Skip generic HTTP/HTTPS web links (e.g. documentation, FAQ, support pages)
+                        if (urlTarget.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                            urlTarget.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+                        {
+                            continue;
+                        }
+
+                        // If it's a Steam rungameid shortcut, only include it if it's currently installed (or if no Steam library was found)
+                        if (urlTarget.StartsWith("steam://rungameid/", StringComparison.OrdinalIgnoreCase))
+                        {
+                            string steamAppId = urlTarget["steam://rungameid/".Length..].Trim();
+                            if (seenSteamAppIds.Contains(steamAppId))
+                                continue;
+
+                            // Skip uninstalled leftover Steam .url shortcuts if we know the installed Steam library
+                            if (seenSteamAppIds.Count > 0 && !IsSteamAppInstalledInRegistry(steamAppId))
+                                continue;
+                        }
+
+                        if (!localSeen.Add(fileName)) continue;
+
+                        if (!_iconCache.TryGetValue(urlFile, out string? iconUrl) || string.IsNullOrEmpty(iconUrl))
+                        {
+                            iconUrl = ExtractUrlShortcutIconDataUrl(iconFile, iconIndex);
+                            if (!string.IsNullOrEmpty(iconUrl))
+                            {
+                                _iconCache[urlFile] = iconUrl;
+                            }
+                        }
+
+                        string nativeIcon = iconUrl ?? "";
+                        string packIcon = _iconPackService?.ResolveAppIconDataUrl(fileName, fileName, fileName, urlTarget) ?? "";
+                        string finalIcon = !string.IsNullOrEmpty(packIcon) ? packIcon : nativeIcon;
+
+                        int count = _launchStats.TryGetValue(fileName, out int c) ? c : 0;
+
+                        rebuilt.Add(new AppLauncherItem
+                        {
+                            Id = Guid.NewGuid().ToString("N")[..8],
+                            Name = fileName,
+                            TargetPath = urlFile,
+                            ResolvedExePath = !string.IsNullOrWhiteSpace(iconFile) ? iconFile : urlTarget,
+                            IconDataUrl = finalIcon,
+                            NativeIconDataUrl = nativeIcon,
+                            LaunchCount = count,
+                            IsRecent = count > 0
+                        });
+                    }
+                    catch { }
+                }
+            }
+            catch { }
+        }
+    }
+
+    private static string? TryGetSteamRootPath()
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(@"Software\Valve\Steam");
+            string? path = key?.GetValue("SteamPath") as string;
+            if (!string.IsNullOrWhiteSpace(path))
+            {
+                string normalized = path.Replace('/', '\\');
+                if (Directory.Exists(normalized))
+                    return normalized;
+            }
+        }
+        catch { }
+
+        string defaultPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Steam");
+        return Directory.Exists(defaultPath) ? defaultPath : null;
+    }
+
+    private static List<string> GetSteamLibraryFolders(string steamRoot)
+    {
+        var folders = new List<string> { steamRoot };
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { Path.GetFullPath(steamRoot) };
+
+        try
+        {
+            string vdfPath = Path.Combine(steamRoot, "steamapps", "libraryfolders.vdf");
+            if (File.Exists(vdfPath))
+            {
+                string content = File.ReadAllText(vdfPath);
+                foreach (Match match in Regex.Matches(content, "\"path\"\\s+\"([^\"]+)\"", RegexOptions.IgnoreCase))
+                {
+                    string rawPath = match.Groups[1].Value.Replace("\\\\", "\\").Trim();
+                    if (!string.IsNullOrWhiteSpace(rawPath) && Directory.Exists(rawPath))
+                    {
+                        string full = Path.GetFullPath(rawPath);
+                        if (seen.Add(full))
+                        {
+                            folders.Add(full);
+                        }
+                    }
+                }
+            }
+        }
+        catch { }
+
+        return folders;
+    }
+
+    private static (string AppId, string Name, string InstallDir) ParseSteamAppManifest(string acfFilePath)
+    {
+        string appId = "";
+        string name = "";
+        string installDir = "";
+
+        foreach (var rawLine in File.ReadLines(acfFilePath))
+        {
+            string line = rawLine.Trim();
+            if (!line.StartsWith('"')) continue;
+
+            var match = Regex.Match(line, "^\"([^\"]+)\"\\s+\"([^\"]*)\"");
+            if (!match.Success) continue;
+
+            string k = match.Groups[1].Value;
+            string v = match.Groups[2].Value;
+
+            if (string.Equals(k, "appid", StringComparison.OrdinalIgnoreCase))
+                appId = v.Trim();
+            else if (string.Equals(k, "name", StringComparison.OrdinalIgnoreCase))
+                name = v.Trim();
+            else if (string.Equals(k, "installdir", StringComparison.OrdinalIgnoreCase))
+                installDir = v.Trim();
+
+            if (!string.IsNullOrEmpty(appId) && !string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(installDir))
+                break;
+        }
+
+        return (appId, name, installDir);
+    }
+
+    private static Dictionary<string, string> GetSteamUninstallRegistryIcons()
+    {
+        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        string[] uninstallPaths =
+        {
+            @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
+            @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"
+        };
+
+        foreach (var regPath in uninstallPaths)
+        {
+            try
+            {
+                using var baseKey = Registry.LocalMachine.OpenSubKey(regPath);
+                if (baseKey == null) continue;
+
+                foreach (var subName in baseKey.GetSubKeyNames())
+                {
+                    if (!subName.StartsWith("Steam App ", StringComparison.OrdinalIgnoreCase))
+                        continue;
+
+                    string appId = subName["Steam App ".Length..].Trim();
+                    if (string.IsNullOrWhiteSpace(appId)) continue;
+
+                    using var appKey = baseKey.OpenSubKey(subName);
+                    string? displayIcon = (appKey?.GetValue("DisplayIcon") as string)?.Trim().Trim('"');
+                    if (!string.IsNullOrWhiteSpace(displayIcon) && File.Exists(displayIcon))
+                    {
+                        map[appId] = displayIcon;
+                    }
+                }
+            }
+            catch { }
+        }
+
+        return map;
+    }
+
+    private static bool IsSteamAppInstalledInRegistry(string appId)
+    {
+        string[] uninstallPaths =
+        {
+            $@"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Steam App {appId}",
+            $@"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Steam App {appId}"
+        };
+
+        foreach (var path in uninstallPaths)
+        {
+            try
+            {
+                using var k = Registry.LocalMachine.OpenSubKey(path);
+                if (k != null) return true;
+            }
+            catch { }
+        }
+        return false;
+    }
+
+    private static Dictionary<string, string> GetSteamUrlShortcutIcons(List<string> dirsToScan)
+    {
+        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var dir in dirsToScan)
+        {
+            if (!Directory.Exists(dir)) continue;
+            try
+            {
+                foreach (var urlFile in Directory.EnumerateFiles(dir, "*.url", SearchOption.AllDirectories))
+                {
+                    try
+                    {
+                        var (urlTarget, iconFile, _) = ParseInternetShortcutFile(urlFile);
+                        if (urlTarget != null &&
+                            urlTarget.StartsWith("steam://rungameid/", StringComparison.OrdinalIgnoreCase) &&
+                            !string.IsNullOrWhiteSpace(iconFile) &&
+                            File.Exists(iconFile))
+                        {
+                            string appId = urlTarget["steam://rungameid/".Length..].Trim();
+                            if (!string.IsNullOrWhiteSpace(appId))
+                            {
+                                map[appId] = iconFile;
+                            }
+                        }
+                    }
+                    catch { }
+                }
+            }
+            catch { }
+        }
+        return map;
+    }
+
+    private static (string? Url, string? IconFile, int IconIndex) ParseInternetShortcutFile(string urlFilePath)
+    {
+        string? url = null;
+        string? iconFile = null;
+        int iconIndex = 0;
+
+        foreach (var rawLine in File.ReadLines(urlFilePath))
+        {
+            string line = rawLine.Trim();
+            if (line.StartsWith("URL=", StringComparison.OrdinalIgnoreCase))
+            {
+                url = line[4..].Trim();
+            }
+            else if (line.StartsWith("IconFile=", StringComparison.OrdinalIgnoreCase))
+            {
+                iconFile = Environment.ExpandEnvironmentVariables(line["IconFile=".Length..].Trim().Trim('"'));
+            }
+            else if (line.StartsWith("IconIndex=", StringComparison.OrdinalIgnoreCase))
+            {
+                int.TryParse(line["IconIndex=".Length..].Trim(), out iconIndex);
+            }
+        }
+
+        return (url, iconFile, iconIndex);
+    }
+
+    private static string ResolveSteamGameIconDataUrl(
+        string steamRoot,
+        string appId,
+        string? registryIconPath,
+        string? urlShortcutIconPath,
+        string? gameExePath)
+    {
+        // 1. DisplayIcon from Uninstall\Steam App <AppId>
+        if (!string.IsNullOrWhiteSpace(registryIconPath) && File.Exists(registryIconPath))
+        {
+            string dataUrl = ExtractUrlShortcutIconDataUrl(registryIconPath, 0);
+            if (!string.IsNullOrEmpty(dataUrl)) return dataUrl;
+        }
+
+        // 2. IconFile from existing Steam .url shortcut
+        if (!string.IsNullOrWhiteSpace(urlShortcutIconPath) && File.Exists(urlShortcutIconPath))
+        {
+            string dataUrl = ExtractUrlShortcutIconDataUrl(urlShortcutIconPath, 0);
+            if (!string.IsNullOrEmpty(dataUrl)) return dataUrl;
+        }
+
+        // 3. Steam librarycache/<AppId>/<40-hex-hash>.jpg matched against steam/games/<40-hex-hash>.ico
+        try
+        {
+            string appCacheDir = Path.Combine(steamRoot, "appcache", "librarycache", appId);
+            string steamGamesDir = Path.Combine(steamRoot, "steam", "games");
+            if (Directory.Exists(appCacheDir))
+            {
+                foreach (var file in Directory.EnumerateFiles(appCacheDir, "*.*", SearchOption.TopDirectoryOnly))
+                {
+                    string stem = Path.GetFileNameWithoutExtension(file);
+                    if (stem.Length == 40)
+                    {
+                        string icoCandidate = Path.Combine(steamGamesDir, stem + ".ico");
+                        if (File.Exists(icoCandidate))
+                        {
+                            string dataUrl = ExtractUrlShortcutIconDataUrl(icoCandidate, 0);
+                            if (!string.IsNullOrEmpty(dataUrl)) return dataUrl;
+                        }
+
+                        string dataUrlFromJpg = TryImageFileToDataUrl(file);
+                        if (!string.IsNullOrEmpty(dataUrlFromJpg)) return dataUrlFromJpg;
+                    }
+                }
+            }
+        }
+        catch { }
+
+        // 4. Primary executable in common/<installdir>
+        if (!string.IsNullOrWhiteSpace(gameExePath) && File.Exists(gameExePath))
+        {
+            string dataUrl = ExtractIconDataUrl(gameExePath);
+            if (!string.IsNullOrEmpty(dataUrl)) return dataUrl;
+        }
+
+        // 5. Fallback to Steam client icon
+        string steamExe = Path.Combine(steamRoot, "steam.exe");
+        if (File.Exists(steamExe))
+        {
+            return ExtractIconDataUrl(steamExe);
+        }
+
+        return "";
+    }
+
+    private static string ExtractUrlShortcutIconDataUrl(string? iconFile, int iconIndex)
+    {
+        if (string.IsNullOrWhiteSpace(iconFile) || !File.Exists(iconFile))
+            return "";
+
+        try
+        {
+            string ext = Path.GetExtension(iconFile);
+            if (ext.Equals(".ico", StringComparison.OrdinalIgnoreCase))
+            {
+                using var ico = new Icon(iconFile, 48, 48);
+                using var bmp = ico.ToBitmap();
+                using var ms = new MemoryStream();
+                bmp.Save(ms, ImageFormat.Png);
+                return "data:image/png;base64," + Convert.ToBase64String(ms.ToArray());
+            }
+
+            if (ext.Equals(".png", StringComparison.OrdinalIgnoreCase) ||
+                ext.Equals(".jpg", StringComparison.OrdinalIgnoreCase) ||
+                ext.Equals(".jpeg", StringComparison.OrdinalIgnoreCase))
+            {
+                return TryImageFileToDataUrl(iconFile);
+            }
+
+            if (iconIndex != 0)
+            {
+                string? indexed = TryExtractIndexedIconDataUrl(iconFile, iconIndex);
+                if (!string.IsNullOrEmpty(indexed)) return indexed;
+            }
+
+            return ExtractIconDataUrl(iconFile);
+        }
+        catch
+        {
+            return ExtractIconDataUrl(iconFile);
+        }
+    }
+
+    private static string TryImageFileToDataUrl(string imagePath)
+    {
+        try
+        {
+            byte[] bytes = File.ReadAllBytes(imagePath);
+            string ext = Path.GetExtension(imagePath).ToLowerInvariant();
+            string mime = ext switch
+            {
+                ".png" => "image/png",
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".svg" => "image/svg+xml",
+                _ => "image/png"
+            };
+            return $"data:{mime};base64,{Convert.ToBase64String(bytes)}";
+        }
+        catch
+        {
+            return "";
+        }
+    }
+
+    private static string? FindPrimaryExecutableInDir(string? installDir)
+    {
+        if (string.IsNullOrWhiteSpace(installDir) || !Directory.Exists(installDir))
+            return null;
+
+        try
+        {
+            var ignoredExeSubstrings = new[]
+            {
+                "unins", "crash", "redist", "setup", "vcredist", "dxsetup",
+                "unitycrashhandler", "easyanticheat", "battleye", "cefprocess",
+                "zfgamebrowser", "elevationservice"
+            };
+
+            var candidates = Directory.EnumerateFiles(installDir, "*.exe", SearchOption.TopDirectoryOnly)
+                .Where(f =>
+                {
+                    string lower = Path.GetFileNameWithoutExtension(f).ToLowerInvariant();
+                    return !ignoredExeSubstrings.Any(ig => lower.Contains(ig));
+                })
+                .OrderByDescending(f =>
+                {
+                    try { return new FileInfo(f).Length; } catch { return 0L; }
+                })
+                .ToList();
+
+            if (candidates.Count > 0)
+                return candidates[0];
+        }
+        catch { }
+
+        return null;
     }
 
     private static string? TryExtractIndexedIconDataUrl(string filePath, int iconIndex)

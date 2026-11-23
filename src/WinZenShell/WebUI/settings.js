@@ -959,12 +959,40 @@ function initSettingsPage() {
     });
   }
 
+  const btnPaneMoreMenu = document.getElementById('btnPaneMoreMenu');
+  const paneMoreDropdown = document.getElementById('paneMoreDropdown');
+
+  function closePaneMoreDropdown() {
+    if (!paneMoreDropdown || !btnPaneMoreMenu) return;
+    paneMoreDropdown.classList.remove('open');
+    btnPaneMoreMenu.classList.remove('open');
+    btnPaneMoreMenu.setAttribute('aria-expanded', 'false');
+  }
+
+  btnPaneMoreMenu?.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    if (!paneMoreDropdown) return;
+    const isOpen = paneMoreDropdown.classList.toggle('open');
+    btnPaneMoreMenu.classList.toggle('open', isOpen);
+    btnPaneMoreMenu.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  });
+
+  document.addEventListener('click', (ev) => {
+    if (paneMoreDropdown && paneMoreDropdown.classList.contains('open')) {
+      if (!paneMoreDropdown.contains(ev.target) && ev.target !== btnPaneMoreMenu) {
+        closePaneMoreDropdown();
+      }
+    }
+  });
+
   document.getElementById('btnQuitTop')?.addEventListener('click', () => {
+    closePaneMoreDropdown();
     window.winzen.shell.quit();
   });
 
   const btnRestart = document.getElementById('btnRestartShell') || document.getElementById('btnRefreshState');
   btnRestart?.addEventListener('click', () => {
+    closePaneMoreDropdown();
     if (window.winzen && window.winzen.shell && typeof window.winzen.shell.restart === 'function') {
       window.winzen.shell.restart();
     } else if (window.winzen && typeof window.winzen.send === 'function') {
@@ -972,11 +1000,13 @@ function initSettingsPage() {
     }
   });
 
-  document.getElementById('btnOpenWidgetsFolder').addEventListener('click', () => {
+  document.getElementById('btnOpenWidgetsFolder')?.addEventListener('click', () => {
+    closePaneMoreDropdown();
     window.winzen.send('open_widgets_folder');
   });
 
-  document.getElementById('btnReloadWidgets').addEventListener('click', () => {
+  document.getElementById('btnReloadWidgets')?.addEventListener('click', () => {
+    closePaneMoreDropdown();
     window.winzen.send('reload_widgets');
   });
 

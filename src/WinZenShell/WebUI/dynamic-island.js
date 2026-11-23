@@ -356,16 +356,42 @@
     return result;
   }
 
+  function setTopCenterMusicPillLyrics(lyricText, isPinned, dynamicW) {
+    if (!islandMusicPill) return;
+    if (isPinned && lyricText && lyricText.trim().length > 0) {
+      islandMusicPill.classList.add('is-lyrics-pill');
+      if (diTcTitle) diTcTitle.textContent = lyricText;
+      const targetW = (dynamicW && dynamicW > 70) ? Math.min(340, Math.max(96, Math.round(dynamicW))) : estimateLyricWidth(lyricText);
+      islandMusicPill.style.width = `${targetW}px`;
+    } else {
+      islandMusicPill.classList.remove('is-lyrics-pill');
+      if (isMusicPillWideMode) {
+        islandMusicPill.classList.add('is-wide-pill');
+        islandMusicPill.classList.add('is-hovered');
+        islandMusicPill.style.width = '210px';
+      } else {
+        islandMusicPill.classList.remove('is-wide-pill');
+        islandMusicPill.classList.remove('is-hovered');
+        islandMusicPill.style.width = '';
+      }
+      if (diTcTitle) {
+        const fallback = lyricText || (lastMediaSnapshot && lastMediaSnapshot.title) || 'Playing';
+        diTcTitle.textContent = fallback;
+      }
+    }
+  }
+
   function flushSmallPillLyrics(fallbackTitle) {
     currentActiveLyricText = '';
     const title = fallbackTitle || (lastMediaSnapshot && lastMediaSnapshot.title) || 'Playing';
     if (colMusicTitle) colMusicTitle.textContent = title;
     if (bgTitle) bgTitle.textContent = title;
     if (diTcTitle) diTcTitle.textContent = title;
+    setTopCenterMusicPillLyrics('', isLyricsPinned, 0);
     if (window.winzen && typeof window.winzen.send === 'function') {
       window.winzen.send('di_set_lyrics', {
-        isPinned: false,
-        text: title,
+        isPinned: isLyricsPinned,
+        text: '',
         width: 0
       });
     }
@@ -501,6 +527,7 @@
         const plainLines = data.plainLyrics.split('\n').map((l) => l.trim()).filter(Boolean);
         parsedLyrics = plainLines.map((text, idx) => ({ time: idx * 4, text }));
         renderLyricsList(parsedLyrics);
+        syncLyricsWithPosition(lastMediaSnapshot ? (lastMediaSnapshot.positionSeconds || 0) : 0, true);
       }
     } catch (err) {
       if (err.name === 'AbortError') return;
@@ -583,6 +610,7 @@
           if (colMusicTitle) colMusicTitle.textContent = activeLine;
           if (bgTitle) bgTitle.textContent = activeLine;
           if (diTcTitle) diTcTitle.textContent = activeLine;
+          setTopCenterMusicPillLyrics(activeLine, true, dynW);
 
           if (window.winzen && typeof window.winzen.send === 'function') {
             window.winzen.send('di_set_lyrics', {
@@ -592,16 +620,17 @@
             });
           }
         } else {
-          // Instrumental intro or gap: show song title
+          // Instrumental intro or gap: show song title while keeping lyrics pinned
           const title = (lastMediaSnapshot && lastMediaSnapshot.title) || 'Playing';
           if (colMusicTitle) colMusicTitle.textContent = title;
           if (bgTitle) bgTitle.textContent = title;
           if (diTcTitle) diTcTitle.textContent = title;
+          setTopCenterMusicPillLyrics('', true, 0);
 
           if (window.winzen && typeof window.winzen.send === 'function') {
             window.winzen.send('di_set_lyrics', {
-              isPinned: false,
-              text: title,
+              isPinned: true,
+              text: '',
               width: 0
             });
           }
@@ -636,12 +665,19 @@
       btnPillMode.classList.toggle('active', isMusicPillWideMode);
     }
     if (islandMusicPill) {
+      const hasActiveLyric = isLyricsPinned && islandMusicPill.classList.contains('is-lyrics-pill');
       if (isMusicPillWideMode) {
         islandMusicPill.classList.add('is-wide-pill');
         islandMusicPill.classList.add('is-hovered');
+        if (!hasActiveLyric) {
+          islandMusicPill.style.width = '210px';
+        }
       } else {
         islandMusicPill.classList.remove('is-wide-pill');
         islandMusicPill.classList.remove('is-hovered');
+        if (!hasActiveLyric) {
+          islandMusicPill.style.width = '';
+        }
       }
     }
     if (capsule) {
@@ -913,11 +949,14 @@
         fetchLyricsForTrack(lastMediaSnapshot.title, lastMediaSnapshot.artist, lastMediaSnapshot.durationSeconds);
         syncLyricsWithPosition(lastMediaSnapshot.positionSeconds || 0, true);
       }
+      if (currentActiveLyricText) {
+        setTopCenterMusicPillLyrics(currentActiveLyricText, true, estimateLyricWidth(currentActiveLyricText));
+      }
       if (notifyHost && window.winzen && typeof window.winzen.send === 'function') {
         window.winzen.send('di_set_lyrics', {
           isPinned: true,
           text: currentActiveLyricText || '',
-          width: 0
+          width: currentActiveLyricText ? estimateLyricWidth(currentActiveLyricText) : 0
         });
       }
     } else {
@@ -925,6 +964,7 @@
       if (colMusicTitle && lastMediaSnapshot) colMusicTitle.textContent = lastMediaSnapshot.title || 'Playing';
       if (bgTitle && lastMediaSnapshot) bgTitle.textContent = lastMediaSnapshot.title || 'Playing';
       if (diTcTitle && lastMediaSnapshot) diTcTitle.textContent = lastMediaSnapshot.title || 'Playing';
+      setTopCenterMusicPillLyrics('', false, 0);
       if (notifyHost && window.winzen && typeof window.winzen.send === 'function') {
         window.winzen.send('di_set_lyrics', {
           isPinned: false,
@@ -1414,17 +1454,20 @@
 
   if (islandMusicPill) {
     islandMusicPill.addEventListener('mouseenter', () => {
-      if (isExpanded || isCollapsing || isMusicPillWideMode) return;
+      const hasActiveLyric = isLyricsPinned && islandMusicPill.classList.contains('is-lyrics-pill');
+      if (isExpanded || isCollapsing || isMusicPillWideMode || hasActiveLyric) return;
       clearTimeout(musicHoverTimer);
       musicHoverTimer = setTimeout(() => {
-        if (!isExpanded && !isCollapsing && !isMusicPillWideMode) {
+        const activeLyricNow = isLyricsPinned && islandMusicPill.classList.contains('is-lyrics-pill');
+        if (!isExpanded && !isCollapsing && !isMusicPillWideMode && !activeLyricNow) {
           islandMusicPill.classList.add('is-hovered');
         }
       }, 260);
     });
 
     islandMusicPill.addEventListener('mouseleave', () => {
-      if (isMusicPillWideMode) return;
+      const hasActiveLyric = isLyricsPinned && islandMusicPill.classList.contains('is-lyrics-pill');
+      if (isMusicPillWideMode || hasActiveLyric) return;
       clearTimeout(musicHoverTimer);
       islandMusicPill.classList.remove('is-hovered');
     });
