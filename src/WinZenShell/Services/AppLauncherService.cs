@@ -28,6 +28,8 @@ public class AppLauncherItem
     public bool IsRecent { get; set; }
     public int LaunchCount { get; set; }
     public bool IsFolder { get; set; }
+    public string FolderSize { get; set; } = "1x1";
+    public string TileSize { get; set; } = "1x1";
     public List<AppLauncherItem> FolderItems { get; set; } = new();
 }
 
@@ -256,7 +258,7 @@ public class AppLauncherService
                 }
                 if (string.IsNullOrEmpty(iconUrl) && string.Equals(name, "Microsoft Store", StringComparison.OrdinalIgnoreCase))
                 {
-                    iconUrl = UwpAppIconHelper.ExtractIconDataUrlByAumid(UwpAppIconHelper.MicrosoftStoreAumid);
+                    iconUrl = UwpAppIconHelper.ExtractIconDataUrlByAumid(UwpAppIconHelper.MicrosoftStoreAumid, 128);
                 }
                 if (string.IsNullOrEmpty(iconUrl))
                 {
@@ -475,7 +477,7 @@ public class AppLauncherService
                     string target = $"shell:AppsFolder\\{aumid}";
                     if (!_iconCache.TryGetValue(target, out string? iconUrl) || string.IsNullOrEmpty(iconUrl))
                     {
-                        iconUrl = UwpAppIconHelper.ExtractIconDataUrlByAumid(aumid);
+                        iconUrl = UwpAppIconHelper.ExtractIconDataUrlByAumid(aumid, 128);
                         if (!string.IsNullOrEmpty(iconUrl))
                         {
                             _iconCache[target] = iconUrl;
@@ -601,13 +603,10 @@ public class AppLauncherService
                 var (resolvedPath, iconIndex) = TryResolveShortcutIconSource(path);
                 if (!string.IsNullOrWhiteSpace(resolvedPath) && File.Exists(resolvedPath))
                 {
-                    if (iconIndex != 0)
+                    string? highResDataUrl = TryExtractIndexedIconDataUrl(resolvedPath, iconIndex);
+                    if (!string.IsNullOrEmpty(highResDataUrl))
                     {
-                        string? indexedDataUrl = TryExtractIndexedIconDataUrl(resolvedPath, iconIndex);
-                        if (!string.IsNullOrEmpty(indexedDataUrl))
-                        {
-                            return indexedDataUrl;
-                        }
+                        return highResDataUrl;
                     }
                     iconSourcePath = resolvedPath;
                 }
@@ -636,6 +635,12 @@ public class AppLauncherService
                         }
                     }
                 }
+            }
+
+            string? directHighRes = TryExtractIndexedIconDataUrl(iconSourcePath, 0);
+            if (!string.IsNullOrEmpty(directHighRes))
+            {
+                return directHighRes;
             }
 
             using var icon = Icon.ExtractAssociatedIcon(iconSourcePath);
@@ -1198,6 +1203,25 @@ public class AppLauncherService
 
     private static string? TryExtractIndexedIconDataUrl(string filePath, int iconIndex)
     {
+        IntPtr[] hiResIcons = new IntPtr[1];
+        uint[] iconIds = new uint[1];
+        uint hiResExtracted = PrivateExtractIcons(filePath, iconIndex, 128, 128, hiResIcons, iconIds, 1, 0);
+        if (hiResExtracted > 0 && hiResExtracted != uint.MaxValue && hiResIcons[0] != IntPtr.Zero)
+        {
+            try
+            {
+                using var icon = Icon.FromHandle(hiResIcons[0]);
+                using var bmp = icon.ToBitmap();
+                using var ms = new MemoryStream();
+                bmp.Save(ms, ImageFormat.Png);
+                return "data:image/png;base64," + Convert.ToBase64String(ms.ToArray());
+            }
+            finally
+            {
+                DestroyIcon(hiResIcons[0]);
+            }
+        }
+
         IntPtr[] largeIcons = new IntPtr[1];
         uint extracted = ExtractIconEx(filePath, iconIndex, largeIcons, null, 1);
         if (extracted > 0 && largeIcons[0] != IntPtr.Zero)
@@ -1242,6 +1266,17 @@ public class AppLauncherService
 
     [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
     private static extern uint ExtractIconEx(string lpszFile, int nIconIndex, IntPtr[]? phiconLarge, IntPtr[]? phiconSmall, uint nIcons);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern uint PrivateExtractIcons(
+        string szFileName,
+        int nIconIndex,
+        int cxIcon,
+        int cyIcon,
+        IntPtr[] phicon,
+        uint[] piconid,
+        uint nIcons,
+        uint flags);
 
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
@@ -1378,6 +1413,7 @@ public class AppLauncherService
                             Id = string.IsNullOrWhiteSpace(p.Id) ? $"folder_{Guid.NewGuid():N}" : p.Id,
                             Name = string.IsNullOrWhiteSpace(p.Name) ? "Folder" : p.Name,
                             IsFolder = true,
+                            FolderSize = string.IsNullOrWhiteSpace(p.FolderSize) ? "1x1" : p.FolderSize,
                             FolderItems = new List<AppLauncherItem>()
                         };
 
@@ -1425,9 +1461,21 @@ public class AppLauncherService
                         string.Equals(a.TargetPath, p.TargetPath, StringComparison.OrdinalIgnoreCase) ||
                         string.Equals(a.Name, p.Name, StringComparison.OrdinalIgnoreCase));
 
+                    string tileSize = string.IsNullOrWhiteSpace(p.TileSize) ? "1x1" : p.TileSize;
                     if (matched != null)
                     {
-                        pinned.Add(matched);
+                        pinned.Add(new AppLauncherItem
+                        {
+                            Id = matched.Id,
+                            Name = matched.Name,
+                            TargetPath = matched.TargetPath,
+                            ResolvedExePath = matched.ResolvedExePath,
+                            IconDataUrl = matched.IconDataUrl,
+                            NativeIconDataUrl = matched.NativeIconDataUrl,
+                            IsRecent = matched.IsRecent,
+                            LaunchCount = matched.LaunchCount,
+                            TileSize = tileSize
+                        });
                     }
                     else
                     {
@@ -1437,7 +1485,8 @@ public class AppLauncherService
                             Name = p.Name,
                             TargetPath = p.TargetPath,
                             IconDataUrl = !string.IsNullOrEmpty(p.IconDataUrl) ? p.IconDataUrl : "",
-                            NativeIconDataUrl = !string.IsNullOrEmpty(p.IconDataUrl) ? p.IconDataUrl : ""
+                            NativeIconDataUrl = !string.IsNullOrEmpty(p.IconDataUrl) ? p.IconDataUrl : "",
+                            TileSize = tileSize
                         });
                     }
                 }

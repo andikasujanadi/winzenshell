@@ -446,8 +446,36 @@ public partial class SettingsWebWindow : Window
                         bool? showRecent = root.TryGetProperty("showRecentApps", out var srProp) ? srProp.GetBoolean() : null;
                         bool? showSteam = root.TryGetProperty("showSteamGames", out var ssProp) ? ssProp.GetBoolean() : null;
                         bool? overrideWinKey = root.TryGetProperty("overrideWindowsKey", out var owProp) ? owProp.GetBoolean() : null;
+                        string? layoutVariant = root.TryGetProperty("layoutVariant", out var lvProp) ? lvProp.GetString() : null;
+                        string? win81TileColorMode = root.TryGetProperty("win81TileColorMode", out var wcProp) ? wcProp.GetString() : null;
+                        bool? win81SplitView = root.TryGetProperty("win81SplitView", out var wsvProp) ? wsvProp.GetBoolean() : null;
+                        bool? win81FullScreen = root.TryGetProperty("win81FullScreen", out var wfsProp) ? wfsProp.GetBoolean() : null;
+                        string? win81ProfileName = root.TryGetProperty("win81ProfileName", out var wpnProp) ? wpnProp.GetString() : null;
+                        string? win81ProfilePicture = root.TryGetProperty("win81ProfilePicture", out var wppProp) ? wppProp.GetString() : null;
 
-                        _shellState.UpdateAppLauncherConfig(showPinned, showRecent, showSteam, overrideWinKey);
+                        _shellState.UpdateAppLauncherConfig(showPinned, showRecent, showSteam, overrideWinKey, layoutVariant, win81TileColorMode, win81SplitView, win81FullScreen, win81ProfileName, win81ProfilePicture);
+                        break;
+                    }
+
+                case "pick_win81_profile_picture":
+                    {
+                        var dlg = new Microsoft.Win32.OpenFileDialog
+                        {
+                            Title = "Choose Profile Picture",
+                            Filter = "Image Files (*.png;*.jpg;*.jpeg;*.webp;*.bmp)|*.png;*.jpg;*.jpeg;*.webp;*.bmp"
+                        };
+                        if (dlg.ShowDialog(this) == true && File.Exists(dlg.FileName))
+                        {
+                            try
+                            {
+                                byte[] bytes = File.ReadAllBytes(dlg.FileName);
+                                string ext = Path.GetExtension(dlg.FileName).TrimStart('.').ToLowerInvariant();
+                                if (ext == "jpg") ext = "jpeg";
+                                string dataUrl = $"data:image/{ext};base64,{Convert.ToBase64String(bytes)}";
+                                _shellState.UpdateAppLauncherConfig(null, null, null, null, win81ProfilePicture: dataUrl);
+                            }
+                            catch { }
+                        }
                         break;
                     }
 

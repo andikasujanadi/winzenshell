@@ -15,6 +15,7 @@ public static class FlyoutAnimationHelper
         public double RestTop;
         public string LastDockEdge = "Bottom";
         public bool LastUseOpacityFade = true;
+        public bool LastInstant = false;
     }
 
     private static readonly ConditionalWeakTable<Window, AnimState> _states = new();
@@ -34,7 +35,8 @@ public static class FlyoutAnimationHelper
         double finalTop,
         string dockEdge,
         bool activate = true,
-        bool useOpacityFade = true)
+        bool useOpacityFade = true,
+        bool instant = false)
     {
         var state = GetState(window);
         int token = ++state.Token;
@@ -43,6 +45,7 @@ public static class FlyoutAnimationHelper
         state.RestTop = finalTop;
         state.LastDockEdge = dockEdge ?? "Bottom";
         state.LastUseOpacityFade = useOpacityFade;
+        state.LastInstant = instant;
 
         window.BeginAnimation(Window.TopProperty, null);
         window.BeginAnimation(Window.OpacityProperty, null);
@@ -53,7 +56,7 @@ public static class FlyoutAnimationHelper
 
         FlyoutBackdropHelper.ApplyTo(window, finalTop);
 
-        if (!AnimationsEnabled)
+        if (!AnimationsEnabled || instant)
         {
             window.Top = finalTop;
             window.Opacity = 1.0;
@@ -129,7 +132,7 @@ public static class FlyoutAnimationHelper
 
         if (state.IsHiding) return;
 
-        if (!AnimationsEnabled)
+        if (!AnimationsEnabled || state.LastInstant)
         {
             int offToken = ++state.Token;
             state.IsHiding = false;
@@ -221,7 +224,7 @@ public static class FlyoutAnimationHelper
         int token = ++state.Token;
         taskbar.BeginAnimation(Window.TopProperty, null);
 
-        if (!AnimationsEnabled)
+        if (!AnimationsEnabled || state.LastInstant)
         {
             taskbar.Top = finalTop;
             return;

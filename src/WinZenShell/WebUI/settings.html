@@ -22,7 +22,7 @@
         </div>
         <div class="pane-profile-text">
           <span class="pane-title">WinZenShell</span>
-          <span class="pane-sub">v0.5.0</span>
+          <span class="pane-sub">v0.5.1</span>
         </div>
         <div class="pane-profile-menu-wrap">
           <button type="button" id="btnPaneMoreMenu" class="pane-more-btn" title="More actions" aria-label="More actions" aria-expanded="false">
@@ -567,8 +567,87 @@
           <div class="section-label">App Launcher</div>
 
           <div class="win11-expander">
-            <!-- Toggle Show Pinned Apps -->
+            <!-- Launcher Style Variant -->
             <div class="expander-subrow setting-subrow" style="border-top: none;">
+              <div class="card-titles">
+                <label class="card-title" for="selectLauncherVariant">Launcher Style</label>
+                <span class="card-subtitle">Choose between ChromeOS or Metro horizontal grid</span>
+              </div>
+              <div class="card-right">
+                <select id="selectLauncherVariant" class="win11-select">
+                  <option value="default">ChromeOS</option>
+                  <option value="win81">Metro</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Windows 8.1 Sub-options -->
+            <div id="win81OptionsGroup" style="display: none;">
+              <div class="expander-subrow setting-subrow">
+                <div class="card-titles">
+                  <label class="card-title" for="selectWin81TileColor">Tile Color Mode</label>
+                  <span class="card-subtitle">Use classic multi-color 8.1 tiles or follow your accent color</span>
+                </div>
+                <div class="card-right">
+                  <select id="selectWin81TileColor" class="win11-select">
+                    <option value="multicolor">Multi-Color 8.1</option>
+                    <option value="accent">Follow Accent Color</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="expander-subrow setting-subrow">
+                <div class="card-titles">
+                  <label class="card-title" for="toggleWin81SplitView">Split Start &amp; All Apps (↓ / ↑)</label>
+                  <span class="card-subtitle">Switch between Start tiles and A–Z All Apps using the Windows 8.1 arrow button</span>
+                </div>
+                <div class="card-right">
+                  <span class="toggle-state-text" id="stateWin81SplitView">On</span>
+                  <label class="win11-toggle">
+                    <input type="checkbox" id="toggleWin81SplitView" checked />
+                    <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="expander-subrow setting-subrow">
+                <div class="card-titles">
+                  <label class="card-title" for="toggleWin81FullScreen">Full Screen Start</label>
+                  <span class="card-subtitle">Expand the Windows 8.1 launcher across the full screen</span>
+                </div>
+                <div class="card-right">
+                  <span class="toggle-state-text" id="stateWin81FullScreen">Off</span>
+                  <label class="win11-toggle">
+                    <input type="checkbox" id="toggleWin81FullScreen" />
+                    <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="expander-subrow setting-subrow">
+                <div class="card-titles">
+                  <label class="card-title" for="inputWin81ProfileName">Profile Name</label>
+                  <span class="card-subtitle">Custom name shown in the top-right corner of Start (leave blank for Windows username)</span>
+                </div>
+                <div class="card-right">
+                  <input type="text" id="inputWin81ProfileName" class="win11-input" placeholder="Windows Username" style="width: 170px;" />
+                </div>
+              </div>
+
+              <div class="expander-subrow setting-subrow">
+                <div class="card-titles">
+                  <span class="card-title">Profile Picture</span>
+                  <span class="card-subtitle">Custom avatar shown next to your name on Start</span>
+                </div>
+                <div class="card-right" style="gap: 8px;">
+                  <button type="button" class="win11-btn" id="btnPickWin81ProfilePic">Choose Image</button>
+                  <button type="button" class="win11-btn secondary" id="btnResetWin81ProfilePic">Reset</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Toggle Show Pinned Apps -->
+            <div class="expander-subrow setting-subrow">
               <div class="card-titles">
                 <label class="card-title" for="toggleLauncherShowPinned">Show Pinned Apps</label>
                 <span class="card-subtitle">Display the pinned apps section at the top of the launcher</span>

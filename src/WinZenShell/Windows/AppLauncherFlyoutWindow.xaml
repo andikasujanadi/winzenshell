@@ -12,14 +12,14 @@
         ResizeMode="NoResize"
         SnapsToDevicePixels="True"
         UseLayoutRounding="True">
-    <Grid Margin="1">
+    <Grid x:Name="RootGrid" Margin="1">
         <Border x:Name="OuterBorder"
                 Background="#1E1E1E"
                 CornerRadius="16"
                 BorderBrush="#3E3E3E"
                 BorderThickness="1">
             <Grid ClipToBounds="True">
-                <Border CornerRadius="15" ClipToBounds="True">
+                <Border x:Name="InnerClipBorder" CornerRadius="15" ClipToBounds="True">
                     <wpf:WebView2 x:Name="LauncherWebView" DefaultBackgroundColor="Transparent"/>
                 </Border>
             </Grid>

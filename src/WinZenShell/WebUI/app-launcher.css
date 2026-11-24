@@ -57,8 +57,13 @@ body {
 .search-icon {
   width: 18px;
   height: 18px;
-  color: var(--winzen-accent, #3684e3);
+  color: #f3f3f3;
   flex-shrink: 0;
+}
+
+html[data-theme="light"] .search-icon,
+body.theme-light .search-icon {
+  color: #1f1f1f;
 }
 
 .search-input {
@@ -145,9 +150,16 @@ body.theme-light .launcher-content::-webkit-scrollbar-thumb:hover {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.6px;
-  color: #8c8c8c;
+  color: #ffffff;
+  opacity: 0.65;
   padding-left: 6px;
   margin-bottom: 8px;
+}
+
+html[data-theme="light"] .section-title,
+body.theme-light .section-title {
+  color: #1f1f1f;
+  opacity: 0.65;
 }
 
 .app-count-badge {
@@ -183,8 +195,15 @@ body.theme-light .section-subtitle-hint {
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
+:root {
+  --pinned-cell-size: 105px;
+  --win81-apps-rows: 10;
+}
+
 .pinned-row {
-  min-height: 84px;
+  min-height: var(--pinned-cell-size);
+  grid-auto-rows: var(--pinned-cell-size);
+  grid-auto-flow: dense;
   position: relative;
   transition: border-color 0.16s ease, background-color 0.16s ease;
 }
@@ -198,13 +217,33 @@ body.theme-light .section-subtitle-hint {
   position: relative;
   user-select: none;
   touch-action: none;
+  box-sizing: border-box;
+  height: 100%;
+  justify-content: center;
   transition: transform 0.22s cubic-bezier(0.2, 0, 0, 1), opacity 0.16s ease;
   will-change: transform;
 }
 
-.pinned-row .app-item.is-drag-source {
-  opacity: 0.22;
-  transform: scale(0.92);
+.pinned-row .app-item.is-drag-source,
+.bento-drop-placeholder {
+  opacity: 1;
+  transform: none;
+  background: color-mix(in srgb, var(--winzen-accent, #3684e3) 10%, transparent) !important;
+  border: 1.5px dashed color-mix(in srgb, var(--winzen-accent, #3684e3) 65%, transparent) !important;
+  border-radius: 14px;
+  pointer-events: none;
+  box-sizing: border-box;
+  height: 100%;
+}
+
+.pinned-row .app-item.is-drag-source > * {
+  opacity: 0.18;
+}
+
+.recent-row .app-item.is-drag-source,
+.apps-grid .app-item.is-drag-source {
+  opacity: 0.28;
+  transform: scale(0.94);
   pointer-events: none;
 }
 
@@ -373,6 +412,300 @@ body.theme-light .folder-icon-wrap {
 .folder-mini-grid.count-2 .folder-mini-icon {
   width: 18px;
   height: 18px;
+}
+
+/* Resizable Tiles (Small 1x1, Wide 2x1, Tall 1x2, Big 2x2) */
+.pinned-folder-item.size-1x1,
+.pinned-app-item.size-1x1 {
+  grid-column: span 1;
+  grid-row: span 1;
+}
+
+.pinned-folder-item.size-2x1,
+.pinned-app-item.size-2x1 {
+  grid-column: span 2;
+  grid-row: span 1;
+}
+
+.pinned-folder-item.size-1x2,
+.pinned-app-item.size-1x2 {
+  grid-column: span 1;
+  grid-row: span 2;
+}
+
+.pinned-folder-item.size-2x2,
+.pinned-app-item.size-2x2 {
+  grid-column: span 2;
+  grid-row: span 2;
+}
+
+/* Resizable Pinned Tile Card Surface (Apps & Large Folders) */
+.pinned-app-item.size-2x1,
+.pinned-app-item.size-1x2,
+.pinned-app-item.size-2x2,
+.pinned-folder-item.is-large-folder {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+}
+
+.pinned-app-item.size-2x1:hover,
+.pinned-app-item.size-1x2:hover,
+.pinned-app-item.size-2x2:hover,
+.pinned-folder-item.is-large-folder:hover {
+  background: rgba(255, 255, 255, 0.09);
+}
+
+html[data-theme="light"] .pinned-app-item.size-2x1,
+body.theme-light .pinned-app-item.size-2x1,
+html[data-theme="light"] .pinned-app-item.size-1x2,
+body.theme-light .pinned-app-item.size-1x2,
+html[data-theme="light"] .pinned-app-item.size-2x2,
+body.theme-light .pinned-app-item.size-2x2,
+html[data-theme="light"] .pinned-folder-item.is-large-folder,
+body.theme-light .pinned-folder-item.is-large-folder {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.09);
+}
+
+html[data-theme="light"] .pinned-app-item.size-2x1:hover,
+body.theme-light .pinned-app-item.size-2x1:hover,
+html[data-theme="light"] .pinned-app-item.size-1x2:hover,
+body.theme-light .pinned-app-item.size-1x2:hover,
+html[data-theme="light"] .pinned-app-item.size-2x2:hover,
+body.theme-light .pinned-app-item.size-2x2:hover,
+html[data-theme="light"] .pinned-folder-item.is-large-folder:hover,
+body.theme-light .pinned-folder-item.is-large-folder:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.pinned-app-item.size-2x1 {
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: left;
+  gap: 14px;
+  padding: 10px 18px;
+}
+
+.pinned-app-item.size-2x1 .app-icon-wrap {
+  width: 46px;
+  height: 46px;
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+
+.pinned-app-item.size-2x1 .app-icon-img {
+  width: 40px;
+  height: 40px;
+}
+
+.pinned-app-item.size-2x1 .app-name {
+  font-size: 13px;
+  font-weight: 500;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.3;
+  text-align: left;
+}
+
+.pinned-app-item.size-1x2 {
+  padding: 14px 8px;
+  justify-content: center;
+  gap: 10px;
+}
+
+.pinned-app-item.size-1x2 .app-icon-wrap {
+  width: 56px;
+  height: 56px;
+  margin-bottom: 0;
+}
+
+.pinned-app-item.size-1x2 .app-icon-img {
+  width: 48px;
+  height: 48px;
+}
+
+.pinned-app-item.size-1x2 .app-name {
+  font-size: 12.5px;
+  font-weight: 500;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.3;
+}
+
+.pinned-app-item.size-2x2 {
+  padding: 16px;
+  justify-content: center;
+  gap: 12px;
+}
+
+.pinned-app-item.size-2x2 .app-icon-wrap {
+  width: 68px;
+  height: 68px;
+  margin-bottom: 0;
+}
+
+.pinned-app-item.size-2x2 .app-icon-img {
+  width: 56px;
+  height: 56px;
+}
+
+.pinned-app-item.size-2x2 .app-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.3;
+}
+
+.pinned-folder-item.is-large-folder {
+  padding: 8px 10px;
+  justify-content: space-between;
+}
+
+.pinned-folder-item.is-large-folder .large-folder-wrap,
+html[data-theme="light"] .pinned-folder-item.is-large-folder .large-folder-wrap,
+body.theme-light .pinned-folder-item.is-large-folder .large-folder-wrap {
+  width: 100%;
+  height: auto;
+  flex: 1;
+  min-height: 0;
+  padding: 2px;
+  margin-bottom: 4px;
+  background: transparent;
+  border: none;
+}
+
+.pinned-folder-item.size-2x1 .large-folder-wrap {
+  padding: 2px 4px;
+}
+
+.large-folder-grid {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-items: center;
+  gap: 6px;
+}
+
+.large-folder-grid.grid-2x1 {
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: 1fr;
+}
+
+.large-folder-grid.grid-1x2 {
+  grid-template-columns: 1fr;
+  grid-template-rows: repeat(3, 1fr);
+}
+
+.large-folder-grid.grid-2x2 {
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.large-folder-app-btn,
+.large-folder-more-btn {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.14s ease, transform 0.14s ease;
+}
+
+.large-folder-app-btn:hover,
+.large-folder-more-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  transform: scale(1.06);
+}
+
+.large-folder-app-btn:active,
+.large-folder-more-btn:active {
+  transform: scale(0.95);
+}
+
+html[data-theme="light"] .large-folder-app-btn:hover,
+body.theme-light .large-folder-app-btn:hover,
+html[data-theme="light"] .large-folder-more-btn:hover,
+body.theme-light .large-folder-more-btn:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.large-folder-app-icon {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.pinned-folder-item.size-1x2 .large-folder-app-icon {
+  width: 34px;
+  height: 34px;
+}
+
+.pinned-folder-item.size-2x2 .large-folder-app-icon {
+  width: 38px;
+  height: 38px;
+}
+
+.large-folder-more-btn .folder-mini-grid {
+  width: 34px;
+  height: 34px;
+  padding: 4px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-sizing: border-box;
+  gap: 2px;
+}
+
+.pinned-folder-item.size-2x2 .large-folder-more-btn .folder-mini-grid {
+  width: 40px;
+  height: 40px;
+  padding: 5px;
+  gap: 3px;
+}
+
+.large-folder-more-btn .folder-mini-grid .folder-mini-icon,
+.large-folder-more-btn .folder-mini-grid.count-2 .folder-mini-icon {
+  width: 11px;
+  height: 11px;
+}
+
+.large-folder-more-btn .folder-mini-grid.count-1 .folder-mini-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.pinned-folder-item.size-2x2 .large-folder-more-btn .folder-mini-grid .folder-mini-icon,
+.pinned-folder-item.size-2x2 .large-folder-more-btn .folder-mini-grid.count-2 .folder-mini-icon {
+  width: 13px;
+  height: 13px;
+}
+
+.pinned-folder-item.size-2x2 .large-folder-more-btn .folder-mini-grid.count-1 .folder-mini-icon {
+  width: 22px;
+  height: 22px;
+}
+
+html[data-theme="light"] .large-folder-more-btn .folder-mini-grid,
+body.theme-light .large-folder-more-btn .folder-mini-grid {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 0, 0, 0.08);
 }
 
 /* App Item Card (both in Recent and All Apps) */
@@ -633,7 +966,6 @@ body.theme-light .footer-icon-btn:hover {
   position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(8px);
   animation: fadeIn 0.18s ease;
 }
 
@@ -802,5 +1134,575 @@ body.winzen-no-anim *::after {
 body.winzen-no-anim *:active,
 body.winzen-no-anim .app-item:hover {
   transform: none !important;
+}
+
+/* ==========================================================================
+   Windows 8.1 Variant (Original Horizontal Metro Grid, 0px Corner Radius)
+   ========================================================================== */
+body.variant-win81:not(.win81-searching) .launcher-content {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 28px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 6px 20px 12px 20px;
+}
+
+body.variant-win81:not(.win81-searching) .section-pinned,
+body.variant-win81:not(.win81-searching) .section-recent,
+body.variant-win81:not(.win81-searching) .section-all {
+  flex-shrink: 0;
+  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+body.variant-win81:not(.win81-searching) .section-header-row,
+body.variant-win81:not(.win81-searching) .section-recent .section-title {
+  margin-bottom: 10px;
+  min-height: 20px;
+  line-height: 20px;
+  padding-left: 0;
+}
+
+body.variant-win81:not(.win81-searching) .section-header-row .section-title {
+  margin-bottom: 0;
+  padding-left: 0;
+}
+
+body.variant-win81:not(.win81-searching) .pinned-row,
+body.variant-win81:not(.win81-searching) .recent-row {
+  display: grid;
+  grid-template-columns: none;
+  grid-template-rows: repeat(4, var(--pinned-cell-size, 132px));
+  grid-auto-flow: column dense;
+  grid-auto-columns: var(--pinned-cell-size, 132px);
+  width: max-content;
+  min-height: 0;
+  gap: 8px;
+}
+
+body.variant-win81:not(.win81-searching) .recent-row {
+  grid-auto-flow: column;
+}
+
+body.variant-win81:not(.win81-searching) .apps-grid {
+  display: grid;
+  grid-template-columns: none;
+  grid-template-rows: repeat(var(--win81-apps-rows, 8), 54px);
+  grid-auto-flow: column;
+  grid-auto-columns: 255px;
+  width: max-content;
+  min-height: 0;
+  gap: 8px 22px;
+}
+
+body.variant-win81:not(.win81-searching) .pinned-row .app-icon-img,
+body.variant-win81:not(.win81-searching) .recent-row .app-icon-img {
+  width: clamp(36px, calc(var(--pinned-cell-size, 132px) * 0.36), 60px);
+  height: clamp(36px, calc(var(--pinned-cell-size, 132px) * 0.36), 60px);
+}
+
+body.variant-win81:not(.win81-searching) .pinned-folder-item.size-1x1 .folder-icon-wrap {
+  width: clamp(72px, calc(var(--pinned-cell-size, 132px) * 0.66), 118px);
+  height: clamp(72px, calc(var(--pinned-cell-size, 132px) * 0.66), 118px);
+}
+
+body.variant-win81:not(.win81-searching) .pinned-folder-item.size-1x1 .folder-mini-icon,
+body.variant-win81:not(.win81-searching) .pinned-folder-item.size-1x1 .folder-mini-grid.count-2 .folder-mini-icon {
+  width: clamp(24px, calc(var(--pinned-cell-size, 132px) * 0.24), 40px);
+  height: clamp(24px, calc(var(--pinned-cell-size, 132px) * 0.24), 40px);
+}
+
+body.variant-win81:not(.win81-searching) .pinned-folder-item.size-1x1 .folder-mini-grid.count-1 .folder-mini-icon {
+  width: clamp(36px, calc(var(--pinned-cell-size, 132px) * 0.36), 60px);
+  height: clamp(36px, calc(var(--pinned-cell-size, 132px) * 0.36), 60px);
+}
+
+body.variant-win81:not(.win81-searching) .large-folder-app-icon {
+  width: clamp(36px, calc(var(--pinned-cell-size, 132px) * 0.34), 56px);
+  height: clamp(36px, calc(var(--pinned-cell-size, 132px) * 0.34), 56px);
+}
+
+body.variant-win81:not(.win81-searching) .pinned-folder-item.size-2x2 .large-folder-app-icon {
+  width: clamp(46px, calc(var(--pinned-cell-size, 132px) * 0.42), 72px);
+  height: clamp(46px, calc(var(--pinned-cell-size, 132px) * 0.42), 72px);
+}
+
+body.variant-win81:not(.win81-searching) .large-folder-more-btn .folder-mini-grid {
+  width: clamp(44px, calc(var(--pinned-cell-size, 132px) * 0.40), 68px);
+  height: clamp(44px, calc(var(--pinned-cell-size, 132px) * 0.40), 68px);
+  padding: 5px;
+  gap: 3px;
+}
+
+body.variant-win81:not(.win81-searching) .large-folder-more-btn .folder-mini-grid .folder-mini-icon,
+body.variant-win81:not(.win81-searching) .large-folder-more-btn .folder-mini-grid.count-2 .folder-mini-icon {
+  width: clamp(16px, calc(var(--pinned-cell-size, 132px) * 0.14), 24px);
+  height: clamp(16px, calc(var(--pinned-cell-size, 132px) * 0.14), 24px);
+}
+
+body.variant-win81:not(.win81-searching) .pinned-folder-item.size-2x2 .large-folder-more-btn .folder-mini-grid {
+  width: clamp(60px, calc(var(--pinned-cell-size, 132px) * 0.52), 92px);
+  height: clamp(60px, calc(var(--pinned-cell-size, 132px) * 0.52), 92px);
+  padding: 6px;
+  gap: 4px;
+}
+
+body.variant-win81:not(.win81-searching) .pinned-folder-item.size-2x2 .large-folder-more-btn .folder-mini-grid .folder-mini-icon,
+body.variant-win81:not(.win81-searching) .pinned-folder-item.size-2x2 .large-folder-more-btn .folder-mini-grid.count-2 .folder-mini-icon {
+  width: clamp(22px, calc(var(--pinned-cell-size, 132px) * 0.19), 34px);
+  height: clamp(22px, calc(var(--pinned-cell-size, 132px) * 0.19), 34px);
+}
+
+body.variant-win81:not(.win81-searching) .pinned-folder-item.size-2x2 .large-folder-more-btn .folder-mini-grid.count-1 .folder-mini-icon {
+  width: clamp(32px, calc(var(--pinned-cell-size, 132px) * 0.28), 48px);
+  height: clamp(32px, calc(var(--pinned-cell-size, 132px) * 0.28), 48px);
+}
+
+html:has(body.win81-fullscreen),
+body.win81-fullscreen,
+body.win81-fullscreen .launcher-shell,
+body.win81-fullscreen .search-box-wrap {
+  border-radius: 0 !important;
+}
+
+body.win81-fullscreen .search-box-wrap {
+  padding: 24px 36px 12px 36px;
+}
+
+body.win81-fullscreen .launcher-content {
+  padding: 12px 36px 18px 36px;
+  gap: 40px;
+}
+
+body.win81-fullscreen .win81-nav-bar {
+  padding: 10px 36px 20px 36px;
+}
+
+body.variant-win81:not(.win81-searching) .app-item {
+  height: 100%;
+  box-sizing: border-box;
+}
+
+body.variant-win81 .search-box,
+body.variant-win81 .pinned-row,
+body.variant-win81 .recent-row,
+body.variant-win81 .app-item,
+body.variant-win81 .app-icon-wrap,
+body.variant-win81 .folder-icon-wrap,
+body.variant-win81 .folder-dialog,
+body.variant-win81 .folder-title-input,
+body.variant-win81 .folder-ungroup-btn,
+body.variant-win81 .folder-close-btn,
+body.variant-win81 .large-folder-app-btn,
+body.variant-win81 .large-folder-more-btn,
+body.variant-win81 .large-folder-more-btn .folder-mini-grid,
+body.variant-win81 .bento-drop-placeholder {
+  border-radius: 0 !important;
+}
+
+body.variant-win81 .pinned-row,
+body.variant-win81 .recent-row {
+  background: transparent;
+  border: none;
+  padding: 4px 0;
+  gap: 8px;
+}
+
+body.variant-win81 .apps-grid {
+  gap: 8px;
+}
+
+body.variant-win81 .app-item {
+  padding: 8px 10px;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+body.variant-win81.win81-multicolor-mode .app-item {
+  background: var(--win81-tile-bg, #0078D7);
+}
+
+body.variant-win81.win81-accent-mode .app-item {
+  background: color-mix(in srgb, var(--winzen-accent, #0078D7) 84%, #000000);
+}
+
+body.variant-win81 .app-item:hover {
+  filter: brightness(1.12);
+  border-color: rgba(255, 255, 255, 0.55);
+  transform: none;
+}
+
+body.variant-win81 .app-item:active {
+  transform: scale(0.97);
+}
+
+body.variant-win81 .app-item.selected {
+  outline: 2px solid #ffffff;
+  outline-offset: -2px;
+}
+
+body.variant-win81 .app-icon-wrap {
+  flex: 1;
+  width: 100%;
+  margin-bottom: 4px;
+  background: transparent !important;
+  border: none !important;
+}
+
+body.variant-win81 .app-name {
+  align-self: stretch;
+  text-align: left;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #ffffff !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+body.variant-win81 .pinned-app-item.size-2x1 {
+  align-items: center;
+  justify-content: flex-start;
+  gap: 16px;
+  padding: 12px 24px;
+}
+
+body.variant-win81 .pinned-app-item.size-2x1 .app-icon-wrap {
+  flex: 0 0 auto;
+  width: 46px;
+  margin-bottom: 0;
+}
+
+body.variant-win81 .pinned-app-item.size-2x1 .app-name {
+  align-self: center;
+  font-size: 13px;
+}
+
+body.variant-win81 .pinned-folder-item.is-large-folder .large-folder-wrap {
+  flex: 1;
+  width: 100%;
+  padding: 2px;
+  margin-bottom: 4px;
+}
+
+body.variant-win81 .pinned-row .app-item.is-drag-source {
+  background: color-mix(in srgb, var(--winzen-accent, #3684e3) 14%, transparent) !important;
+  border: 1.5px dashed rgba(255, 255, 255, 0.75) !important;
+}
+
+body.variant-win81 .pinned-drag-ghost,
+body.variant-win81 .pinned-drag-ghost * {
+  border-radius: 0 !important;
+}
+
+/* Windows 8.1 Apps List & Search Results Compact Rows (1:1 Icon Box + Label on Right) */
+body.variant-win81.win81-searching .apps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 260px));
+  grid-auto-rows: 54px;
+  gap: 8px 18px;
+}
+
+body.variant-win81 .apps-grid .app-item {
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 3px 6px;
+  background: transparent !important;
+  border: 1px solid transparent;
+  height: 54px;
+  box-sizing: border-box;
+}
+
+body.variant-win81 .apps-grid .app-item:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: rgba(255, 255, 255, 0.25);
+  filter: none;
+}
+
+html[data-theme="light"] body.variant-win81 .apps-grid .app-item:hover,
+body.theme-light.variant-win81 .apps-grid .app-item:hover {
+  background: rgba(0, 0, 0, 0.08) !important;
+  border-color: rgba(0, 0, 0, 0.18);
+}
+
+body.variant-win81 .apps-grid .app-icon-wrap {
+  width: 44px;
+  height: 44px;
+  aspect-ratio: 1 / 1;
+  flex: 0 0 44px;
+  margin-bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+body.variant-win81.win81-multicolor-mode .apps-grid .app-icon-wrap {
+  background: var(--win81-tile-bg, #0078D7) !important;
+}
+
+body.variant-win81.win81-accent-mode .apps-grid .app-icon-wrap {
+  background: color-mix(in srgb, var(--winzen-accent, #0078D7) 88%, #000000) !important;
+}
+
+body.variant-win81 .apps-grid .app-icon-img {
+  width: 28px;
+  height: 28px;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+}
+
+body.variant-win81 .app-icon-img {
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+}
+
+body.variant-win81 .apps-grid .app-name {
+  align-self: center;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 400;
+  text-shadow: none;
+  flex: 1;
+  min-width: 0;
+}
+
+html[data-theme="light"] body.variant-win81 .apps-grid .app-name,
+body.theme-light.variant-win81 .apps-grid .app-name {
+  color: #1f1f1f !important;
+}
+
+/* Windows 8.1 A-Z Group Headers & Start <-> Apps Arrow Bar */
+.win81-alpha-header {
+  grid-row: auto;
+  width: 100%;
+  height: 42px;
+  font-size: 15px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.72);
+  padding: 0 6px 4px 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.22);
+  margin: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  box-sizing: border-box;
+}
+
+html[data-theme="light"] .win81-alpha-header,
+body.theme-light .win81-alpha-header {
+  color: rgba(0, 0, 0, 0.72);
+  border-bottom-color: rgba(0, 0, 0, 0.22);
+}
+
+.win81-nav-bar {
+  padding: 8px 20px 14px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.win81-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  background: transparent;
+  border: none;
+  color: #e6e6e6;
+  cursor: pointer;
+  padding: 6px 10px 6px 0;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+html[data-theme="light"] .win81-nav-btn,
+body.theme-light .win81-nav-btn {
+  color: #222222;
+}
+
+.win81-nav-circle {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.win81-nav-btn:hover .win81-nav-circle {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+html[data-theme="light"] .win81-nav-btn:hover .win81-nav-circle,
+body.theme-light .win81-nav-btn:hover .win81-nav-circle {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.win81-nav-btn:active .win81-nav-circle {
+  transform: scale(0.92);
+}
+
+@keyframes win81SlideUpIn {
+  from {
+    opacity: 0;
+    transform: translateY(36px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes win81SlideDownIn {
+  from {
+    opacity: 0;
+    transform: translateY(-36px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.launcher-content.win81-anim-to-apps {
+  animation: win81SlideUpIn 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.launcher-content.win81-anim-to-start {
+  animation: win81SlideDownIn 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Windows 8.1 Start / Apps Header & User Profile */
+body.variant-win81 .search-box-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 12px 24px;
+  gap: 16px;
+}
+
+body.variant-win81.win81-fullscreen .search-box-wrap {
+  padding: 28px 36px 16px 36px;
+}
+
+.win81-header-title {
+  font-size: 48px;
+  font-weight: 300;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: #f3f3f3;
+  user-select: none;
+}
+
+body.win81-fullscreen .win81-header-title {
+  font-size: 56px;
+}
+
+html[data-theme="light"] .win81-header-title,
+body.theme-light .win81-header-title {
+  color: #1f1f1f;
+}
+
+.win81-profile-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.win81-profile-name {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  line-height: 1.15;
+  text-align: right;
+}
+
+.win81-profile-first {
+  font-size: 20px;
+  font-weight: 300;
+  color: #f3f3f3;
+}
+
+.win81-profile-last {
+  font-size: 13.5px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+body.win81-fullscreen .win81-profile-first {
+  font-size: 23px;
+}
+
+body.win81-fullscreen .win81-profile-last {
+  font-size: 15px;
+}
+
+html[data-theme="light"] .win81-profile-first,
+body.theme-light .win81-profile-first {
+  color: #1f1f1f;
+}
+
+html[data-theme="light"] .win81-profile-last,
+body.theme-light .win81-profile-last {
+  color: rgba(0, 0, 0, 0.65);
+}
+
+.win81-profile-avatar {
+  width: 48px;
+  height: 48px;
+  aspect-ratio: 1 / 1;
+  background: rgba(255, 255, 255, 0.14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  color: #ffffff;
+  border-radius: 0 !important;
+}
+
+body.win81-fullscreen .win81-profile-avatar {
+  width: 54px;
+  height: 54px;
+}
+
+html[data-theme="light"] .win81-profile-avatar,
+body.theme-light .win81-profile-avatar {
+  background: rgba(0, 0, 0, 0.08);
+  color: #1f1f1f;
+}
+
+.win81-profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+body.variant-win81 .search-box {
+  width: 280px;
+  height: 38px;
+  padding: 0 12px;
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  flex-direction: row-reverse;
+  gap: 8px;
+}
+
+body.variant-win81 .search-box .search-input {
+  font-size: 13px;
+}
+
+html[data-theme="light"] body.variant-win81 .search-box,
+body.theme-light.variant-win81 .search-box {
+  background: rgba(0, 0, 0, 0.06);
+  border: none;
 }
 

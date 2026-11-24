@@ -5,7 +5,7 @@
 [![Platform: Windows 11](https://img.shields.io/badge/Platform-Windows%2011%20(64--bit)-0078D4?logo=windows11&logoColor=white)](https://microsoft.com/windows)
 [![Runtime: .NET 10](https://img.shields.io/badge/Runtime-.NET%2010%20(WPF)-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 [![Frontend: WebView2](https://img.shields.io/badge/Frontend-WebView2%20%7C%20Web%20Components-008080?logo=microsoftedge&logoColor=white)](https://developer.microsoft.com/microsoft-edge/webview2/)
-[![Release: v0.5.0](https://img.shields.io/badge/Release-v0.5.0-0078D4)](README.md#changelog)
+[![Release: v0.5.1](https://img.shields.io/badge/Release-v0.5.1-0078D4)](README.md#changelog)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 **WinZenShell** is a customizable, lightweight Windows 11 taskbar and widget studio.  
@@ -16,8 +16,8 @@ It pairs a modern web interface (HTML, CSS, and JavaScript) with a fast native W
 ---
 
 > [!IMPORTANT]
-> **Release Notice (`v0.5.0`)**:  
-> WinZenShell v0.5.0 brings **App Launcher Folder Creation & Management** (drag-and-drop grouping, 500ms hover delay, fluid FLIP reordering, custom folder naming, auto-ungrouping, and drag-to-remove), enhanced **Pointer Capture & Drag Reliability**, auto-dismissing folders on launcher exit, and streamlined **Context Menus** with dedicated **Remove** and **Hide** actions.
+> **Release Notice (`v0.5.1`)**:  
+> WinZenShell v0.5.1 introduces the **Metro** & **ChromeOS** App Launcher styles, **128×128 High-Resolution App Icons**, **App Launcher Integration in Layout Presets**, Full-Screen Start taskbar preservation, and backdrop/padding refinements.
 
 ---
 
@@ -204,6 +204,16 @@ window.winzen.shell.onMetricsUpdate((metrics) => {
 ---
 
 ## Changelog
+
+### v0.5.1 (2026-11-24)
+* **Metro & ChromeOS App Launcher Styles**:
+  * Renamed launcher variants to **ChromeOS** and **Metro** (Windows 8.1-style grid), featuring a *Start* / *Apps* header, custom profile name & picture, top-right search bar in the Apps view, type-to-search from Start, bold arrow toggle, and smooth view transitions.
+  * Full-Screen Start now preserves the taskbar work area, aligns Recent and Pinned sections, and refines wide (`2×1`) tile padding and folder icon sizing.
+* **High-Resolution 128×128 App Icons**:
+  * Upgraded `AppLauncherService` icon extraction to 128×128 (`PrivateExtractIcons` and 128 px UWP extraction) and live-resolved crisp icons for existing pinned tiles and folders.
+* **Layout Presets & Backdrop Fixes**:
+  * Included full `AppLauncher` configuration and `OverrideWindowsKey` inside **Layout Presets**.
+  * Fixed the App Launcher translucent/acrylic backdrop turning opaque black when resizing pinned tiles or folders.
 
 ### v0.5.0 (2026-11-24)
 * **App Launcher Folders & Drag-and-Drop Management**:

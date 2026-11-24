@@ -21,6 +21,7 @@ public partial class AppLauncherFlyoutWindow : Window
     private int _lastClipWidth = -1;
     private int _lastClipHeight = -1;
     private double _lastClipDpi = -1;
+    private bool _lastClipFullScreen = false;
     private Forms.ContextMenuStrip? _activeNativeMenu;
     private bool _isContextMenuOpen = false;
     public DateTime LastDeactivatedTime { get; private set; } = DateTime.MinValue;
@@ -57,7 +58,7 @@ public partial class AppLauncherFlyoutWindow : Window
             _shellState.StateChanged += payload => Dispatcher.Invoke(() =>
             {
                 ApplyTheme(payload.Settings.Theme, payload.Settings.AccentColor);
-                if (IsVisible)
+                if (_webViewReady)
                 {
                     PushAppsData();
                 }
@@ -79,22 +80,39 @@ public partial class AppLauncherFlyoutWindow : Window
         ApplyCornerClipping();
     }
 
+    private bool IsWin81FullScreen()
+    {
+        var cfg = _shellState?.Settings.AppLauncher;
+        return cfg != null &&
+               string.Equals(cfg.LayoutVariant, "win81", StringComparison.OrdinalIgnoreCase) &&
+               cfg.Win81FullScreen;
+    }
+
     public void ApplyCornerClipping()
     {
         if (_hwnd == IntPtr.Zero || LauncherWebView == null || LauncherWebView.Handle == IntPtr.Zero) return;
+        bool isFullScreen = IsWin81FullScreen();
         if (Win32Api.GetClientRect(LauncherWebView.Handle, out var clientRect) && clientRect.Width > 0 && clientRect.Height > 0)
         {
             double dpiScale = System.Windows.Media.VisualTreeHelper.GetDpi(this).DpiScaleX;
             if (dpiScale <= 0) dpiScale = 1.0;
             if (clientRect.Width == _lastClipWidth &&
                 clientRect.Height == _lastClipHeight &&
-                Math.Abs(dpiScale - _lastClipDpi) < 0.01)
+                Math.Abs(dpiScale - _lastClipDpi) < 0.01 &&
+                isFullScreen == _lastClipFullScreen)
             {
                 return;
             }
             _lastClipWidth = clientRect.Width;
             _lastClipHeight = clientRect.Height;
             _lastClipDpi = dpiScale;
+            _lastClipFullScreen = isFullScreen;
+
+            if (isFullScreen)
+            {
+                Win32Api.SetWindowRgn(LauncherWebView.Handle, IntPtr.Zero, false);
+                return;
+            }
 
             int radiusPhysical = (int)Math.Round(15 * dpiScale);
             int diameter = radiusPhysical * 2;
@@ -120,6 +138,9 @@ public partial class AppLauncherFlyoutWindow : Window
             OuterBorder.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x1E, 0x1E, 0x1E));
             OuterBorder.BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x3E, 0x3E, 0x3E));
         }
+
+        if (IsVisible)
+            FlyoutBackdropHelper.ApplyTo(this, Top);
 
         if (LauncherWebView != null)
         {
@@ -193,6 +214,39 @@ public partial class AppLauncherFlyoutWindow : Window
         });
     }
 
+    private string? _cachedDefaultAvatarDataUrl;
+
+    private string ResolveProfilePictureDataUrl(string? customPicture)
+    {
+        if (!string.IsNullOrWhiteSpace(customPicture))
+            return customPicture;
+
+        if (_cachedDefaultAvatarDataUrl != null)
+            return _cachedDefaultAvatarDataUrl;
+
+        try
+        {
+            string[] candidates =
+            {
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Microsoft", "User Account Pictures", "user-192.png"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Microsoft", "User Account Pictures", "user.png"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Microsoft", "User Account Pictures", "user-48.png")
+            };
+            foreach (var path in candidates)
+            {
+                if (File.Exists(path))
+                {
+                    _cachedDefaultAvatarDataUrl = $"data:image/png;base64,{Convert.ToBase64String(File.ReadAllBytes(path))}";
+                    return _cachedDefaultAvatarDataUrl;
+                }
+            }
+        }
+        catch { }
+
+        _cachedDefaultAvatarDataUrl = "";
+        return "";
+    }
+
     public void PushAppsData()
     {
         if (!_webViewReady || LauncherWebView.CoreWebView2 == null) return;
@@ -202,13 +256,20 @@ public partial class AppLauncherFlyoutWindow : Window
             var payload = _appLauncherService.GetAppsPayload(_shellState?.Settings.AppLauncher);
             string theme = _shellState?.Settings.Theme ?? "dark";
             string accentColor = _shellState?.Settings.AccentColor ?? "#3684E3";
+            var launcherCfg = _shellState?.Settings.AppLauncher;
             string json = JsonSerializer.Serialize(new
             {
                 type = "apps_data",
                 payload,
                 theme,
                 accentColor,
-                enableAnimations = _shellState?.Settings.EnableAnimations ?? true
+                enableAnimations = _shellState?.Settings.EnableAnimations ?? true,
+                layoutVariant = launcherCfg?.LayoutVariant ?? "default",
+                win81TileColorMode = launcherCfg?.Win81TileColorMode ?? "multicolor",
+                win81SplitView = launcherCfg?.Win81SplitView ?? true,
+                win81FullScreen = launcherCfg?.Win81FullScreen ?? false,
+                win81ProfileName = string.IsNullOrWhiteSpace(launcherCfg?.Win81ProfileName) ? Environment.UserName : launcherCfg!.Win81ProfileName,
+                win81ProfilePicture = ResolveProfilePictureDataUrl(launcherCfg?.Win81ProfilePicture)
             }, new JsonSerializerOptions
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase
@@ -270,12 +331,14 @@ public partial class AppLauncherFlyoutWindow : Window
                         string iconDataUrl = root.TryGetProperty("iconDataUrl", out var iduProp) ? iduProp.GetString() ?? "" : "";
                         bool isFolder = root.TryGetProperty("isFolder", out var ifProp) && ifProp.GetBoolean();
                         string folderId = root.TryGetProperty("folderId", out var fidProp) ? fidProp.GetString() ?? "" : "";
+                        string folderSize = root.TryGetProperty("folderSize", out var fsProp) ? fsProp.GetString() ?? "1x1" : "1x1";
+                        string tileSize = root.TryGetProperty("tileSize", out var tsProp) ? tsProp.GetString() ?? "1x1" : "1x1";
                         string section = root.TryGetProperty("section", out var secProp) ? secProp.GetString() ?? "" : "";
                         bool isPinned = root.TryGetProperty("isPinned", out var ipProp)
                             ? ipProp.GetBoolean()
                             : (_shellState?.IsLauncherAppPinned(targetPath, appName) ?? false);
 
-                        ShowAppContextMenu(appName, targetPath, resolvedExe, iconDataUrl, isPinned, isFolder, folderId, section);
+                        ShowAppContextMenu(appName, targetPath, resolvedExe, iconDataUrl, isPinned, isFolder, folderId, section, folderSize, tileSize);
                         break;
                     }
 
@@ -328,6 +391,52 @@ public partial class AppLauncherFlyoutWindow : Window
         catch { }
     }
 
+    private static Forms.ToolStripMenuItem CreateResizeSubmenu(
+        string currentSize,
+        Forms.Padding itemPadding,
+        Action<string> onSelect)
+    {
+        string normalizedSize = string.IsNullOrWhiteSpace(currentSize) ? "1x1" : currentSize;
+        var resizeMenu = new Forms.ToolStripMenuItem("Resize")
+        {
+            ForeColor = Color.FromArgb(245, 245, 245),
+            Padding = itemPadding,
+            DropDown = new Forms.ToolStripDropDownMenu
+            {
+                Renderer = new TaskbarWebWindow.Win11DarkContextMenuRenderer(),
+                ForeColor = Color.FromArgb(245, 245, 245),
+                BackColor = Color.FromArgb(44, 44, 44),
+                ShowImageMargin = false,
+                ShowCheckMargin = false,
+                Font = new Font("Segoe UI", 9.5f, System.Drawing.FontStyle.Regular),
+                Padding = new Forms.Padding(4, 4, 4, 4)
+            }
+        };
+
+        var sizeOptions = new (string SizeKey, string Label)[]
+        {
+            ("1x1", "Small"),
+            ("2x1", "Wide"),
+            ("1x2", "Tall"),
+            ("2x2", "Large")
+        };
+
+        foreach (var (sizeKey, label) in sizeOptions)
+        {
+            bool isCurrent = string.Equals(normalizedSize, sizeKey, StringComparison.OrdinalIgnoreCase);
+            var sizeItem = new Forms.ToolStripMenuItem(isCurrent ? $"{label}  ✓" : label)
+            {
+                ForeColor = isCurrent ? Color.White : Color.FromArgb(245, 245, 245),
+                Padding = itemPadding
+            };
+            string capturedSize = sizeKey;
+            sizeItem.Click += (_, _) => onSelect(capturedSize);
+            resizeMenu.DropDownItems.Add(sizeItem);
+        }
+
+        return resizeMenu;
+    }
+
     private void ShowAppContextMenu(
         string appName,
         string targetPath,
@@ -336,7 +445,9 @@ public partial class AppLauncherFlyoutWindow : Window
         bool isPinned,
         bool isFolder = false,
         string folderId = "",
-        string section = "")
+        string section = "",
+        string folderSize = "1x1",
+        string tileSize = "1x1")
     {
         if (string.IsNullOrWhiteSpace(appName) && string.IsNullOrWhiteSpace(targetPath)) return;
 
@@ -411,6 +522,13 @@ public partial class AppLauncherFlyoutWindow : Window
                 PostWebMessage(new { type = "ungroup_folder", folderId = string.IsNullOrEmpty(folderId) ? targetPath : folderId });
             };
             menu.Items.Add(ungroupItem);
+
+            // Submenu: Resize folder (Small 1x1, Wide 2x1, Tall 1x2, Big 2x2)
+            string resolvedFolderId = string.IsNullOrEmpty(folderId) ? targetPath : folderId;
+            menu.Items.Add(CreateResizeSubmenu(folderSize, itemPadding, capturedSize =>
+            {
+                PostWebMessage(new { type = "resize_folder", folderId = resolvedFolderId, size = capturedSize });
+            }));
 
             menu.Items.Add(new Forms.ToolStripSeparator());
 
@@ -576,6 +694,15 @@ public partial class AppLauncherFlyoutWindow : Window
 
                 menu.Items.Add(reorderMenu);
             }
+
+            // Submenu: Resize pinned app (root pinned row only, not inside a folder)
+            if (string.Equals(section, "pinned", StringComparison.OrdinalIgnoreCase) && string.IsNullOrEmpty(folderId))
+            {
+                menu.Items.Add(CreateResizeSubmenu(tileSize, itemPadding, capturedSize =>
+                {
+                    PostWebMessage(new { type = "resize_pinned_app", target = targetPath, name = appName, size = capturedSize });
+                }));
+            }
         }
         else
         {
@@ -681,6 +808,52 @@ public partial class AppLauncherFlyoutWindow : Window
         string dockEdge,
         string region = "left")
     {
+        bool isFullScreen = IsWin81FullScreen();
+        if (isFullScreen)
+        {
+            double fullWidth = SystemParameters.PrimaryScreenWidth;
+            double screenHeight = SystemParameters.PrimaryScreenHeight;
+            double fullTop;
+            double fullHeight;
+            if (string.Equals(dockEdge, "Top", StringComparison.OrdinalIgnoreCase))
+            {
+                fullTop = Math.Max(0, taskbarTop + taskbarHeight);
+                fullHeight = Math.Max(200, screenHeight - fullTop);
+            }
+            else
+            {
+                fullTop = 0;
+                fullHeight = Math.Max(200, taskbarTop > 0 ? taskbarTop : screenHeight);
+            }
+
+            Width = fullWidth;
+            Height = fullHeight;
+            Left = 0;
+            RootGrid.Margin = new Thickness(0);
+            OuterBorder.CornerRadius = new CornerRadius(0);
+            OuterBorder.BorderThickness = new Thickness(0);
+            InnerClipBorder.CornerRadius = new CornerRadius(0);
+
+            ApplyCornerClipping();
+            ApplyTheme(_shellState?.Settings.Theme, _shellState?.Settings.AccentColor);
+            FlyoutAnimationHelper.AnimateShow(this, fullTop, dockEdge, activate: true, useOpacityFade: false, instant: true);
+
+            if (_webViewReady && LauncherWebView.CoreWebView2 != null)
+            {
+                PushAppsData();
+            }
+            _appLauncherService.RefreshIfStale();
+            FocusSearchInput();
+            return;
+        }
+
+        Width = 728;
+        Height = 800;
+        RootGrid.Margin = new Thickness(1);
+        OuterBorder.CornerRadius = new CornerRadius(16);
+        OuterBorder.BorderThickness = new Thickness(1);
+        InnerClipBorder.CornerRadius = new CornerRadius(15);
+
         double flyoutWidth = Width;
         double flyoutHeight = Height;
 

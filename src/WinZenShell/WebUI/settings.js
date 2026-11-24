@@ -749,6 +749,24 @@ function initSettingsPage() {
     const showRecent = toggleLauncherShowRecent ? toggleLauncherShowRecent.checked : true;
     const showSteam = toggleLauncherShowSteam ? toggleLauncherShowSteam.checked : true;
     const overrideWinKey = toggleLauncherOverrideWinKey ? toggleLauncherOverrideWinKey.checked : false;
+    const selectLauncherVariant = document.getElementById('selectLauncherVariant');
+    const selectWin81TileColor = document.getElementById('selectWin81TileColor');
+    const toggleWin81SplitView = document.getElementById('toggleWin81SplitView');
+    const stateWin81SplitView = document.getElementById('stateWin81SplitView');
+    const toggleWin81FullScreen = document.getElementById('toggleWin81FullScreen');
+    const stateWin81FullScreen = document.getElementById('stateWin81FullScreen');
+    const inputWin81ProfileName = document.getElementById('inputWin81ProfileName');
+    const win81OptionsGroup = document.getElementById('win81OptionsGroup');
+
+    const layoutVariant = selectLauncherVariant ? selectLauncherVariant.value : 'default';
+    const win81TileColorMode = selectWin81TileColor ? selectWin81TileColor.value : 'multicolor';
+    const win81SplitView = toggleWin81SplitView ? toggleWin81SplitView.checked : true;
+    const win81FullScreen = toggleWin81FullScreen ? toggleWin81FullScreen.checked : false;
+    const win81ProfileName = inputWin81ProfileName ? inputWin81ProfileName.value : '';
+
+    if (win81OptionsGroup) win81OptionsGroup.style.display = layoutVariant === 'win81' ? 'block' : 'none';
+    if (stateWin81SplitView) stateWin81SplitView.textContent = win81SplitView ? 'On' : 'Off';
+    if (stateWin81FullScreen) stateWin81FullScreen.textContent = win81FullScreen ? 'On' : 'Off';
 
     if (stateLauncherShowPinned) stateLauncherShowPinned.textContent = showPinned ? 'On' : 'Off';
     if (stateLauncherShowRecent) stateLauncherShowRecent.textContent = showRecent ? 'On' : 'Off';
@@ -764,7 +782,12 @@ function initSettingsPage() {
       showPinnedApps: showPinned,
       showRecentApps: showRecent,
       showSteamGames: showSteam,
-      overrideWindowsKey: overrideWinKey
+      overrideWindowsKey: overrideWinKey,
+      layoutVariant,
+      win81TileColorMode,
+      win81SplitView,
+      win81FullScreen,
+      win81ProfileName
     });
   }
 
@@ -772,6 +795,28 @@ function initSettingsPage() {
   if (toggleLauncherShowRecent) toggleLauncherShowRecent.addEventListener('change', sendLauncherConfig);
   if (toggleLauncherShowSteam) toggleLauncherShowSteam.addEventListener('change', sendLauncherConfig);
   if (toggleLauncherOverrideWinKey) toggleLauncherOverrideWinKey.addEventListener('change', sendLauncherConfig);
+  const elLauncherVariant = document.getElementById('selectLauncherVariant');
+  const elWin81TileColor = document.getElementById('selectWin81TileColor');
+  const elWin81SplitView = document.getElementById('toggleWin81SplitView');
+  const elWin81FullScreen = document.getElementById('toggleWin81FullScreen');
+  const elWin81ProfileName = document.getElementById('inputWin81ProfileName');
+  const elBtnPickProfilePic = document.getElementById('btnPickWin81ProfilePic');
+  const elBtnResetProfilePic = document.getElementById('btnResetWin81ProfilePic');
+  if (elLauncherVariant) elLauncherVariant.addEventListener('change', sendLauncherConfig);
+  if (elWin81TileColor) elWin81TileColor.addEventListener('change', sendLauncherConfig);
+  if (elWin81SplitView) elWin81SplitView.addEventListener('change', sendLauncherConfig);
+  if (elWin81FullScreen) elWin81FullScreen.addEventListener('change', sendLauncherConfig);
+  if (elWin81ProfileName) elWin81ProfileName.addEventListener('change', sendLauncherConfig);
+  if (elBtnPickProfilePic) {
+    elBtnPickProfilePic.addEventListener('click', () => {
+      window.winzen.send('pick_win81_profile_picture');
+    });
+  }
+  if (elBtnResetProfilePic) {
+    elBtnResetProfilePic.addEventListener('click', () => {
+      window.winzen.send('update_app_launcher_config', { win81ProfilePicture: '' });
+    });
+  }
 
   if (btnResetPinnedLauncherApps) {
     btnResetPinnedLauncherApps.addEventListener('click', () => {
@@ -1267,6 +1312,31 @@ function initSettingsPage() {
       }
 
       const appLauncher = s.appLauncher || {};
+      const selVariant = document.getElementById('selectLauncherVariant');
+      const selColorMode = document.getElementById('selectWin81TileColor');
+      const chkSplitView = document.getElementById('toggleWin81SplitView');
+      const stSplitView = document.getElementById('stateWin81SplitView');
+      const grpWin81 = document.getElementById('win81OptionsGroup');
+      const lv = appLauncher.layoutVariant || 'default';
+      if (selVariant) selVariant.value = lv;
+      if (grpWin81) grpWin81.style.display = lv === 'win81' ? 'block' : 'none';
+      if (selColorMode) selColorMode.value = appLauncher.win81TileColorMode || 'multicolor';
+      if (chkSplitView) {
+        const sv = appLauncher.win81SplitView !== false;
+        chkSplitView.checked = sv;
+        if (stSplitView) stSplitView.textContent = sv ? 'On' : 'Off';
+      }
+      const chkFullScreen = document.getElementById('toggleWin81FullScreen');
+      const stFullScreen = document.getElementById('stateWin81FullScreen');
+      if (chkFullScreen) {
+        const fs = !!appLauncher.win81FullScreen;
+        chkFullScreen.checked = fs;
+        if (stFullScreen) stFullScreen.textContent = fs ? 'On' : 'Off';
+      }
+      const inpProfileName = document.getElementById('inputWin81ProfileName');
+      if (inpProfileName && document.activeElement !== inpProfileName) {
+        inpProfileName.value = appLauncher.win81ProfileName || '';
+      }
       if (toggleLauncherShowPinned) {
         const sp = appLauncher.showPinnedApps !== false;
         toggleLauncherShowPinned.checked = sp;

@@ -182,6 +182,10 @@ public class LayoutPreset
     public bool? DynamicIslandEnabled { get; set; }
     public string? DynamicIslandPlacement { get; set; }
     public string? DynamicIslandTaskbarSlot { get; set; }
+
+    // App Launcher settings
+    public AppLauncherConfig? AppLauncher { get; set; }
+    public bool? OverrideWindowsKey { get; set; }
 }
 
 public class AppLauncherPinnedItem
@@ -201,6 +205,12 @@ public class AppLauncherPinnedItem
     [JsonPropertyName("isFolder")]
     public bool IsFolder { get; set; } = false;
 
+    [JsonPropertyName("folderSize")]
+    public string FolderSize { get; set; } = "1x1";
+
+    [JsonPropertyName("tileSize")]
+    public string TileSize { get; set; } = "1x1";
+
     [JsonPropertyName("folderItems")]
     public List<AppLauncherPinnedItem> FolderItems { get; set; } = new();
 }
@@ -215,6 +225,24 @@ public class AppLauncherConfig
 
     [JsonPropertyName("showSteamGames")]
     public bool ShowSteamGames { get; set; } = true;
+
+    [JsonPropertyName("layoutVariant")]
+    public string LayoutVariant { get; set; } = "default";
+
+    [JsonPropertyName("win81TileColorMode")]
+    public string Win81TileColorMode { get; set; } = "multicolor";
+
+    [JsonPropertyName("win81SplitView")]
+    public bool Win81SplitView { get; set; } = true;
+
+    [JsonPropertyName("win81FullScreen")]
+    public bool Win81FullScreen { get; set; } = false;
+
+    [JsonPropertyName("win81ProfileName")]
+    public string Win81ProfileName { get; set; } = "";
+
+    [JsonPropertyName("win81ProfilePicture")]
+    public string Win81ProfilePicture { get; set; } = "";
 
     [JsonPropertyName("pinnedApps")]
     public List<AppLauncherPinnedItem> PinnedApps { get; set; } = new();
@@ -1128,12 +1156,34 @@ public class ShellStateService
         BroadcastState();
     }
 
-    public void UpdateAppLauncherConfig(bool? showPinned, bool? showRecent, bool? showSteam, bool? overrideWinKey)
+    public void UpdateAppLauncherConfig(
+        bool? showPinned,
+        bool? showRecent,
+        bool? showSteam,
+        bool? overrideWinKey,
+        string? layoutVariant = null,
+        string? win81TileColorMode = null,
+        bool? win81SplitView = null,
+        bool? win81FullScreen = null,
+        string? win81ProfileName = null,
+        string? win81ProfilePicture = null)
     {
         if (_settings.AppLauncher == null) _settings.AppLauncher = new();
         if (showPinned.HasValue) _settings.AppLauncher.ShowPinnedApps = showPinned.Value;
         if (showRecent.HasValue) _settings.AppLauncher.ShowRecentApps = showRecent.Value;
         if (showSteam.HasValue) _settings.AppLauncher.ShowSteamGames = showSteam.Value;
+        if (!string.IsNullOrWhiteSpace(layoutVariant))
+            _settings.AppLauncher.LayoutVariant = layoutVariant == "win81" ? "win81" : "default";
+        if (!string.IsNullOrWhiteSpace(win81TileColorMode))
+            _settings.AppLauncher.Win81TileColorMode = win81TileColorMode == "accent" ? "accent" : "multicolor";
+        if (win81SplitView.HasValue)
+            _settings.AppLauncher.Win81SplitView = win81SplitView.Value;
+        if (win81FullScreen.HasValue)
+            _settings.AppLauncher.Win81FullScreen = win81FullScreen.Value;
+        if (win81ProfileName != null)
+            _settings.AppLauncher.Win81ProfileName = win81ProfileName.Trim();
+        if (win81ProfilePicture != null)
+            _settings.AppLauncher.Win81ProfilePicture = win81ProfilePicture;
         if (overrideWinKey.HasValue)
         {
             _settings.OverrideWindowsKey = overrideWinKey.Value;
@@ -1283,6 +1333,8 @@ public class ShellStateService
         preset.DynamicIslandEnabled = _settings.DynamicIsland?.Enabled;
         preset.DynamicIslandPlacement = _settings.DynamicIsland?.Placement;
         preset.DynamicIslandTaskbarSlot = _settings.DynamicIsland?.TaskbarSlot;
+        preset.AppLauncher = DeepClone(_settings.AppLauncher ?? new());
+        preset.OverrideWindowsKey = _settings.OverrideWindowsKey;
     }
 
     public void SaveLayoutPreset(string? name)
@@ -1350,6 +1402,14 @@ public class ShellStateService
             string.Equals(_settings.DynamicIsland.Placement, "top-center", StringComparison.OrdinalIgnoreCase))
         {
             _settings.DynamicIsland.Placement = "taskbar";
+        }
+
+        if (preset.AppLauncher != null)
+            _settings.AppLauncher = DeepClone(preset.AppLauncher);
+        if (preset.OverrideWindowsKey.HasValue && preset.OverrideWindowsKey.Value != _settings.OverrideWindowsKey)
+        {
+            _settings.OverrideWindowsKey = preset.OverrideWindowsKey.Value;
+            WinKeyOverrideChanged?.Invoke(preset.OverrideWindowsKey.Value);
         }
 
         _settings.ActiveLayoutPresetId = preset.Id;

@@ -9,15 +9,20 @@
 </head>
 <body>
   <div class="launcher-shell" id="launcherShell">
-    <!-- ChromeOS Search Bar -->
-    <div class="search-box-wrap">
-      <div class="search-box">
+    <!-- Top Bar (ChromeOS Search Bar / Windows 8.1 Start Header) -->
+    <div class="search-box-wrap" id="searchBoxWrap">
+      <div class="win81-header-title" id="win81HeaderTitle" style="display:none;">Start</div>
+      <div class="search-box" id="searchBox">
         <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="11" cy="11" r="8"></circle>
           <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
         </svg>
         <input type="text" id="searchInput" class="search-input" placeholder="Search your apps..." autocomplete="off" spellcheck="false" autofocus />
         <button id="btnClearSearch" class="btn-clear-search" title="Clear search (Esc)" style="display:none;">✕</button>
+      </div>
+      <div class="win81-profile-box" id="win81ProfileBox" style="display:none;">
+        <div class="win81-profile-name" id="win81ProfileName"></div>
+        <div class="win81-profile-avatar" id="win81ProfileAvatar"></div>
       </div>
     </div>
 
@@ -27,7 +32,6 @@
       <section class="section-pinned" id="sectionPinned" style="display:none;">
         <div class="section-header-row">
           <div class="section-title">Pinned</div>
-          <span class="section-subtitle-hint">Drag to reorder</span>
         </div>
         <div class="pinned-row" id="pinnedGrid">
           <!-- Populated by JS -->
@@ -52,6 +56,14 @@
           <!-- Populated by JS -->
         </div>
       </section>
+    </div>
+
+    <!-- Windows 8.1 Start <-> Apps Toggle Bar -->
+    <div class="win81-nav-bar" id="win81NavBar" style="display:none;">
+      <button type="button" class="win81-nav-btn" id="btnWin81ToggleView" title="Switch between Start and All Apps">
+        <span class="win81-nav-circle" id="win81NavArrow">↓</span>
+        <span class="win81-nav-label" id="win81NavLabel">Apps</span>
+      </button>
     </div>
 
     <!-- Folder Modal Overlay -->
