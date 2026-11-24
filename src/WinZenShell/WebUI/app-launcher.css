@@ -128,6 +128,7 @@ body.theme-light .launcher-content::-webkit-scrollbar-thumb:hover {
 }
 
 /* Section Titles */
+.section-pinned,
 .section-recent {
   margin-bottom: 16px;
 }
@@ -157,7 +158,21 @@ body.theme-light .launcher-content::-webkit-scrollbar-thumb:hover {
   color: #999;
 }
 
-/* Recent Row (ChromeOS style horizontal pills/circles) */
+.section-subtitle-hint {
+  font-size: 11px;
+  color: #777;
+  letter-spacing: 0.3px;
+  padding-right: 6px;
+  user-select: none;
+}
+
+html[data-theme="light"] .section-subtitle-hint,
+body.theme-light .section-subtitle-hint {
+  color: #999;
+}
+
+/* Recent and Pinned Row (ChromeOS style horizontal pills/circles) */
+.pinned-row,
 .recent-row {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
@@ -166,6 +181,198 @@ body.theme-light .launcher-content::-webkit-scrollbar-thumb:hover {
   padding: 10px 8px;
   border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.pinned-row {
+  min-height: 84px;
+  position: relative;
+  transition: border-color 0.16s ease, background-color 0.16s ease;
+}
+
+.pinned-row.grid-drag-active {
+  border-color: color-mix(in srgb, var(--winzen-accent, #3684e3) 40%, transparent);
+}
+
+.pinned-row .app-item {
+  cursor: pointer;
+  position: relative;
+  user-select: none;
+  touch-action: none;
+  transition: transform 0.22s cubic-bezier(0.2, 0, 0, 1), opacity 0.16s ease;
+  will-change: transform;
+}
+
+.pinned-row .app-item.is-drag-source {
+  opacity: 0.22;
+  transform: scale(0.92);
+  pointer-events: none;
+}
+
+/* Floating drag ghost following cursor (no black background) */
+.pinned-drag-ghost,
+.pinned-drag-ghost.app-item,
+.pinned-drag-ghost.app-item:hover,
+.pinned-drag-ghost.app-item:active,
+.pinned-drag-ghost * {
+  pointer-events: none !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -webkit-user-drag: none !important;
+  touch-action: none !important;
+}
+
+.pinned-row .app-item *,
+.folder-grid .app-item * {
+  touch-action: none !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -webkit-user-drag: none !important;
+}
+
+.pinned-drag-ghost,
+.pinned-drag-ghost.app-item,
+.pinned-drag-ghost.app-item:hover,
+.pinned-drag-ghost.app-item:active {
+  position: fixed;
+  z-index: 10000;
+  pointer-events: none;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 10px 6px;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  cursor: grabbing !important;
+  will-change: transform;
+  transform: scale(1.12);
+  filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.45));
+}
+
+html[data-theme="light"] .pinned-drag-ghost,
+body.theme-light .pinned-drag-ghost,
+html[data-theme="light"] .pinned-drag-ghost.app-item,
+body.theme-light .pinned-drag-ghost.app-item,
+html[data-theme="light"] .pinned-drag-ghost.app-item:hover,
+body.theme-light .pinned-drag-ghost.app-item:hover {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  box-shadow: none !important;
+  border: none !important;
+  outline: none !important;
+  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.22));
+}
+
+.pinned-drag-ghost .app-icon-wrap {
+  background: transparent;
+  box-shadow: none;
+}
+
+/* 500ms folder creation hover indicator on target icon */
+.pinned-row .app-item.folder-hover-target {
+  /* Silent while user aims during the 500ms window */
+  transform: none;
+}
+
+/* Show the folder border when 500ms pass */
+.pinned-row .app-item.folder-hover-target.folder-hover-armed .app-icon-wrap {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.38) !important;
+  border-radius: 14px !important;
+  box-sizing: border-box !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="light"] .pinned-row .app-item.folder-hover-target.folder-hover-armed .app-icon-wrap,
+body.theme-light .pinned-row .app-item.folder-hover-target.folder-hover-armed .app-icon-wrap {
+  background: rgba(0, 0, 0, 0.08) !important;
+  border: 1.5px solid rgba(0, 0, 0, 0.32) !important;
+}
+
+.folder-grid .app-item {
+  cursor: pointer;
+  position: relative;
+  user-select: none;
+  touch-action: none;
+  transition: transform 0.22s cubic-bezier(0.2, 0, 0, 1), opacity 0.16s ease;
+  will-change: transform;
+}
+
+.folder-grid .app-item:active {
+  cursor: grabbing;
+}
+
+.folder-grid .app-item.is-drag-source {
+  opacity: 0.22;
+  transform: scale(0.92);
+}
+
+.pinned-drag-ghost.drag-out-folder {
+  opacity: 0.82;
+}
+
+/* Folder Icon in Grid */
+.folder-icon-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
+  box-sizing: border-box;
+  transition: transform 0.16s ease, background 0.16s ease;
+}
+
+html[data-theme="light"] .folder-icon-wrap,
+body.theme-light .folder-icon-wrap {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+.folder-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 3px;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-items: center;
+}
+
+.folder-mini-grid.count-1 {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+}
+
+.folder-mini-grid.count-2 {
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: 1fr;
+}
+
+.folder-mini-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  border-radius: 3px;
+}
+
+.folder-mini-grid.count-1 .folder-mini-icon {
+  width: 28px;
+  height: 28px;
+}
+
+.folder-mini-grid.count-2 .folder-mini-icon {
+  width: 18px;
+  height: 18px;
 }
 
 /* App Item Card (both in Recent and All Apps) */
@@ -180,6 +387,25 @@ body.theme-light .launcher-content::-webkit-scrollbar-thumb:hover {
   transition: all 0.16s ease;
   outline: none;
   border: 1px solid transparent;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -webkit-user-drag: none !important;
+}
+
+.app-item *,
+.folder-mini-grid,
+.folder-mini-grid * {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -webkit-user-drag: none !important;
+}
+
+.app-item img,
+.app-icon-img,
+.folder-mini-icon {
+  pointer-events: none !important;
+  -webkit-user-drag: none !important;
+  user-drag: none !important;
 }
 
 .app-item:hover {
@@ -355,6 +581,8 @@ body.theme-light .app-icon-wrap {
   border: none;
 }
 
+html[data-theme="light"] .pinned-row,
+body.theme-light .pinned-row,
 html[data-theme="light"] .recent-row,
 body.theme-light .recent-row {
   background: rgba(0, 0, 0, 0.03);
@@ -388,6 +616,180 @@ html[data-theme="light"] .footer-icon-btn:hover,
 body.theme-light .footer-icon-btn:hover {
   background: rgba(0, 0, 0, 0.08);
   color: #18181b;
+}
+
+/* Folder Modal Dialog */
+.folder-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.folder-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px);
+  animation: fadeIn 0.18s ease;
+}
+
+.folder-dialog {
+  position: relative;
+  z-index: 1001;
+  width: 100%;
+  max-width: 420px;
+  max-height: 80vh;
+  background: rgba(36, 36, 36, 0.92);
+  backdrop-filter: blur(28px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+html[data-theme="light"] .folder-dialog,
+body.theme-light .folder-dialog {
+  background: rgba(245, 245, 247, 0.94);
+  border-color: rgba(0, 0, 0, 0.12);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2);
+}
+
+.folder-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  gap: 12px;
+}
+
+html[data-theme="light"] .folder-header,
+body.theme-light .folder-header {
+  border-bottom-color: rgba(0, 0, 0, 0.08);
+}
+
+.folder-title-input {
+  flex: 1;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+html[data-theme="light"] .folder-title-input,
+body.theme-light .folder-title-input {
+  color: #1a1a1a;
+}
+
+.folder-title-input:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+html[data-theme="light"] .folder-title-input:hover,
+body.theme-light .folder-title-input:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.folder-title-input:focus {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--winzen-accent, #3684e3);
+}
+
+.folder-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.folder-ungroup-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #ddd;
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+html[data-theme="light"] .folder-ungroup-btn,
+body.theme-light .folder-ungroup-btn {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.1);
+  color: #444;
+}
+
+.folder-ungroup-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+html[data-theme="light"] .folder-ungroup-btn:hover,
+body.theme-light .folder-ungroup-btn:hover {
+  background: rgba(0, 0, 0, 0.09);
+  color: #000;
+}
+
+.folder-close-btn {
+  background: transparent;
+  border: none;
+  color: #aaa;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-size: 13px;
+}
+
+.folder-close-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+html[data-theme="light"] .folder-close-btn,
+body.theme-light .folder-close-btn {
+  color: #666;
+}
+
+html[data-theme="light"] .folder-close-btn:hover,
+body.theme-light .folder-close-btn:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: #000;
+}
+
+.folder-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  padding: 16px;
+  overflow-y: auto;
+  max-height: 380px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 body.winzen-no-anim *,

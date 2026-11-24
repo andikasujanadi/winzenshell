@@ -5,6 +5,7 @@ function initSettingsPage() {
 
   const tabTitles = {
     'tab-shell': 'Shell',
+    'tab-app-launcher': 'App Launcher',
     'tab-dynamic-island': 'Dynamic Island',
     'tab-widgets': 'Layouts',
     'tab-icons': 'Icon Packs'
@@ -83,6 +84,23 @@ function initSettingsPage() {
   const hiddenAppsContainer = document.getElementById('hiddenAppsContainer');
   const hiddenAppsSubtitle = document.getElementById('hiddenAppsSubtitle');
   const btnUnhideAllApps = document.getElementById('btnUnhideAllApps');
+
+  const toggleLauncherShowPinned = document.getElementById('toggleLauncherShowPinned');
+  const stateLauncherShowPinned = document.getElementById('stateLauncherShowPinned');
+  const toggleLauncherShowRecent = document.getElementById('toggleLauncherShowRecent');
+  const stateLauncherShowRecent = document.getElementById('stateLauncherShowRecent');
+  const toggleLauncherShowSteam = document.getElementById('toggleLauncherShowSteam');
+  const stateLauncherShowSteam = document.getElementById('stateLauncherShowSteam');
+  const toggleLauncherOverrideWinKey = document.getElementById('toggleLauncherOverrideWinKey');
+  const stateLauncherOverrideWinKey = document.getElementById('stateLauncherOverrideWinKey');
+
+  const pinnedLauncherAppsContainer = document.getElementById('pinnedLauncherAppsContainer');
+  const pinnedLauncherAppsSubtitle = document.getElementById('pinnedLauncherAppsSubtitle');
+  const btnResetPinnedLauncherApps = document.getElementById('btnResetPinnedLauncherApps');
+
+  const hiddenLauncherAppsContainer = document.getElementById('hiddenLauncherAppsContainer');
+  const hiddenLauncherAppsSubtitle = document.getElementById('hiddenLauncherAppsSubtitle');
+  const btnResetHiddenLauncherApps = document.getElementById('btnResetHiddenLauncherApps');
 
   const toggleRespectWorkArea = document.getElementById('toggleRespectWorkArea');
   const stateRespectWorkArea = document.getElementById('stateRespectWorkArea');
@@ -717,7 +735,53 @@ function initSettingsPage() {
       if (isUpdatingFromHost) return;
       const enabled = toggleOverrideWinKey.checked;
       if (stateOverrideWinKey) stateOverrideWinKey.textContent = enabled ? 'On' : 'Off';
+      if (toggleLauncherOverrideWinKey && toggleLauncherOverrideWinKey.checked !== enabled) {
+        toggleLauncherOverrideWinKey.checked = enabled;
+        if (stateLauncherOverrideWinKey) stateLauncherOverrideWinKey.textContent = enabled ? 'On' : 'Off';
+      }
       window.winzen.send('toggle_override_windows_key', { enable: enabled });
+    });
+  }
+
+  function sendLauncherConfig() {
+    if (isUpdatingFromHost) return;
+    const showPinned = toggleLauncherShowPinned ? toggleLauncherShowPinned.checked : true;
+    const showRecent = toggleLauncherShowRecent ? toggleLauncherShowRecent.checked : true;
+    const showSteam = toggleLauncherShowSteam ? toggleLauncherShowSteam.checked : true;
+    const overrideWinKey = toggleLauncherOverrideWinKey ? toggleLauncherOverrideWinKey.checked : false;
+
+    if (stateLauncherShowPinned) stateLauncherShowPinned.textContent = showPinned ? 'On' : 'Off';
+    if (stateLauncherShowRecent) stateLauncherShowRecent.textContent = showRecent ? 'On' : 'Off';
+    if (stateLauncherShowSteam) stateLauncherShowSteam.textContent = showSteam ? 'On' : 'Off';
+    if (stateLauncherOverrideWinKey) stateLauncherOverrideWinKey.textContent = overrideWinKey ? 'On' : 'Off';
+
+    if (toggleOverrideWinKey && toggleOverrideWinKey.checked !== overrideWinKey) {
+      toggleOverrideWinKey.checked = overrideWinKey;
+      if (stateOverrideWinKey) stateOverrideWinKey.textContent = overrideWinKey ? 'On' : 'Off';
+    }
+
+    window.winzen.send('update_app_launcher_config', {
+      showPinnedApps: showPinned,
+      showRecentApps: showRecent,
+      showSteamGames: showSteam,
+      overrideWindowsKey: overrideWinKey
+    });
+  }
+
+  if (toggleLauncherShowPinned) toggleLauncherShowPinned.addEventListener('change', sendLauncherConfig);
+  if (toggleLauncherShowRecent) toggleLauncherShowRecent.addEventListener('change', sendLauncherConfig);
+  if (toggleLauncherShowSteam) toggleLauncherShowSteam.addEventListener('change', sendLauncherConfig);
+  if (toggleLauncherOverrideWinKey) toggleLauncherOverrideWinKey.addEventListener('change', sendLauncherConfig);
+
+  if (btnResetPinnedLauncherApps) {
+    btnResetPinnedLauncherApps.addEventListener('click', () => {
+      window.winzen.send('reset_pinned_launcher_apps');
+    });
+  }
+
+  if (btnResetHiddenLauncherApps) {
+    btnResetHiddenLauncherApps.addEventListener('click', () => {
+      window.winzen.send('reset_hidden_launcher_apps');
     });
   }
 
@@ -1202,6 +1266,31 @@ function initSettingsPage() {
         if (stateOverrideWinKey) stateOverrideWinKey.textContent = ovWinKey ? 'On' : 'Off';
       }
 
+      const appLauncher = s.appLauncher || {};
+      if (toggleLauncherShowPinned) {
+        const sp = appLauncher.showPinnedApps !== false;
+        toggleLauncherShowPinned.checked = sp;
+        if (stateLauncherShowPinned) stateLauncherShowPinned.textContent = sp ? 'On' : 'Off';
+      }
+      if (toggleLauncherShowRecent) {
+        const sr = appLauncher.showRecentApps !== false;
+        toggleLauncherShowRecent.checked = sr;
+        if (stateLauncherShowRecent) stateLauncherShowRecent.textContent = sr ? 'On' : 'Off';
+      }
+      if (toggleLauncherShowSteam) {
+        const ss = appLauncher.showSteamGames !== false;
+        toggleLauncherShowSteam.checked = ss;
+        if (stateLauncherShowSteam) stateLauncherShowSteam.textContent = ss ? 'On' : 'Off';
+      }
+      if (toggleLauncherOverrideWinKey) {
+        const ov = !!s.overrideWindowsKey;
+        toggleLauncherOverrideWinKey.checked = ov;
+        if (stateLauncherOverrideWinKey) stateLauncherOverrideWinKey.textContent = ov ? 'On' : 'Off';
+      }
+
+      renderPinnedLauncherApps(appLauncher.pinnedApps || []);
+      renderHiddenLauncherApps(appLauncher.hiddenApps || []);
+
       if (toggleAutoStart) {
         const autoStart = !!s.autoStartOnLogon;
         toggleAutoStart.checked = autoStart;
@@ -1463,6 +1552,140 @@ function initSettingsPage() {
         window.winzen.tasks.unhideApp(item.appId);
       });
       hiddenAppsContainer.appendChild(chip);
+    });
+  }
+
+  function renderPinnedLauncherApps(pinnedList) {
+    if (!pinnedLauncherAppsContainer) return;
+    pinnedLauncherAppsContainer.innerHTML = '';
+    const list = Array.isArray(pinnedList) ? pinnedList : [];
+    if (list.length === 0) {
+      if (pinnedLauncherAppsSubtitle) {
+        pinnedLauncherAppsSubtitle.textContent =
+          'No pinned apps. Right-click any app in the App Launcher and select "Pin to launcher".';
+      }
+      if (btnResetPinnedLauncherApps) btnResetPinnedLauncherApps.style.display = 'none';
+      return;
+    }
+
+    if (pinnedLauncherAppsSubtitle) {
+      pinnedLauncherAppsSubtitle.textContent = `${list.length} app(s) pinned. Drag to reorder or click Unpin:`;
+    }
+    if (btnResetPinnedLauncherApps) btnResetPinnedLauncherApps.style.display = 'inline-flex';
+
+    list.forEach((item, idx) => {
+      const chip = document.createElement('div');
+      chip.className = 'hidden-app-chip draggable-pinned-chip';
+      chip.setAttribute('draggable', 'true');
+      chip.dataset.index = String(idx);
+      const label = item.isFolder
+        ? `📁 ${item.name || 'Folder'} (${(item.folderItems || []).length})`
+        : (item.name || item.targetPath);
+      chip.title = `Drag to reorder · Click Unpin to remove`;
+      chip.innerHTML = `
+        <span class="chip-drag-handle" style="opacity:0.6; cursor:grab;">⋮⋮</span>
+        <span>${escapeHtml(label)}</span>
+        <button type="button" class="unhide-tag btn-unpin-chip" style="background:none;border:none;cursor:pointer;color:var(--win11-accent,#3684e3);font-weight:600;font-size:11px;">Unpin</button>
+      `;
+
+      const unpinBtn = chip.querySelector('.btn-unpin-chip');
+      if (unpinBtn) {
+        unpinBtn.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          if (item.isFolder) {
+            window.winzen.send('unpin_launcher_folder', { folderId: item.id || item.name });
+          } else {
+            window.winzen.send('unpin_launcher_app', { targetPath: item.targetPath || item.name });
+          }
+        });
+      }
+
+      chip.addEventListener('dragstart', (e) => {
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', String(idx));
+        chip.classList.add('is-dragging');
+      });
+
+      chip.addEventListener('dragend', () => {
+        chip.classList.remove('is-dragging');
+        pinnedLauncherAppsContainer.querySelectorAll('.draggable-pinned-chip').forEach((c) => {
+          c.classList.remove('drop-target-before', 'drop-target-after');
+        });
+      });
+
+      chip.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        const rect = chip.getBoundingClientRect();
+        const isAfter = (e.clientX - rect.left) > (rect.width / 2);
+        pinnedLauncherAppsContainer.querySelectorAll('.draggable-pinned-chip').forEach((c) => {
+          if (c !== chip) c.classList.remove('drop-target-before', 'drop-target-after');
+        });
+        chip.classList.toggle('drop-target-before', !isAfter);
+        chip.classList.toggle('drop-target-after', isAfter);
+      });
+
+      chip.addEventListener('dragleave', () => {
+        chip.classList.remove('drop-target-before', 'drop-target-after');
+      });
+
+      chip.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        chip.classList.remove('drop-target-before', 'drop-target-after');
+
+        const srcIdx = parseInt(e.dataTransfer.getData('text/plain'), 10);
+        if (Number.isNaN(srcIdx) || srcIdx < 0 || srcIdx >= list.length) return;
+
+        const rect = chip.getBoundingClientRect();
+        const isAfter = (e.clientX - rect.left) > (rect.width / 2);
+        let targetIdx = idx + (isAfter ? 1 : 0);
+        if (srcIdx < targetIdx) targetIdx--;
+        targetIdx = Math.max(0, Math.min(targetIdx, list.length - 1));
+
+        if (srcIdx !== targetIdx) {
+          const moved = list.splice(srcIdx, 1)[0];
+          list.splice(targetIdx, 0, moved);
+          window.winzen.send('reorder_pinned_launcher_apps', {
+            orderedTargets: list.map((p) => p.targetPath || p.name)
+          });
+        }
+      });
+
+      pinnedLauncherAppsContainer.appendChild(chip);
+    });
+  }
+
+  function renderHiddenLauncherApps(hiddenList) {
+    if (!hiddenLauncherAppsContainer) return;
+    hiddenLauncherAppsContainer.innerHTML = '';
+    const list = Array.isArray(hiddenList) ? hiddenList : [];
+    if (list.length === 0) {
+      if (hiddenLauncherAppsSubtitle) {
+        hiddenLauncherAppsSubtitle.textContent =
+          'No hidden apps. Right-click any app in the App Launcher and select "Hide app".';
+      }
+      if (btnResetHiddenLauncherApps) btnResetHiddenLauncherApps.style.display = 'none';
+      return;
+    }
+
+    if (hiddenLauncherAppsSubtitle) {
+      hiddenLauncherAppsSubtitle.textContent = `${list.length} app(s) hidden. Click below to unhide:`;
+    }
+    if (btnResetHiddenLauncherApps) btnResetHiddenLauncherApps.style.display = 'inline-flex';
+
+    list.forEach((key) => {
+      const chip = document.createElement('button');
+      chip.className = 'hidden-app-chip';
+      chip.title = `Click to unhide ${key}`;
+      chip.innerHTML = `
+        <span>${escapeHtml(key)}</span>
+        <span class="unhide-tag">Unhide</span>
+      `;
+      chip.addEventListener('click', () => {
+        window.winzen.send('unhide_launcher_app', { targetPath: key });
+      });
+      hiddenLauncherAppsContainer.appendChild(chip);
     });
   }
 

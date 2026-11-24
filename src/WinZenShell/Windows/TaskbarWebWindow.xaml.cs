@@ -1880,6 +1880,7 @@ public partial class TaskbarWebWindow : Window
 
             var cPos = Forms.Cursor.Position;
             _activeNativeMenu = menu;
+            NativeContextMenuHelper.AttachAutoDismiss(menu);
             menu.Show(cPos, Forms.ToolStripDropDownDirection.AboveRight);
             return;
         }
@@ -1946,8 +1947,9 @@ public partial class TaskbarWebWindow : Window
         {
             var unpinItem = new Forms.ToolStripMenuItem("Unpin from taskbar")
             {
-                ForeColor = Color.FromArgb(245, 245, 245),
-                Padding = itemPadding
+                ForeColor = Color.FromArgb(255, 153, 164),
+                Padding = itemPadding,
+                Tag = "danger"
             };
             unpinItem.Click += (_, _) =>
             {
@@ -2001,6 +2003,7 @@ public partial class TaskbarWebWindow : Window
 
         var cursorPos = Forms.Cursor.Position;
         _activeNativeMenu = menu;
+        NativeContextMenuHelper.AttachAutoDismiss(menu);
         menu.Show(cursorPos, Forms.ToolStripDropDownDirection.AboveRight);
     }
 
@@ -2060,8 +2063,9 @@ public partial class TaskbarWebWindow : Window
         string pinText = item.IsPromoted ? "Unpin from taskbar" : "Pin to taskbar";
         var pinItem = new Forms.ToolStripMenuItem(pinText)
         {
-            ForeColor = Color.FromArgb(245, 245, 245),
-            Padding = itemPadding
+            ForeColor = item.IsPromoted ? Color.FromArgb(255, 153, 164) : Color.FromArgb(245, 245, 245),
+            Padding = itemPadding,
+            Tag = item.IsPromoted ? "danger" : null
         };
         pinItem.Click += (_, _) =>
         {
@@ -2090,6 +2094,7 @@ public partial class TaskbarWebWindow : Window
 
         var cursorPos = screenPos ?? Forms.Cursor.Position;
         _activeNativeMenu = menu;
+        NativeContextMenuHelper.AttachAutoDismiss(menu);
         var dir = string.Equals(_shellState.Settings.DockEdge, "top", StringComparison.OrdinalIgnoreCase)
             ? Forms.ToolStripDropDownDirection.BelowRight
             : Forms.ToolStripDropDownDirection.AboveRight;
@@ -2326,7 +2331,8 @@ public partial class TaskbarWebWindow : Window
             {
                 int menuWidth = e.ToolStrip != null ? e.ToolStrip.ClientSize.Width : e.Item.Width;
                 var bounds = new Rectangle(4, 1, Math.Max(10, menuWidth - 8), e.Item.Height - 2);
-                bool isDanger = string.Equals(e.Item.Tag as string, "danger", StringComparison.OrdinalIgnoreCase);
+                bool isDanger = string.Equals(e.Item.Tag as string, "danger", StringComparison.OrdinalIgnoreCase) ||
+                                (e.Item.Text?.IndexOf("unpin", StringComparison.OrdinalIgnoreCase) >= 0);
                 Color bgColor = isDanger ? Color.FromArgb(68, 32, 38) : Color.FromArgb(60, 60, 60);
                 using var brush = new SolidBrush(bgColor);
                 using var path = CreateRoundedRect(bounds, 4);
@@ -2337,7 +2343,8 @@ public partial class TaskbarWebWindow : Window
 
         protected override void OnRenderItemText(Forms.ToolStripItemTextRenderEventArgs e)
         {
-            bool isDanger = string.Equals(e.Item.Tag as string, "danger", StringComparison.OrdinalIgnoreCase);
+            bool isDanger = string.Equals(e.Item.Tag as string, "danger", StringComparison.OrdinalIgnoreCase) ||
+                            (e.Text?.IndexOf("unpin", StringComparison.OrdinalIgnoreCase) >= 0);
             Color textColor = isDanger
                 ? Color.FromArgb(255, 153, 164)
                 : (e.Item.Selected ? Color.White : e.TextColor);
@@ -2365,6 +2372,19 @@ public partial class TaskbarWebWindow : Window
             int menuWidth = e.ToolStrip != null ? e.ToolStrip.ClientSize.Width : e.Item.Width;
             using var pen = new Pen(Color.FromArgb(58, 58, 58), 1);
             e.Graphics.DrawLine(pen, 10, y, Math.Max(10, menuWidth - 10), y);
+        }
+
+        protected override void OnRenderArrow(Forms.ToolStripArrowRenderEventArgs e)
+        {
+            if (e.Item != null)
+            {
+                bool isDanger = string.Equals(e.Item.Tag as string, "danger", StringComparison.OrdinalIgnoreCase);
+                Color arrowColor = isDanger
+                    ? Color.FromArgb(255, 153, 164)
+                    : (e.Item.Selected ? Color.White : Color.FromArgb(220, 220, 220));
+                e.ArrowColor = arrowColor;
+            }
+            base.OnRenderArrow(e);
         }
 
         private static System.Drawing.Drawing2D.GraphicsPath CreateRoundedRect(Rectangle bounds, int radius)

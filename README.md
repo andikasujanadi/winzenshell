@@ -5,7 +5,7 @@
 [![Platform: Windows 11](https://img.shields.io/badge/Platform-Windows%2011%20(64--bit)-0078D4?logo=windows11&logoColor=white)](https://microsoft.com/windows)
 [![Runtime: .NET 10](https://img.shields.io/badge/Runtime-.NET%2010%20(WPF)-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 [![Frontend: WebView2](https://img.shields.io/badge/Frontend-WebView2%20%7C%20Web%20Components-008080?logo=microsoftedge&logoColor=white)](https://developer.microsoft.com/microsoft-edge/webview2/)
-[![Release: v0.4.1](https://img.shields.io/badge/Release-v0.4.1-0078D4)](README.md#changelog)
+[![Release: v0.5.0](https://img.shields.io/badge/Release-v0.5.0-0078D4)](README.md#changelog)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 **WinZenShell** is a customizable, lightweight Windows 11 taskbar and widget studio.  
@@ -16,8 +16,8 @@ It pairs a modern web interface (HTML, CSS, and JavaScript) with a fast native W
 ---
 
 > [!IMPORTANT]
-> **Release Notice (`v0.4.1`)**:  
-> WinZenShell v0.4.1 adds **Steam Game & `.url` Game Shortcut Discovery** in the App Launcher, an **Android 17-style 2×2 Circular Power Flyout**, persistent **Pin Lyrics** across song changes without needing to click the pill, a compact **3-dots (`...`) sidebar menu** in Settings, and an inline two-column layout for **Accent Color** and all **Shell Sliders**.
+> **Release Notice (`v0.5.0`)**:  
+> WinZenShell v0.5.0 brings **App Launcher Folder Creation & Management** (drag-and-drop grouping, 500ms hover delay, fluid FLIP reordering, custom folder naming, auto-ungrouping, and drag-to-remove), enhanced **Pointer Capture & Drag Reliability**, auto-dismissing folders on launcher exit, and streamlined **Context Menus** with dedicated **Remove** and **Hide** actions.
 
 ---
 
@@ -204,6 +204,18 @@ window.winzen.shell.onMetricsUpdate((metrics) => {
 ---
 
 ## Changelog
+
+### v0.5.0 (2026-11-24)
+* **App Launcher Folders & Drag-and-Drop Management**:
+  * Pinned apps can now be grouped into folders by dragging one app onto another with an intuitive 500ms hover delay that outlines the target folder border before arming, and only creates the folder upon mouse release.
+  * Opened folder modal allows renaming folders, rearranging apps inside with fluid FLIP reordering, dragging apps outside the dialog container to remove them from the folder, and manual or automatic ungrouping (when 1 app remains).
+  * Exiting the App Launcher automatically dismisses any opened folder.
+  * Added pointer capture to ensure smooth, uninterrupted drag tracking across mouse speed and child elements, while keeping standard pointer cursors on hover.
+* **Context Menu Refinements**:
+  * In the **Pinned Apps** row and inside folders: removed "Hide app", changed unpin action to **"Remove"** positioned at the bottom in red (`#FF99A4`, danger action).
+  * In the **All Apps** and **Recent Apps** sections: retained **"Hide"** at the bottom in red, with clear "Pin to launcher" or "Unpin from launcher" options.
+  * Styled all **"Unpin"** actions (**Unpin from taskbar**, **Unpin from launcher**) in danger red across App Launcher, Taskbar, and Tray menus while keeping "Pin" actions standard.
+  * Automatically dismisses open context menus when scrolling inside the App Launcher or mouse-wheeling outside the menu.
 
 ### v0.4.1 (2026-11-24)
 * **Steam Game & `.url` Game Launcher Discovery (`AppLauncherService`)**:

@@ -223,8 +223,9 @@ public partial class TrayOverflowFlyoutWindow : Window
         string pinText = item.IsPromoted ? "Unpin from taskbar" : "Pin to taskbar";
         var pinItem = new Forms.ToolStripMenuItem(pinText)
         {
-            ForeColor = System.Drawing.Color.FromArgb(245, 245, 245),
-            Padding = itemPadding
+            ForeColor = item.IsPromoted ? System.Drawing.Color.FromArgb(255, 153, 164) : System.Drawing.Color.FromArgb(245, 245, 245),
+            Padding = itemPadding,
+            Tag = item.IsPromoted ? "danger" : null
         };
         pinItem.Click += (_, _) =>
         {
@@ -251,6 +252,7 @@ public partial class TrayOverflowFlyoutWindow : Window
         menu.Items.Add(endTaskItem);
 
         var cPos = Forms.Cursor.Position;
+        NativeContextMenuHelper.AttachAutoDismiss(menu);
         menu.Show(cPos, Forms.ToolStripDropDownDirection.AboveRight);
     }
 

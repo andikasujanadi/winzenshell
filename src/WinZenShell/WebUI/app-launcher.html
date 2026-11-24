@@ -23,6 +23,17 @@
 
     <!-- Scrollable Content Area -->
     <div class="launcher-content" id="launcherContent">
+      <!-- Pinned Apps Row (visible when pinned apps exist and search is empty) -->
+      <section class="section-pinned" id="sectionPinned" style="display:none;">
+        <div class="section-header-row">
+          <div class="section-title">Pinned</div>
+          <span class="section-subtitle-hint">Drag to reorder</span>
+        </div>
+        <div class="pinned-row" id="pinnedGrid">
+          <!-- Populated by JS -->
+        </div>
+      </section>
+
       <!-- Recent Apps Row (visible when search is empty) -->
       <section class="section-recent" id="sectionRecent">
         <div class="section-title">Recent</div>
@@ -41,6 +52,23 @@
           <!-- Populated by JS -->
         </div>
       </section>
+    </div>
+
+    <!-- Folder Modal Overlay -->
+    <div class="folder-overlay" id="folderOverlay" style="display:none;">
+      <div class="folder-backdrop" id="folderBackdrop"></div>
+      <div class="folder-dialog" id="folderDialog">
+        <div class="folder-header">
+          <input type="text" class="folder-title-input" id="folderTitleInput" value="Folder" placeholder="Folder Name" spellcheck="false" />
+          <div class="folder-actions">
+            <button type="button" class="folder-ungroup-btn" id="btnUngroupFolder" title="Ungroup folder into individual apps">Ungroup</button>
+            <button type="button" class="folder-close-btn" id="btnFolderClose" title="Close folder (Esc)">✕</button>
+          </div>
+        </div>
+        <div class="folder-grid" id="folderGrid">
+          <!-- Folder app items populated by JS -->
+        </div>
+      </div>
     </div>
   </div>
 

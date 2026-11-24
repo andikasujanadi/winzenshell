@@ -829,6 +829,29 @@ body.theme-light .win11-toggle input:checked + .toggle-track .toggle-thumb {
   font-size: 11px;
 }
 
+.draggable-pinned-chip {
+  cursor: grab;
+  user-select: none;
+  transition: transform 0.14s ease, opacity 0.14s ease, border-color 0.14s ease;
+}
+
+.draggable-pinned-chip:active {
+  cursor: grabbing;
+}
+
+.draggable-pinned-chip.is-dragging {
+  opacity: 0.35;
+  transform: scale(0.95);
+}
+
+.draggable-pinned-chip.drop-target-before {
+  border-left: 3px solid var(--win11-accent);
+}
+
+.draggable-pinned-chip.drop-target-after {
+  border-right: 3px solid var(--win11-accent);
+}
+
 .meta-strip {
   display: flex;
   flex-wrap: wrap;

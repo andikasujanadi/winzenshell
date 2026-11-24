@@ -27,6 +27,8 @@ public class AppLauncherItem
     public string NativeIconDataUrl { get; set; } = "";
     public bool IsRecent { get; set; }
     public int LaunchCount { get; set; }
+    public bool IsFolder { get; set; }
+    public List<AppLauncherItem> FolderItems { get; set; } = new();
 }
 
 public class AppLauncherService
@@ -1335,52 +1337,177 @@ public class AppLauncherService
         void SetPath([MarshalAs(UnmanagedType.LPWStr)] string pszFile);
     }
 
-    public object GetAppsPayload()
+    public object GetAppsPayload(AppLauncherConfig? config = null)
     {
         lock (_lock)
         {
-            // Recent apps: highest launch count, or defaults
-            var recent = _apps
-                .Where(a => a.LaunchCount > 0)
-                .OrderByDescending(a => a.LaunchCount)
-                .Take(6)
-                .ToList();
-
-            if (recent.Count < 6)
+            var hiddenSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (config?.HiddenApps != null)
             {
-                // Fallback top 6 popular apps
-                var fallback = _apps
-                    .Where(a => !recent.Contains(a))
-                    .Take(6 - recent.Count);
-                recent.AddRange(fallback);
+                foreach (var h in config.HiddenApps)
+                {
+                    if (!string.IsNullOrWhiteSpace(h))
+                        hiddenSet.Add(h);
+                }
+            }
+
+            bool showSteam = config?.ShowSteamGames ?? true;
+            bool showPinned = config?.ShowPinnedApps ?? true;
+            bool showRecent = config?.ShowRecentApps ?? true;
+
+            // Filter all apps
+            var filteredAll = _apps.Where(a =>
+            {
+                if (hiddenSet.Contains(a.TargetPath) || hiddenSet.Contains(a.Name))
+                    return false;
+                if (!showSteam && a.TargetPath.StartsWith("steam://", StringComparison.OrdinalIgnoreCase))
+                    return false;
+                return true;
+            }).ToList();
+
+            // Pinned apps
+            var pinned = new List<AppLauncherItem>();
+            if (showPinned && config?.PinnedApps != null)
+            {
+                foreach (var p in config.PinnedApps)
+                {
+                    if (p.IsFolder)
+                    {
+                        var folderItem = new AppLauncherItem
+                        {
+                            Id = string.IsNullOrWhiteSpace(p.Id) ? $"folder_{Guid.NewGuid():N}" : p.Id,
+                            Name = string.IsNullOrWhiteSpace(p.Name) ? "Folder" : p.Name,
+                            IsFolder = true,
+                            FolderItems = new List<AppLauncherItem>()
+                        };
+
+                        if (p.FolderItems != null)
+                        {
+                            foreach (var sub in p.FolderItems)
+                            {
+                                if (string.IsNullOrWhiteSpace(sub.TargetPath)) continue;
+                                if (hiddenSet.Contains(sub.TargetPath) || hiddenSet.Contains(sub.Name)) continue;
+                                if (!showSteam && sub.TargetPath.StartsWith("steam://", StringComparison.OrdinalIgnoreCase)) continue;
+
+                                var subMatch = _apps.FirstOrDefault(a =>
+                                    string.Equals(a.TargetPath, sub.TargetPath, StringComparison.OrdinalIgnoreCase) ||
+                                    string.Equals(a.Name, sub.Name, StringComparison.OrdinalIgnoreCase));
+
+                                if (subMatch != null)
+                                {
+                                    folderItem.FolderItems.Add(subMatch);
+                                }
+                                else
+                                {
+                                    folderItem.FolderItems.Add(new AppLauncherItem
+                                    {
+                                        Id = sub.TargetPath,
+                                        Name = sub.Name,
+                                        TargetPath = sub.TargetPath,
+                                        IconDataUrl = !string.IsNullOrEmpty(sub.IconDataUrl) ? sub.IconDataUrl : "",
+                                        NativeIconDataUrl = !string.IsNullOrEmpty(sub.IconDataUrl) ? sub.IconDataUrl : ""
+                                    });
+                                }
+                            }
+                        }
+
+                        pinned.Add(folderItem);
+                        continue;
+                    }
+
+                    if (string.IsNullOrWhiteSpace(p.TargetPath)) continue;
+                    if (hiddenSet.Contains(p.TargetPath) || hiddenSet.Contains(p.Name))
+                        continue;
+                    if (!showSteam && p.TargetPath.StartsWith("steam://", StringComparison.OrdinalIgnoreCase))
+                        continue;
+
+                    var matched = _apps.FirstOrDefault(a =>
+                        string.Equals(a.TargetPath, p.TargetPath, StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(a.Name, p.Name, StringComparison.OrdinalIgnoreCase));
+
+                    if (matched != null)
+                    {
+                        pinned.Add(matched);
+                    }
+                    else
+                    {
+                        pinned.Add(new AppLauncherItem
+                        {
+                            Id = p.TargetPath,
+                            Name = p.Name,
+                            TargetPath = p.TargetPath,
+                            IconDataUrl = !string.IsNullOrEmpty(p.IconDataUrl) ? p.IconDataUrl : "",
+                            NativeIconDataUrl = !string.IsNullOrEmpty(p.IconDataUrl) ? p.IconDataUrl : ""
+                        });
+                    }
+                }
+            }
+
+            // Recent apps
+            var recent = new List<AppLauncherItem>();
+            if (showRecent)
+            {
+                recent = filteredAll
+                    .Where(a => a.LaunchCount > 0)
+                    .OrderByDescending(a => a.LaunchCount)
+                    .Take(6)
+                    .ToList();
+
+                if (recent.Count < 6)
+                {
+                    var fallback = filteredAll
+                        .Where(a => !recent.Contains(a))
+                        .Take(6 - recent.Count);
+                    recent.AddRange(fallback);
+                }
             }
 
             return new
             {
+                pinned,
                 recent,
-                all = _apps
+                all = filteredAll,
+                config = config ?? new AppLauncherConfig()
             };
         }
     }
 
-    public bool Launch(string targetPath, string appName)
+    public bool Launch(string targetPath, string appName, bool runAsAdmin = false, string? resolvedExe = null)
     {
         if (string.IsNullOrWhiteSpace(targetPath)) return false;
 
         try
         {
-            var psi = targetPath.StartsWith("shell:AppsFolder\\", StringComparison.OrdinalIgnoreCase)
-                ? new ProcessStartInfo
+            ProcessStartInfo psi;
+            if (targetPath.StartsWith("shell:AppsFolder\\", StringComparison.OrdinalIgnoreCase))
+            {
+                psi = new ProcessStartInfo
                 {
                     FileName = "explorer.exe",
                     Arguments = targetPath,
                     UseShellExecute = true
-                }
-                : new ProcessStartInfo
+                };
+            }
+            else
+            {
+                string fileToLaunch = targetPath;
+                if (runAsAdmin && !string.IsNullOrWhiteSpace(resolvedExe) && File.Exists(resolvedExe))
                 {
-                    FileName = targetPath,
+                    fileToLaunch = resolvedExe;
+                }
+
+                psi = new ProcessStartInfo
+                {
+                    FileName = fileToLaunch,
                     UseShellExecute = true
                 };
+
+                if (runAsAdmin)
+                {
+                    psi.Verb = "runas";
+                }
+            }
+
             Process.Start(psi);
 
             if (!string.IsNullOrWhiteSpace(appName))
@@ -1400,9 +1527,51 @@ public class AppLauncherService
 
             return true;
         }
+        catch (System.ComponentModel.Win32Exception ex) when (ex.NativeErrorCode == 1223)
+        {
+            // User cancelled UAC prompt
+            return false;
+        }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Failed to launch '{targetPath}': {ex.Message}");
+            return false;
+        }
+    }
+
+    public bool OpenFileLocation(string targetPath, string? resolvedExe = null)
+    {
+        try
+        {
+            string? path = null;
+            if (File.Exists(targetPath))
+            {
+                path = targetPath;
+            }
+            else if (!string.IsNullOrWhiteSpace(resolvedExe) && File.Exists(resolvedExe))
+            {
+                path = resolvedExe;
+            }
+
+            if (!string.IsNullOrEmpty(path))
+            {
+                Process.Start("explorer.exe", $"/select,\"{path}\"");
+                return true;
+            }
+            else if (targetPath.StartsWith("shell:AppsFolder\\", StringComparison.OrdinalIgnoreCase))
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "ms-settings:appsfeatures",
+                    UseShellExecute = true
+                });
+                return true;
+            }
+            return false;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to open file location for '{targetPath}': {ex.Message}");
             return false;
         }
     }

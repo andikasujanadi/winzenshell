@@ -440,6 +440,61 @@ public partial class SettingsWebWindow : Window
                     _shellState.UnhideAllApps();
                     break;
 
+                case "update_app_launcher_config":
+                    {
+                        bool? showPinned = root.TryGetProperty("showPinnedApps", out var spProp) ? spProp.GetBoolean() : null;
+                        bool? showRecent = root.TryGetProperty("showRecentApps", out var srProp) ? srProp.GetBoolean() : null;
+                        bool? showSteam = root.TryGetProperty("showSteamGames", out var ssProp) ? ssProp.GetBoolean() : null;
+                        bool? overrideWinKey = root.TryGetProperty("overrideWindowsKey", out var owProp) ? owProp.GetBoolean() : null;
+
+                        _shellState.UpdateAppLauncherConfig(showPinned, showRecent, showSteam, overrideWinKey);
+                        break;
+                    }
+
+                case "unpin_launcher_app":
+                    if (root.TryGetProperty("targetPath", out var ulProp) && !string.IsNullOrWhiteSpace(ulProp.GetString()))
+                    {
+                        _shellState.UnpinLauncherApp(ulProp.GetString()!);
+                    }
+                    break;
+
+                case "unpin_launcher_folder":
+                    if (root.TryGetProperty("folderId", out var ufProp) && !string.IsNullOrWhiteSpace(ufProp.GetString()))
+                    {
+                        _shellState.UnpinLauncherFolder(ufProp.GetString()!);
+                    }
+                    break;
+
+                case "reset_pinned_launcher_apps":
+                    _shellState.ResetPinnedLauncherApps();
+                    break;
+
+                case "reorder_pinned_launcher_apps":
+                    {
+                        if (root.TryGetProperty("orderedTargets", out var otProp) && otProp.ValueKind == JsonValueKind.Array)
+                        {
+                            var list = new System.Collections.Generic.List<string>();
+                            foreach (var el in otProp.EnumerateArray())
+                            {
+                                string? s = el.GetString();
+                                if (!string.IsNullOrWhiteSpace(s)) list.Add(s);
+                            }
+                            _shellState.ReorderPinnedLauncherApps(list);
+                        }
+                        break;
+                    }
+
+                case "unhide_launcher_app":
+                    if (root.TryGetProperty("targetPath", out var uhlProp) && !string.IsNullOrWhiteSpace(uhlProp.GetString()))
+                    {
+                        _shellState.UnhideLauncherApp(uhlProp.GetString()!);
+                    }
+                    break;
+
+                case "reset_hidden_launcher_apps":
+                    _shellState.ResetHiddenLauncherApps();
+                    break;
+
                 case "quit_app":
                     _quitCallback?.Invoke();
                     break;

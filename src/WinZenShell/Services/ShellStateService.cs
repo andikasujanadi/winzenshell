@@ -184,6 +184,45 @@ public class LayoutPreset
     public string? DynamicIslandTaskbarSlot { get; set; }
 }
 
+public class AppLauncherPinnedItem
+{
+    [JsonPropertyName("id")]
+    public string Id { get; set; } = "";
+
+    [JsonPropertyName("targetPath")]
+    public string TargetPath { get; set; } = "";
+
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = "";
+
+    [JsonPropertyName("iconDataUrl")]
+    public string IconDataUrl { get; set; } = "";
+
+    [JsonPropertyName("isFolder")]
+    public bool IsFolder { get; set; } = false;
+
+    [JsonPropertyName("folderItems")]
+    public List<AppLauncherPinnedItem> FolderItems { get; set; } = new();
+}
+
+public class AppLauncherConfig
+{
+    [JsonPropertyName("showPinnedApps")]
+    public bool ShowPinnedApps { get; set; } = true;
+
+    [JsonPropertyName("showRecentApps")]
+    public bool ShowRecentApps { get; set; } = true;
+
+    [JsonPropertyName("showSteamGames")]
+    public bool ShowSteamGames { get; set; } = true;
+
+    [JsonPropertyName("pinnedApps")]
+    public List<AppLauncherPinnedItem> PinnedApps { get; set; } = new();
+
+    [JsonPropertyName("hiddenApps")]
+    public List<string> HiddenApps { get; set; } = new();
+}
+
 public class ShellSettings
 {
     public bool HideNativeTaskbar { get; set; } = false;
@@ -213,6 +252,7 @@ public class ShellSettings
     public DynamicIslandConfig DynamicIsland { get; set; } = new();
     public List<LayoutPreset> LayoutPresets { get; set; } = new();
     public string? ActiveLayoutPresetId { get; set; }
+    public AppLauncherConfig AppLauncher { get; set; } = new();
 }
 
 public class ShellFullStatePayload
@@ -830,6 +870,277 @@ public class ShellStateService
 
         _settings.PinnedApps = reordered;
         SaveSettings();
+        BroadcastState();
+    }
+
+    public bool IsLauncherAppPinned(string targetPath, string? name = null)
+    {
+        if (_settings.AppLauncher?.PinnedApps == null) return false;
+        foreach (var p in _settings.AppLauncher.PinnedApps)
+        {
+            if (p.IsFolder)
+            {
+                if (p.FolderItems != null && p.FolderItems.Any(sub =>
+                    (!string.IsNullOrWhiteSpace(targetPath) && string.Equals(sub.TargetPath, targetPath, StringComparison.OrdinalIgnoreCase)) ||
+                    (!string.IsNullOrWhiteSpace(name) && string.Equals(sub.Name, name, StringComparison.OrdinalIgnoreCase))))
+                {
+                    return true;
+                }
+            }
+            else
+            {
+                if ((!string.IsNullOrWhiteSpace(targetPath) && string.Equals(p.TargetPath, targetPath, StringComparison.OrdinalIgnoreCase)) ||
+                    (!string.IsNullOrWhiteSpace(name) && string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase)))
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public void PinLauncherApp(string targetPath, string name, string? iconDataUrl = null)
+    {
+        if (_settings.AppLauncher == null) _settings.AppLauncher = new();
+        if (_settings.AppLauncher.PinnedApps == null) _settings.AppLauncher.PinnedApps = new();
+
+        if (IsLauncherAppPinned(targetPath, name)) return;
+
+        string packIcon = _iconPackService?.ResolveAppIconDataUrl(name, Path.GetFileNameWithoutExtension(targetPath), name, targetPath) ?? "";
+
+        _settings.AppLauncher.PinnedApps.Add(new AppLauncherPinnedItem
+        {
+            Id = targetPath,
+            TargetPath = targetPath,
+            Name = name,
+            IconDataUrl = !string.IsNullOrWhiteSpace(packIcon) ? packIcon : (iconDataUrl ?? "")
+        });
+        SaveSettings();
+        _statusBanner = $"Pinned {name} to launcher";
+        BroadcastState();
+    }
+
+    public void UnpinLauncherApp(string targetPath)
+    {
+        if (_settings.AppLauncher?.PinnedApps == null) return;
+        int removed = _settings.AppLauncher.PinnedApps.RemoveAll(p =>
+            !p.IsFolder && (
+                string.Equals(p.TargetPath, targetPath, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(p.Name, targetPath, StringComparison.OrdinalIgnoreCase)));
+
+        foreach (var f in _settings.AppLauncher.PinnedApps.Where(p => p.IsFolder).ToList())
+        {
+            if (f.FolderItems != null)
+            {
+                int fRemoved = f.FolderItems.RemoveAll(sub =>
+                    string.Equals(sub.TargetPath, targetPath, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(sub.Name, targetPath, StringComparison.OrdinalIgnoreCase));
+                if (fRemoved > 0)
+                {
+                    removed += fRemoved;
+                    if (f.FolderItems.Count == 1)
+                    {
+                        int fIdx = _settings.AppLauncher.PinnedApps.IndexOf(f);
+                        if (fIdx >= 0)
+                        {
+                            _settings.AppLauncher.PinnedApps[fIdx] = f.FolderItems[0];
+                        }
+                    }
+                    else if (f.FolderItems.Count == 0)
+                    {
+                        _settings.AppLauncher.PinnedApps.Remove(f);
+                    }
+                }
+            }
+        }
+
+        if (removed > 0)
+        {
+            SaveSettings();
+            _statusBanner = "Unpinned app from launcher";
+            BroadcastState();
+        }
+    }
+
+    public void UnpinLauncherFolder(string folderId)
+    {
+        if (_settings.AppLauncher?.PinnedApps == null) return;
+        int removed = _settings.AppLauncher.PinnedApps.RemoveAll(p => p.IsFolder && (string.Equals(p.Id, folderId, StringComparison.OrdinalIgnoreCase) || string.Equals(p.Name, folderId, StringComparison.OrdinalIgnoreCase)));
+        if (removed > 0)
+        {
+            SaveSettings();
+            _statusBanner = "Removed folder from launcher";
+            BroadcastState();
+        }
+    }
+
+    public void SavePinnedLauncherApps(List<AppLauncherPinnedItem> items)
+    {
+        if (_settings.AppLauncher == null) _settings.AppLauncher = new();
+        _settings.AppLauncher.PinnedApps = items ?? new();
+        SaveSettings();
+        _statusBanner = "Pinned apps updated";
+        BroadcastState();
+    }
+
+    public void ResetPinnedLauncherApps()
+    {
+        if (_settings.AppLauncher?.PinnedApps == null) return;
+        _settings.AppLauncher.PinnedApps.Clear();
+        SaveSettings();
+        _statusBanner = "Launcher pinned apps reset";
+        BroadcastState();
+    }
+
+    public void ReorderPinnedLauncherApps(List<string> orderedTargets)
+    {
+        if (_settings.AppLauncher?.PinnedApps == null || _settings.AppLauncher.PinnedApps.Count <= 1 || orderedTargets == null || orderedTargets.Count == 0)
+            return;
+
+        var reordered = new List<AppLauncherPinnedItem>(_settings.AppLauncher.PinnedApps.Count);
+        var remaining = new List<AppLauncherPinnedItem>(_settings.AppLauncher.PinnedApps);
+
+        foreach (string rawTarget in orderedTargets)
+        {
+            if (string.IsNullOrWhiteSpace(rawTarget)) continue;
+            string target = rawTarget.Trim();
+            int idx = remaining.FindIndex(p =>
+                string.Equals(p.TargetPath, target, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(p.Name, target, StringComparison.OrdinalIgnoreCase));
+            if (idx >= 0)
+            {
+                reordered.Add(remaining[idx]);
+                remaining.RemoveAt(idx);
+            }
+        }
+
+        if (remaining.Count > 0)
+            reordered.AddRange(remaining);
+
+        bool changed = false;
+        for (int i = 0; i < reordered.Count; i++)
+        {
+            if (!ReferenceEquals(reordered[i], _settings.AppLauncher.PinnedApps[i]))
+            {
+                changed = true;
+                break;
+            }
+        }
+
+        if (!changed) return;
+
+        _settings.AppLauncher.PinnedApps = reordered;
+        SaveSettings();
+        _statusBanner = "Launcher pinned apps reordered";
+        BroadcastState();
+    }
+
+    public void MovePinnedLauncherAppToFront(string targetPath)
+    {
+        if (_settings.AppLauncher?.PinnedApps == null || _settings.AppLauncher.PinnedApps.Count <= 1) return;
+        int idx = _settings.AppLauncher.PinnedApps.FindIndex(p =>
+            string.Equals(p.TargetPath, targetPath, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(p.Name, targetPath, StringComparison.OrdinalIgnoreCase));
+        if (idx > 0)
+        {
+            var item = _settings.AppLauncher.PinnedApps[idx];
+            _settings.AppLauncher.PinnedApps.RemoveAt(idx);
+            _settings.AppLauncher.PinnedApps.Insert(0, item);
+            SaveSettings();
+            _statusBanner = $"Moved {item.Name} to front";
+            BroadcastState();
+        }
+    }
+
+    public void MovePinnedLauncherApp(string targetPath, int offset)
+    {
+        if (_settings.AppLauncher?.PinnedApps == null || _settings.AppLauncher.PinnedApps.Count <= 1 || offset == 0) return;
+        int idx = _settings.AppLauncher.PinnedApps.FindIndex(p =>
+            string.Equals(p.TargetPath, targetPath, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(p.Name, targetPath, StringComparison.OrdinalIgnoreCase));
+        if (idx >= 0)
+        {
+            int newIdx = Math.Clamp(idx + offset, 0, _settings.AppLauncher.PinnedApps.Count - 1);
+            if (newIdx != idx)
+            {
+                var item = _settings.AppLauncher.PinnedApps[idx];
+                _settings.AppLauncher.PinnedApps.RemoveAt(idx);
+                _settings.AppLauncher.PinnedApps.Insert(newIdx, item);
+                SaveSettings();
+                _statusBanner = $"Moved {item.Name}";
+                BroadcastState();
+            }
+        }
+    }
+
+    public bool IsLauncherAppHidden(string targetPath, string? name = null)
+    {
+        if (_settings.AppLauncher?.HiddenApps == null) return false;
+        return _settings.AppLauncher.HiddenApps.Any(h =>
+            (!string.IsNullOrWhiteSpace(targetPath) && string.Equals(h, targetPath, StringComparison.OrdinalIgnoreCase)) ||
+            (!string.IsNullOrWhiteSpace(name) && string.Equals(h, name, StringComparison.OrdinalIgnoreCase)));
+    }
+
+    public void HideLauncherApp(string targetPath, string name)
+    {
+        if (_settings.AppLauncher == null) _settings.AppLauncher = new();
+        if (_settings.AppLauncher.HiddenApps == null) _settings.AppLauncher.HiddenApps = new();
+
+        string key = !string.IsNullOrWhiteSpace(name) ? name : targetPath;
+        if (!_settings.AppLauncher.HiddenApps.Contains(key, StringComparer.OrdinalIgnoreCase))
+        {
+            _settings.AppLauncher.HiddenApps.Add(key);
+        }
+        if (!string.IsNullOrWhiteSpace(targetPath) && !_settings.AppLauncher.HiddenApps.Contains(targetPath, StringComparer.OrdinalIgnoreCase))
+        {
+            _settings.AppLauncher.HiddenApps.Add(targetPath);
+        }
+
+        // Also remove from pinned if it was pinned
+        _settings.AppLauncher.PinnedApps?.RemoveAll(p =>
+            string.Equals(p.TargetPath, targetPath, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase));
+
+        SaveSettings();
+        _statusBanner = $"Hidden {name} from launcher";
+        BroadcastState();
+    }
+
+    public void UnhideLauncherApp(string targetPathOrName)
+    {
+        if (_settings.AppLauncher?.HiddenApps == null) return;
+        int removed = _settings.AppLauncher.HiddenApps.RemoveAll(h =>
+            string.Equals(h, targetPathOrName, StringComparison.OrdinalIgnoreCase));
+        if (removed > 0)
+        {
+            SaveSettings();
+            _statusBanner = "App restored in launcher";
+            BroadcastState();
+        }
+    }
+
+    public void ResetHiddenLauncherApps()
+    {
+        if (_settings.AppLauncher?.HiddenApps == null) return;
+        _settings.AppLauncher.HiddenApps.Clear();
+        SaveSettings();
+        _statusBanner = "Launcher hidden apps reset";
+        BroadcastState();
+    }
+
+    public void UpdateAppLauncherConfig(bool? showPinned, bool? showRecent, bool? showSteam, bool? overrideWinKey)
+    {
+        if (_settings.AppLauncher == null) _settings.AppLauncher = new();
+        if (showPinned.HasValue) _settings.AppLauncher.ShowPinnedApps = showPinned.Value;
+        if (showRecent.HasValue) _settings.AppLauncher.ShowRecentApps = showRecent.Value;
+        if (showSteam.HasValue) _settings.AppLauncher.ShowSteamGames = showSteam.Value;
+        if (overrideWinKey.HasValue)
+        {
+            _settings.OverrideWindowsKey = overrideWinKey.Value;
+            WinKeyOverrideChanged?.Invoke(_settings.OverrideWindowsKey);
+        }
+        SaveSettings();
+        _statusBanner = "App launcher settings updated";
         BroadcastState();
     }
 
