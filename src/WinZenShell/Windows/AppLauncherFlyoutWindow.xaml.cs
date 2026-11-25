@@ -813,17 +813,24 @@ public partial class AppLauncherFlyoutWindow : Window
         {
             double fullWidth = SystemParameters.PrimaryScreenWidth;
             double screenHeight = SystemParameters.PrimaryScreenHeight;
+            double dpiScaleY = System.Windows.Media.VisualTreeHelper.GetDpi(this).DpiScaleY;
+            if (dpiScaleY <= 0) dpiScaleY = 1.0;
+
             double fullTop;
             double fullHeight;
             if (string.Equals(dockEdge, "Top", StringComparison.OrdinalIgnoreCase))
             {
-                fullTop = Math.Max(0, taskbarTop + taskbarHeight);
-                fullHeight = Math.Max(200, screenHeight - fullTop);
+                double bottomPx = Math.Max(0, Math.Round((taskbarTop + taskbarHeight) * dpiScaleY) - 1.0);
+                fullTop = bottomPx / dpiScaleY;
+                double heightPx = Math.Round(Math.Max(200 * dpiScaleY, screenHeight * dpiScaleY - bottomPx));
+                fullHeight = (heightPx + 1.0) / dpiScaleY;
             }
             else
             {
                 fullTop = 0;
-                fullHeight = Math.Max(200, taskbarTop > 0 ? taskbarTop : screenHeight);
+                double targetBottom = taskbarTop > 0 ? taskbarTop : screenHeight;
+                double heightPx = Math.Round(Math.Max(200 * dpiScaleY, targetBottom * dpiScaleY));
+                fullHeight = (heightPx + 1.0) / dpiScaleY;
             }
 
             Width = fullWidth;
@@ -841,9 +848,10 @@ public partial class AppLauncherFlyoutWindow : Window
             if (_webViewReady && LauncherWebView.CoreWebView2 != null)
             {
                 PushAppsData();
+                LauncherWebView.CoreWebView2.PostWebMessageAsJson("{\"type\":\"focus_search\"}");
             }
             _appLauncherService.RefreshIfStale();
-            FocusSearchInput();
+            FocusSearchInput(skipPostMessage: true);
             return;
         }
 
@@ -923,7 +931,7 @@ public partial class AppLauncherFlyoutWindow : Window
         FocusSearchInput();
     }
 
-    private void FocusSearchInput()
+    private void FocusSearchInput(bool skipPostMessage = false)
     {
         Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input, () =>
         {
@@ -932,7 +940,7 @@ public partial class AppLauncherFlyoutWindow : Window
                 if (!IsVisible) return;
                 LauncherWebView.Focus();
                 System.Windows.Input.Keyboard.Focus(LauncherWebView);
-                if (_webViewReady && LauncherWebView.CoreWebView2 != null)
+                if (!skipPostMessage && _webViewReady && LauncherWebView.CoreWebView2 != null)
                 {
                     LauncherWebView.CoreWebView2.PostWebMessageAsJson("{\"type\":\"focus_search\"}");
                 }

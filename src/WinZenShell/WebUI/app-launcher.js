@@ -1877,6 +1877,15 @@
       }
     } else if (data.type === 'launcher_closed' || data.action === 'launcher_closed') {
       closeFolder();
+      if (win81OpenAnimTimer) {
+        clearTimeout(win81OpenAnimTimer);
+        win81OpenAnimTimer = null;
+      }
+      document.body.classList.remove('win81-opening');
+      if (document.body.classList.contains('win81-fullscreen') &&
+          !document.body.classList.contains('winzen-no-anim')) {
+        document.body.classList.add('win81-preopen');
+      }
     } else if (data.type === 'focus_search' || data.action === 'focus_search') {
       closeFolder();
       win81ActivePane = 'start';
@@ -1893,11 +1902,37 @@
       }
       const contentEl = document.querySelector('.launcher-content');
       if (contentEl) contentEl.scrollTop = 0;
+      triggerWin81TileOpenAnimation();
       setTimeout(() => {
         searchInput.focus();
         searchInput.select();
       }, 30);
     }
+  }
+
+  let win81OpenAnimTimer = null;
+  function triggerWin81TileOpenAnimation() {
+    if (win81OpenAnimTimer) {
+      clearTimeout(win81OpenAnimTimer);
+      win81OpenAnimTimer = null;
+    }
+    document.body.classList.remove('win81-opening');
+    if (!document.body.classList.contains('win81-fullscreen') ||
+        document.body.classList.contains('winzen-no-anim')) {
+      document.body.classList.remove('win81-preopen');
+      return;
+    }
+    const tiles = document.querySelectorAll('.pinned-row .app-item, .recent-row .app-item, .apps-grid .app-item');
+    tiles.forEach((tile, idx) => {
+      tile.style.setProperty('--tile-idx', String(Math.min(idx, 15)));
+    });
+    void document.body.offsetWidth;
+    document.body.classList.remove('win81-preopen');
+    document.body.classList.add('win81-opening');
+    win81OpenAnimTimer = setTimeout(() => {
+      document.body.classList.remove('win81-opening');
+      win81OpenAnimTimer = null;
+    }, 500);
   }
 
   // Dismiss native context menu when scrolling inside app launcher or folder grid

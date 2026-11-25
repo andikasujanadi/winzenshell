@@ -1578,6 +1578,53 @@ body.theme-light .win81-nav-btn:hover .win81-nav-circle {
   animation: win81SlideDownIn 0.24s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+@keyframes win81HeaderOpenIn {
+  from {
+    opacity: 0;
+    transform: translate3d(-16px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes win81TileOpenIn {
+  from {
+    opacity: 0;
+    transform: translate3d(28px, 0, 0) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+body.win81-fullscreen.win81-preopen:not(.winzen-no-anim) .win81-header-title,
+body.win81-fullscreen.win81-preopen:not(.winzen-no-anim) .win81-profile-box,
+body.win81-fullscreen.win81-preopen:not(.winzen-no-anim) .pinned-row .app-item,
+body.win81-fullscreen.win81-preopen:not(.winzen-no-anim) .recent-row .app-item,
+body.win81-fullscreen.win81-preopen:not(.winzen-no-anim) .apps-grid .app-item,
+body.win81-fullscreen.win81-preopen:not(.winzen-no-anim) .win81-nav-bar {
+  opacity: 0;
+}
+
+body.win81-fullscreen.win81-opening:not(.winzen-no-anim) .win81-header-title,
+body.win81-fullscreen.win81-opening:not(.winzen-no-anim) .win81-profile-box {
+  animation: win81HeaderOpenIn 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+body.win81-fullscreen.win81-opening:not(.winzen-no-anim) .pinned-row .app-item,
+body.win81-fullscreen.win81-opening:not(.winzen-no-anim) .recent-row .app-item,
+body.win81-fullscreen.win81-opening:not(.winzen-no-anim) .apps-grid .app-item {
+  animation: win81TileOpenIn 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--tile-idx, 0) * 16ms);
+}
+
+body.win81-fullscreen.win81-opening:not(.winzen-no-anim) .win81-nav-bar {
+  animation: win81SlideUpIn 200ms cubic-bezier(0.16, 1, 0.3, 1) 40ms both;
+}
+
 /* Windows 8.1 Start / Apps Header & User Profile */
 body.variant-win81 .search-box-wrap {
   display: flex;

@@ -5,7 +5,7 @@
 [![Platform: Windows 11](https://img.shields.io/badge/Platform-Windows%2011%20(64--bit)-0078D4?logo=windows11&logoColor=white)](https://microsoft.com/windows)
 [![Runtime: .NET 10](https://img.shields.io/badge/Runtime-.NET%2010%20(WPF)-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 [![Frontend: WebView2](https://img.shields.io/badge/Frontend-WebView2%20%7C%20Web%20Components-008080?logo=microsoftedge&logoColor=white)](https://developer.microsoft.com/microsoft-edge/webview2/)
-[![Release: v0.5.1](https://img.shields.io/badge/Release-v0.5.1-0078D4)](README.md#changelog)
+[![Release: v0.5.2](https://img.shields.io/badge/Release-v0.5.2-0078D4)](README.md#changelog)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 **WinZenShell** is a customizable, lightweight Windows 11 taskbar and widget studio.  
@@ -16,8 +16,8 @@ It pairs a modern web interface (HTML, CSS, and JavaScript) with a fast native W
 ---
 
 > [!IMPORTANT]
-> **Release Notice (`v0.5.1`)**:  
-> WinZenShell v0.5.1 introduces the **Metro** & **ChromeOS** App Launcher styles, **128×128 High-Resolution App Icons**, **App Launcher Integration in Layout Presets**, Full-Screen Start taskbar preservation, and backdrop/padding refinements.
+> **Release Notice (`v0.5.2`)**:  
+> WinZenShell v0.5.2 fixes missing Store/UWP/PWA apps (such as **Camera**, **Clock**, **Photos**, **Paint**) in the App Launcher, eliminates the 1 px DPI gap above the taskbar in Full-Screen Start, and adds a flash-free staggered tile open animation.
 
 ---
 
@@ -204,6 +204,13 @@ window.winzen.shell.onMetricsUpdate((metrics) => {
 ---
 
 ## Changelog
+
+### v0.5.2 (2026-11-25)
+* **Complete App Discovery (`shell:AppsFolder`)**:
+  * Replaced broken `IEnumShellItems` COM marshaling in `UwpAppIconHelper` with `Shell.Application` enumeration (`10s` STA timeout), restoring missing UWP/Store apps (**Camera**, **Clock**, **Photos**, **Paint**, **Camo Studio**), Chrome/Edge PWAs, and Win32 `.exe` entries in `shell:AppsFolder`.
+* **Full-Screen Start Staggered Open Animation & Pixel Alignment**:
+  * Added a GPU-composited one-by-one staggered tile entrance animation (`win81TileOpenIn` + `win81-preopen` state) for Full-Screen Metro Start with zero pre-animation content flash.
+  * Fixed the 1 px DPI rounding gap / white line between Full-Screen Start and the taskbar.
 
 ### v0.5.1 (2026-11-24)
 * **Metro & ChromeOS App Launcher Styles**:
