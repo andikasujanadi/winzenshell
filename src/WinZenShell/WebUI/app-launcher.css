@@ -212,6 +212,200 @@ body.theme-light .section-subtitle-hint {
   border-color: color-mix(in srgb, var(--winzen-accent, #3684e3) 40%, transparent);
 }
 
+/* Named Tile Groups (ChromeOS & Metro) */
+#sectionPinned:has(.pinned-row.has-groups) > .section-header-row {
+  display: none;
+}
+
+.pinned-row.has-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  min-height: 0;
+}
+
+.pinned-group-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pinned-group-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px;
+}
+
+.pinned-group-title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: rgba(255, 255, 255, 0.72);
+  cursor: text;
+  padding: 2px 6px;
+  margin-left: -6px;
+  border-radius: 6px;
+  transition: background 0.14s ease, color 0.14s ease;
+}
+
+.pinned-group-title:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+html[data-theme="light"] .pinned-group-title,
+body.theme-light .pinned-group-title {
+  color: rgba(0, 0, 0, 0.68);
+}
+
+html[data-theme="light"] .pinned-group-title:hover,
+body.theme-light .pinned-group-title:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: #000000;
+}
+
+.pinned-group-input {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--winzen-accent, #3684e3);
+  border-radius: 6px;
+  padding: 2px 6px;
+  outline: none;
+  min-width: 120px;
+}
+
+html[data-theme="light"] .pinned-group-input,
+body.theme-light .pinned-group-input {
+  color: #000000;
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.pinned-group-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 10px 8px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  min-height: var(--pinned-cell-size);
+  grid-auto-rows: var(--pinned-cell-size);
+  grid-auto-flow: dense;
+}
+
+html[data-theme="light"] .pinned-group-grid,
+body.theme-light .pinned-group-grid {
+  background: rgba(0, 0, 0, 0.025);
+  border-color: rgba(0, 0, 0, 0.06);
+}
+
+body.variant-win81:not(.win81-searching) .pinned-row.has-groups {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 28px;
+  width: max-content;
+}
+
+body.variant-win81:not(.win81-searching) .pinned-row.has-groups .pinned-group-block {
+  gap: 0;
+}
+
+body.variant-win81:not(.win81-searching) .pinned-row.has-groups .pinned-group-header {
+  margin-bottom: 10px;
+  min-height: 20px;
+  line-height: 20px;
+  padding: 0;
+}
+
+body.variant-win81:not(.win81-searching) .pinned-row.has-groups .pinned-group-title {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  letter-spacing: 0.2px;
+  padding: 0 6px;
+  margin-left: -6px;
+}
+
+body.variant-win81:not(.win81-searching) .pinned-row.has-groups .pinned-group-grid {
+  display: grid;
+  grid-template-columns: none;
+  grid-template-rows: repeat(4, var(--pinned-cell-size, 132px));
+  grid-auto-flow: column dense;
+  grid-auto-columns: var(--pinned-cell-size, 132px);
+  width: max-content;
+  min-height: 0;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+/* Group Creation Modal */
+.group-modal-dialog {
+  width: 340px;
+  max-width: 90vw;
+}
+
+.group-modal-heading {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.group-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 6px;
+}
+
+.group-modal-input {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  font-family: inherit;
+  font-size: 13px;
+  outline: none;
+}
+
+.group-modal-input:focus {
+  border-color: var(--winzen-accent, #3684e3);
+}
+
+html[data-theme="light"] .group-modal-input,
+body.theme-light .group-modal-input {
+  border-color: rgba(0, 0, 0, 0.15);
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.group-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.group-modal-confirm {
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: none;
+  background: var(--winzen-accent, #3684e3);
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 .pinned-row .app-item {
   cursor: pointer;
   position: relative;
@@ -1600,8 +1794,14 @@ body.theme-light .win81-nav-btn:hover .win81-nav-circle {
   }
 }
 
+body.variant-win81:not(.win81-searching):not(.win81-apps-page) .search-box {
+  display: none;
+}
+
 body.win81-fullscreen.win81-preopen:not(.winzen-no-anim) .win81-header-title,
 body.win81-fullscreen.win81-preopen:not(.winzen-no-anim) .win81-profile-box,
+body.win81-fullscreen.win81-preopen:not(.winzen-no-anim) .section-header-row,
+body.win81-fullscreen.win81-preopen:not(.winzen-no-anim) .pinned-group-header,
 body.win81-fullscreen.win81-preopen:not(.winzen-no-anim) .pinned-row .app-item,
 body.win81-fullscreen.win81-preopen:not(.winzen-no-anim) .recent-row .app-item,
 body.win81-fullscreen.win81-preopen:not(.winzen-no-anim) .apps-grid .app-item,
@@ -1623,6 +1823,38 @@ body.win81-fullscreen.win81-opening:not(.winzen-no-anim) .apps-grid .app-item {
 
 body.win81-fullscreen.win81-opening:not(.winzen-no-anim) .win81-nav-bar {
   animation: win81SlideUpIn 200ms cubic-bezier(0.16, 1, 0.3, 1) 40ms both;
+}
+
+/* ChromeOS / Compact Launcher Staggered Open Animation */
+@keyframes chromeosTileOpenIn {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+body.launcher-preopen:not(.winzen-no-anim) .pinned-row .app-item,
+body.launcher-preopen:not(.winzen-no-anim) .recent-row .app-item,
+body.launcher-preopen:not(.winzen-no-anim) .apps-grid .app-item,
+body.launcher-preopen:not(.winzen-no-anim) .section-header-row,
+body.launcher-preopen:not(.winzen-no-anim) .pinned-group-header {
+  opacity: 0;
+}
+
+body.chromeos-opening:not(.winzen-no-anim) .section-header-row,
+body.chromeos-opening:not(.winzen-no-anim) .pinned-group-header {
+  animation: chromeosTileOpenIn 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+body.chromeos-opening:not(.winzen-no-anim) .pinned-row .app-item,
+body.chromeos-opening:not(.winzen-no-anim) .recent-row .app-item,
+body.chromeos-opening:not(.winzen-no-anim) .apps-grid .app-item {
+  animation: chromeosTileOpenIn 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--tile-idx, 0) * 12ms);
 }
 
 /* Windows 8.1 Start / Apps Header & User Profile */

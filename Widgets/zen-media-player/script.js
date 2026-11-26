@@ -95,7 +95,30 @@
   if (btnMediaIcon) {
     btnMediaIcon.addEventListener('click', (ev) => {
       ev.stopPropagation();
-      sendAction('media_play_pause');
+      const rect = btnMediaIcon.getBoundingClientRect();
+      sendAction('toggle_media_flyout', {
+        x: rect.left,
+        y: rect.top,
+        width: rect.width,
+        height: rect.height
+      });
+    });
+  }
+
+  if (!inControlCenter && mediaContainer) {
+    mediaContainer.style.cursor = 'pointer';
+    mediaContainer.addEventListener('click', (ev) => {
+      if (ev.target && ev.target.closest && ev.target.closest('.media-controls, .media-progress-bar, button')) {
+        return;
+      }
+      ev.stopPropagation();
+      const rect = mediaContainer.getBoundingClientRect();
+      sendAction('toggle_media_flyout', {
+        x: rect.left,
+        y: rect.top,
+        width: rect.width,
+        height: rect.height
+      });
     });
   }
 

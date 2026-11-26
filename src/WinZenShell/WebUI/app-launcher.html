@@ -8,6 +8,24 @@
   <link rel="stylesheet" href="app-launcher.css" />
 </head>
 <body>
+  <script>
+    (function () {
+      try {
+        var v = localStorage.getItem('winzen_layout_variant');
+        var fs = localStorage.getItem('winzen_win81_fullscreen') === 'true';
+        if (v === 'win81') {
+          document.body.classList.add('variant-win81');
+          if (fs) {
+            document.body.classList.add('win81-fullscreen', 'win81-preopen');
+          } else {
+            document.body.classList.add('launcher-preopen');
+          }
+        } else {
+          document.body.classList.add('launcher-preopen');
+        }
+      } catch (e) {}
+    })();
+  </script>
   <div class="launcher-shell" id="launcherShell">
     <!-- Top Bar (ChromeOS Search Bar / Windows 8.1 Start Header) -->
     <div class="search-box-wrap" id="searchBoxWrap">
@@ -79,6 +97,24 @@
         </div>
         <div class="folder-grid" id="folderGrid">
           <!-- Folder app items populated by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- New Group Modal -->
+    <div class="folder-overlay" id="groupModalOverlay" style="display:none;">
+      <div class="folder-backdrop" id="groupModalBackdrop"></div>
+      <div class="folder-dialog group-modal-dialog">
+        <div class="folder-header">
+          <span class="group-modal-heading">New Tile Group</span>
+          <button type="button" class="folder-close-btn" id="btnGroupModalClose" title="Cancel (Esc)">✕</button>
+        </div>
+        <div class="group-modal-body">
+          <input type="text" class="group-modal-input" id="groupModalInput" placeholder="Group name (e.g. Work, Games, Media)" maxlength="32" spellcheck="false" />
+          <div class="group-modal-actions">
+            <button type="button" class="folder-ungroup-btn" id="btnGroupModalCancel">Cancel</button>
+            <button type="button" class="group-modal-confirm" id="btnGroupModalConfirm">Create</button>
+          </div>
         </div>
       </div>
     </div>

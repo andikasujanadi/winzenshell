@@ -211,6 +211,9 @@ public class AppLauncherPinnedItem
     [JsonPropertyName("tileSize")]
     public string TileSize { get; set; } = "1x1";
 
+    [JsonPropertyName("groupName")]
+    public string GroupName { get; set; } = "";
+
     [JsonPropertyName("folderItems")]
     public List<AppLauncherPinnedItem> FolderItems { get; set; } = new();
 }

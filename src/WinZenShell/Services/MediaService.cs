@@ -6,6 +6,15 @@ using Windows.Storage.Streams;
 
 namespace WinZenShell.Services;
 
+public class MediaSessionSummary
+{
+    public string SourceAppId { get; set; } = "";
+    public string Title { get; set; } = "";
+    public string Artist { get; set; } = "";
+    public bool IsPlaying { get; set; }
+    public bool IsActive { get; set; }
+}
+
 public class MediaPlaybackSnapshot
 {
     public bool HasMedia { get; set; } = false;
@@ -21,12 +30,14 @@ public class MediaPlaybackSnapshot
     public bool CanPause { get; set; } = false;
     public bool CanSkipNext { get; set; } = false;
     public bool CanSkipPrevious { get; set; } = false;
+    public System.Collections.Generic.List<MediaSessionSummary> Sessions { get; set; } = new();
 }
 
 public class MediaService
 {
     private GlobalSystemMediaTransportControlsSessionManager? _sessionManager;
     private GlobalSystemMediaTransportControlsSession? _currentSession;
+    private string? _pinnedSessionAppId;
     private MediaPlaybackSnapshot _cachedSnapshot = new();
     private readonly object _lock = new();
     private double _timelineBasePositionSeconds;
@@ -59,6 +70,7 @@ public class MediaService
             if (_sessionManager != null)
             {
                 _sessionManager.CurrentSessionChanged += OnCurrentSessionChanged;
+                _sessionManager.SessionsChanged += OnSessionsChanged;
                 HookCurrentSession(_sessionManager.GetCurrentSession());
                 await RefreshMediaAsync();
             }
@@ -69,11 +81,57 @@ public class MediaService
         }
     }
 
+    private void OnSessionsChanged(GlobalSystemMediaTransportControlsSessionManager sender, SessionsChangedEventArgs args)
+    {
+        try
+        {
+            var pinned = ResolvePinnedOrCurrentSession(sender);
+            if (pinned != _currentSession)
+            {
+                HookCurrentSession(pinned);
+            }
+            _ = RefreshMediaAsync();
+        }
+        catch { }
+    }
+
+    private GlobalSystemMediaTransportControlsSession? ResolvePinnedOrCurrentSession(GlobalSystemMediaTransportControlsSessionManager manager)
+    {
+        if (!string.IsNullOrWhiteSpace(_pinnedSessionAppId))
+        {
+            try
+            {
+                foreach (var s in manager.GetSessions())
+                {
+                    if (string.Equals(s.SourceAppUserModelId, _pinnedSessionAppId, StringComparison.OrdinalIgnoreCase))
+                        return s;
+                }
+            }
+            catch { }
+            _pinnedSessionAppId = null;
+        }
+        return manager.GetCurrentSession();
+    }
+
+    public async Task SelectSessionAsync(string? sourceAppId)
+    {
+        try
+        {
+            _pinnedSessionAppId = string.IsNullOrWhiteSpace(sourceAppId) ? null : sourceAppId.Trim();
+            if (_sessionManager != null)
+            {
+                HookCurrentSession(ResolvePinnedOrCurrentSession(_sessionManager));
+                await RefreshMediaAsync();
+            }
+        }
+        catch { }
+    }
+
     private void OnCurrentSessionChanged(GlobalSystemMediaTransportControlsSessionManager sender, CurrentSessionChangedEventArgs args)
     {
         try
         {
-            HookCurrentSession(sender.GetCurrentSession());
+            HookCurrentSession(ResolvePinnedOrCurrentSession(sender));
             _ = RefreshMediaAsync();
         }
         catch { }
@@ -203,6 +261,34 @@ public class MediaService
                 }
                 catch { }
             }
+
+            // Collect available sessions for multi-session switching
+            try
+            {
+                if (_sessionManager != null)
+                {
+                    foreach (var s in _sessionManager.GetSessions())
+                    {
+                        try
+                        {
+                            var sInfo = s.GetPlaybackInfo();
+                            var sProps = await s.TryGetMediaPropertiesAsync();
+                            string sApp = s.SourceAppUserModelId ?? "";
+                            if (string.IsNullOrWhiteSpace(sApp) && string.IsNullOrWhiteSpace(sProps?.Title)) continue;
+                            snapshot.Sessions.Add(new MediaSessionSummary
+                            {
+                                SourceAppId = sApp,
+                                Title = !string.IsNullOrWhiteSpace(sProps?.Title) ? sProps.Title : sApp,
+                                Artist = sProps?.Artist ?? "",
+                                IsPlaying = sInfo?.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing,
+                                IsActive = string.Equals(sApp, snapshot.SourceAppId, StringComparison.OrdinalIgnoreCase)
+                            });
+                        }
+                        catch { }
+                    }
+                }
+            }
+            catch { }
 
             lock (_lock)
             {

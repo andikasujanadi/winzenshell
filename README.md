@@ -5,7 +5,7 @@
 [![Platform: Windows 11](https://img.shields.io/badge/Platform-Windows%2011%20(64--bit)-0078D4?logo=windows11&logoColor=white)](https://microsoft.com/windows)
 [![Runtime: .NET 10](https://img.shields.io/badge/Runtime-.NET%2010%20(WPF)-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 [![Frontend: WebView2](https://img.shields.io/badge/Frontend-WebView2%20%7C%20Web%20Components-008080?logo=microsoftedge&logoColor=white)](https://developer.microsoft.com/microsoft-edge/webview2/)
-[![Release: v0.5.2](https://img.shields.io/badge/Release-v0.5.2-0078D4)](README.md#changelog)
+[![Release: v0.5.3](https://img.shields.io/badge/Release-v0.5.3-0078D4)](README.md#changelog)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 **WinZenShell** is a customizable, lightweight Windows 11 taskbar and widget studio.  
@@ -16,8 +16,8 @@ It pairs a modern web interface (HTML, CSS, and JavaScript) with a fast native W
 ---
 
 > [!IMPORTANT]
-> **Release Notice (`v0.5.2`)**:  
-> WinZenShell v0.5.2 fixes missing Store/UWP/PWA apps (such as **Camera**, **Clock**, **Photos**, **Paint**) in the App Launcher, eliminates the 1 px DPI gap above the taskbar in Full-Screen Start, and adds a flash-free staggered tile open animation.
+> **Release Notice (`v0.5.3`)**:  
+> WinZenShell v0.5.3 adds a dedicated **Media Flyout with Synced Lyrics** for the taskbar Music Widget, **Named Tile Groups** across both **ChromeOS** and **Metro** launchers, automatic **Bluetooth/Default Audio Device Switching** for the Volume widget, and **Reliable Solo Windows Key Override** even when File Explorer is focused.
 
 ---
 
@@ -204,6 +204,18 @@ window.winzen.shell.onMetricsUpdate((metrics) => {
 ---
 
 ## Changelog
+
+### v0.5.3 (2026-11-26)
+* **Media Flyout & Synced Lyrics (`MediaFlyoutWindow` + `zen-media-player`)**:
+  * Clicking the taskbar Music Widget (Widget or Icon mode) now opens a dedicated translucent **Media Flyout** with blurred album-art backdrop, track/artist/album metadata, multi-session switcher pills, drag-to-seek progress bar with `mm:ss` timestamps, and a **Synced Lyrics** toggle (via LRCLIB) with click-to-seek lines.
+* **Named Tile Groups (ChromeOS & Metro)**:
+  * Added `GroupName` support for pinned apps and folders across both **ChromeOS** and **Metro** layouts, including **Move to group** / **+ New group...** context menu actions, inline group header renaming, and cross-group drag-and-drop.
+* **App Launcher Polish & Input Fixes**:
+  * Added staggered content open animation (`chromeosTileOpenIn`) for **ChromeOS** and eliminated the first-run ChromeOS flash before **Metro** initializes.
+  * Fixed `Enter` only launching the first All Apps result during active search, and fixed search box visibility in Metro **Apps** view.
+* **Audio Device Switching & Windows Key Hook Reliability**:
+  * Registered `IMMNotificationClient` in `AudioService` so connecting Bluetooth TWS or switching default audio output updates the Volume widget immediately.
+  * Updated `WinKeyHookService` to swallow solo `Win` key presses cleanly while preserving `Win+*` shortcuts, fixing native Windows 11 Start popping up when File Explorer is focused.
 
 ### v0.5.2 (2026-11-25)
 * **Complete App Discovery (`shell:AppsFolder`)**:

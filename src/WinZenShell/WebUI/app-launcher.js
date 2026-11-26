@@ -401,7 +401,10 @@
       let isFolderCreationArmed = false;
       let reorderTimer = null;
       let pendingReorderSlot = -1;
-      let currentSlotIndex = pinnedIndex;
+      let currentSlotIndex = pinnedGrid
+        ? Array.from(pinnedGrid.querySelectorAll('.app-item')).indexOf(item)
+        : pinnedIndex;
+      if (currentSlotIndex < 0) currentSlotIndex = pinnedIndex;
 
       // Purge any lingering ghost clones from previous interrupted drags
       document.querySelectorAll('.pinned-drag-ghost').forEach(el => el.remove());
@@ -568,17 +571,22 @@
 
                 const currentItems = Array.from(pinnedGrid.querySelectorAll('.app-item'));
                 if (bestSlot >= currentItems.length) return;
+                const liveIdx = currentItems.indexOf(item);
+                if (liveIdx >= 0) currentSlotIndex = liveIdx;
 
                 const rectsBefore = new Map();
                 currentItems.forEach(el => rectsBefore.set(el, el.getBoundingClientRect()));
 
                 const refEl = currentItems[bestSlot];
-                if (bestSlot > currentSlotIndex) {
-                  pinnedGrid.insertBefore(item, refEl.nextSibling);
-                } else {
-                  pinnedGrid.insertBefore(item, refEl);
+                const targetParent = refEl ? refEl.parentNode : pinnedGrid;
+                if (refEl && targetParent) {
+                  if (bestSlot > currentSlotIndex) {
+                    targetParent.insertBefore(item, refEl.nextSibling);
+                  } else {
+                    targetParent.insertBefore(item, refEl);
+                  }
                 }
-                currentSlotIndex = bestSlot;
+                currentSlotIndex = Array.from(pinnedGrid.querySelectorAll('.app-item')).indexOf(item);
 
                 const refreshedItems = Array.from(pinnedGrid.querySelectorAll('.app-item'));
                 refreshedItems.forEach(el => {
@@ -609,7 +617,7 @@
         }
       };
 
-      const onPointerUp = () => {
+      const onPointerUp = (upEvt) => {
         const wasArmed = isFolderCreationArmed;
         const targetFolderEl = hoverFolderTarget;
 
@@ -643,6 +651,7 @@
                     name: 'Folder',
                     isFolder: true,
                     folderSize: '1x1',
+                    groupName: tgtApp.groupName || '',
                     folderItems: [tgtApp, srcApp]
                   };
                   pinnedApps[actualTgtIdx] = folder;
@@ -654,6 +663,11 @@
             }
           } else if (ghostEl) {
             removeGhost();
+            const underPointer = upEvt ? document.elementFromPoint(upEvt.clientX, upEvt.clientY) : null;
+            const dropGroupBlock = underPointer && underPointer.closest ? underPointer.closest('.pinned-group-block') : null;
+            if (dropGroupBlock && app) {
+              app.groupName = dropGroupBlock.dataset.groupName || '';
+            }
             item.classList.remove('is-drag-source');
             if (pinnedGrid) pinnedGrid.classList.remove('grid-drag-active');
 
@@ -911,7 +925,7 @@
         }
       };
 
-      const onPointerUp = () => {
+      const onPointerUp = (upEvt) => {
         const wasArmed = isFolderCreationArmed;
         const targetFolderEl = hoverFolderTarget;
         let dropSlotIndex = -1;
@@ -1323,6 +1337,7 @@
         isFolder: !!p.isFolder,
         folderSize: p.folderSize || '1x1',
         tileSize: p.tileSize || '1x1',
+        groupName: p.groupName || '',
         folderItems: (p.folderItems || []).map((sub) => ({
           id: sub.id || sub.targetPath || '',
           targetPath: sub.targetPath || '',
@@ -1459,12 +1474,91 @@
     // Purge any lingering ghost drag clones
     document.querySelectorAll('.pinned-drag-ghost').forEach(el => el.remove());
 
-    // Render Pinned row
+    // Render Pinned row (flat when no named groups, grouped sections in both ChromeOS & Metro when named groups exist)
     if (pinnedGrid) {
       pinnedGrid.innerHTML = '';
-      pinnedApps.forEach((app, pIdx) => {
-        pinnedGrid.appendChild(renderAppItem(app, false, true, pIdx, 'pinned'));
-      });
+      const hasAnyNamedGroup = pinnedApps.some(p => (p.groupName || '').trim().length > 0);
+      if (!hasAnyNamedGroup) {
+        pinnedGrid.classList.remove('has-groups');
+        pinnedApps.forEach((app, pIdx) => {
+          pinnedGrid.appendChild(renderAppItem(app, false, true, pIdx, 'pinned'));
+        });
+      } else {
+        pinnedGrid.classList.add('has-groups');
+        const groupMap = new Map();
+        const groupOrder = [];
+        pinnedApps.forEach((app, pIdx) => {
+          const g = (app.groupName || '').trim();
+          if (!groupMap.has(g)) {
+            groupMap.set(g, []);
+            groupOrder.push(g);
+          }
+          groupMap.get(g).push({ app, pIdx });
+        });
+        // Keep default unnamed group first if present
+        const orderedGroups = groupOrder.includes('')
+          ? ['', ...groupOrder.filter(g => g !== '')]
+          : groupOrder;
+
+        orderedGroups.forEach(gName => {
+          const block = document.createElement('div');
+          block.className = 'pinned-group-block';
+          block.dataset.groupName = gName;
+
+          const header = document.createElement('div');
+          header.className = 'pinned-group-header';
+
+          const titleEl = document.createElement('span');
+          titleEl.className = 'pinned-group-title';
+          titleEl.textContent = gName || 'Pinned';
+          titleEl.title = 'Click to rename group';
+          titleEl.addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'pinned-group-input';
+            input.value = gName;
+            input.placeholder = 'Group name';
+            input.maxLength = 32;
+            header.replaceChild(input, titleEl);
+            input.focus();
+            input.select();
+
+            let committed = false;
+            const commit = () => {
+              if (committed) return;
+              committed = true;
+              const nextName = input.value.trim();
+              if (nextName !== gName) {
+                pinnedApps.forEach(p => {
+                  if (((p.groupName || '').trim()) === gName) {
+                    p.groupName = nextName;
+                  }
+                });
+                persistAndRenderPinned();
+              } else {
+                header.replaceChild(titleEl, input);
+              }
+            };
+            input.addEventListener('keydown', (ke) => {
+              if (ke.key === 'Enter') { ke.preventDefault(); commit(); }
+              else if (ke.key === 'Escape') { committed = true; header.replaceChild(titleEl, input); }
+            });
+            input.addEventListener('blur', commit);
+          });
+
+          header.appendChild(titleEl);
+          block.appendChild(header);
+
+          const gGrid = document.createElement('div');
+          gGrid.className = 'pinned-group-grid';
+          groupMap.get(gName).forEach(({ app, pIdx }) => {
+            gGrid.appendChild(renderAppItem(app, false, true, pIdx, 'pinned'));
+          });
+          block.appendChild(gGrid);
+          pinnedGrid.appendChild(block);
+        });
+      }
       requestAnimationFrame(syncPinnedCellSize);
     }
 
@@ -1716,7 +1810,7 @@
         }
       } else if (selectedIndex >= 0 && visibleApps[selectedIndex]) {
         launchApp(visibleApps[selectedIndex]);
-      } else if (visibleApps.length > 0) {
+      } else if ((searchInput.value || '').trim().length > 0 && visibleApps.length > 0) {
         launchApp(visibleApps[0]);
       }
       return true;
@@ -1785,6 +1879,10 @@
       const nextColorMode = data.win81TileColorMode === 'accent' ? 'accent' : 'multicolor';
       const nextSplitView = typeof data.win81SplitView === 'boolean' ? data.win81SplitView : true;
       const nextFullScreen = typeof data.win81FullScreen === 'boolean' ? data.win81FullScreen : false;
+      try {
+        localStorage.setItem('winzen_layout_variant', nextVariant);
+        localStorage.setItem('winzen_win81_fullscreen', String(nextFullScreen));
+      } catch (_) {}
       const nextProfileName = typeof data.win81ProfileName === 'string' ? data.win81ProfileName : '';
       const nextProfilePic = typeof data.win81ProfilePicture === 'string' ? data.win81ProfilePicture : '';
       const nextAll = Array.isArray(payload.all) ? payload.all : [];
@@ -1792,7 +1890,7 @@
       const nextPinned = Array.isArray(payload.pinned) ? payload.pinned : [];
       const sig = JSON.stringify({
         v: `${nextVariant}|${nextColorMode}|${nextSplitView}|${nextFullScreen}|${nextProfileName}|${nextProfilePic.length}`,
-        p: nextPinned.map((a) => `${a.isFolder ? 'f' : 'a'}|${a.id || a.targetPath}|${a.name}|${a.folderSize || '1x1'}|${a.tileSize || '1x1'}|${(a.folderItems || []).map(s => s.targetPath || s.name).join(',')}`),
+        p: nextPinned.map((a) => `${a.isFolder ? 'f' : 'a'}|${a.id || a.targetPath}|${a.name}|${a.folderSize || '1x1'}|${a.tileSize || '1x1'}|${a.groupName || ''}|${(a.folderItems || []).map(s => s.targetPath || s.name).join(',')}`),
         r: nextRecent.map((a) => `${a.targetPath}|${a.name}|${a.iconDataUrl ? `${a.iconDataUrl.length}:${a.iconDataUrl.slice(-24)}` : 0}`),
         a: nextAll.map((a) => `${a.targetPath}|${a.name}|${a.iconDataUrl ? `${a.iconDataUrl.length}:${a.iconDataUrl.slice(-24)}` : 0}`)
       });
@@ -1822,6 +1920,17 @@
       const fId = data.folderId;
       const match = pinnedApps.find(p => p.isFolder && (p.id === fId || p.targetPath === fId || p.name === fId));
       if (match) openFolder(match);
+    } else if (data.type === 'move_to_group' || data.action === 'move_to_group') {
+      const match = findPinnedTarget(data);
+      if (match) {
+        match.groupName = (data.groupName || '').trim();
+        persistAndRenderPinned();
+      }
+    } else if (data.type === 'create_new_group_for_item' || data.action === 'create_new_group_for_item') {
+      const match = findPinnedTarget(data);
+      if (match) {
+        openNewGroupModal(match);
+      }
     } else if (data.type === 'resize_folder' || data.action === 'resize_folder') {
       const fId = data.folderId;
       const newSize = ['1x1', '2x1', '1x2', '2x2'].includes(data.size) ? data.size : '1x1';
@@ -1881,10 +1990,13 @@
         clearTimeout(win81OpenAnimTimer);
         win81OpenAnimTimer = null;
       }
-      document.body.classList.remove('win81-opening');
-      if (document.body.classList.contains('win81-fullscreen') &&
-          !document.body.classList.contains('winzen-no-anim')) {
-        document.body.classList.add('win81-preopen');
+      document.body.classList.remove('win81-opening', 'chromeos-opening');
+      if (!document.body.classList.contains('winzen-no-anim')) {
+        if (document.body.classList.contains('win81-fullscreen')) {
+          document.body.classList.add('win81-preopen');
+        } else {
+          document.body.classList.add('launcher-preopen');
+        }
       }
     } else if (data.type === 'focus_search' || data.action === 'focus_search') {
       closeFolder();
@@ -1916,23 +2028,86 @@
       clearTimeout(win81OpenAnimTimer);
       win81OpenAnimTimer = null;
     }
-    document.body.classList.remove('win81-opening');
-    if (!document.body.classList.contains('win81-fullscreen') ||
-        document.body.classList.contains('winzen-no-anim')) {
-      document.body.classList.remove('win81-preopen');
+    document.body.classList.remove('win81-opening', 'chromeos-opening');
+    if (document.body.classList.contains('winzen-no-anim')) {
+      document.body.classList.remove('win81-preopen', 'launcher-preopen');
       return;
     }
+    const isWin81Full = document.body.classList.contains('win81-fullscreen');
     const tiles = document.querySelectorAll('.pinned-row .app-item, .recent-row .app-item, .apps-grid .app-item');
     tiles.forEach((tile, idx) => {
       tile.style.setProperty('--tile-idx', String(Math.min(idx, 15)));
     });
     void document.body.offsetWidth;
-    document.body.classList.remove('win81-preopen');
-    document.body.classList.add('win81-opening');
+    document.body.classList.remove('win81-preopen', 'launcher-preopen');
+    document.body.classList.add(isWin81Full ? 'win81-opening' : 'chromeos-opening');
     win81OpenAnimTimer = setTimeout(() => {
-      document.body.classList.remove('win81-opening');
+      document.body.classList.remove('win81-opening', 'chromeos-opening');
       win81OpenAnimTimer = null;
     }, 500);
+  }
+
+  function findPinnedTarget(data) {
+    if (data.isFolder) {
+      const fId = data.folderId;
+      return pinnedApps.find(p => p.isFolder && (p.id === fId || p.targetPath === fId || p.name === fId));
+    }
+    const target = (data.target || '').toLowerCase();
+    const name = (data.name || '').toLowerCase();
+    return pinnedApps.find(p => !p.isFolder && (
+      (target && (p.targetPath || '').toLowerCase() === target) ||
+      (name && (p.name || '').toLowerCase() === name)
+    ));
+  }
+
+  const groupModalOverlay = document.getElementById('groupModalOverlay');
+  const groupModalBackdrop = document.getElementById('groupModalBackdrop');
+  const groupModalInput = document.getElementById('groupModalInput');
+  const btnGroupModalClose = document.getElementById('btnGroupModalClose');
+  const btnGroupModalCancel = document.getElementById('btnGroupModalCancel');
+  const btnGroupModalConfirm = document.getElementById('btnGroupModalConfirm');
+  let pendingGroupTarget = null;
+
+  function closeNewGroupModal() {
+    if (groupModalOverlay) groupModalOverlay.style.display = 'none';
+    pendingGroupTarget = null;
+  }
+
+  function openNewGroupModal(targetItem) {
+    if (!groupModalOverlay || !groupModalInput) return;
+    pendingGroupTarget = targetItem;
+    groupModalInput.value = '';
+    groupModalOverlay.style.display = 'flex';
+    setTimeout(() => {
+      groupModalInput.focus();
+      groupModalInput.select();
+    }, 20);
+  }
+
+  function commitNewGroupModal() {
+    if (!pendingGroupTarget || !groupModalInput) {
+      closeNewGroupModal();
+      return;
+    }
+    const gName = groupModalInput.value.trim();
+    if (gName) {
+      pendingGroupTarget.groupName = gName;
+      closeNewGroupModal();
+      persistAndRenderPinned();
+    } else {
+      closeNewGroupModal();
+    }
+  }
+
+  if (groupModalBackdrop) groupModalBackdrop.addEventListener('click', closeNewGroupModal);
+  if (btnGroupModalClose) btnGroupModalClose.addEventListener('click', closeNewGroupModal);
+  if (btnGroupModalCancel) btnGroupModalCancel.addEventListener('click', closeNewGroupModal);
+  if (btnGroupModalConfirm) btnGroupModalConfirm.addEventListener('click', commitNewGroupModal);
+  if (groupModalInput) {
+    groupModalInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); commitNewGroupModal(); }
+      else if (e.key === 'Escape') { e.preventDefault(); closeNewGroupModal(); }
+    });
   }
 
   // Dismiss native context menu when scrolling inside app launcher or folder grid

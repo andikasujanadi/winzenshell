@@ -74,6 +74,28 @@ internal interface IMMDevice
     int GetState(out int pdwState);
 }
 
+[StructLayout(LayoutKind.Sequential)]
+internal struct PROPERTYKEY
+{
+    public Guid fmtid;
+    public uint pid;
+}
+
+[Guid("7991EEC9-7E89-4D85-8390-6C703CEC60C0"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+internal interface IMMNotificationClient
+{
+    [PreserveSig]
+    int OnDeviceStateChanged([MarshalAs(UnmanagedType.LPWStr)] string pwstrDeviceId, uint dwNewState);
+    [PreserveSig]
+    int OnDeviceAdded([MarshalAs(UnmanagedType.LPWStr)] string pwstrDeviceId);
+    [PreserveSig]
+    int OnDeviceRemoved([MarshalAs(UnmanagedType.LPWStr)] string pwstrDeviceId);
+    [PreserveSig]
+    int OnDefaultDeviceChanged(int flow, int role, [MarshalAs(UnmanagedType.LPWStr)] string? pwstrDefaultDeviceId);
+    [PreserveSig]
+    int OnPropertyValueChanged([MarshalAs(UnmanagedType.LPWStr)] string pwstrDeviceId, PROPERTYKEY key);
+}
+
 [Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface IMMDeviceEnumerator
 {
@@ -83,10 +105,40 @@ internal interface IMMDeviceEnumerator
     int GetDefaultAudioEndpoint(int dataFlow, int role, out IMMDevice ppDevice);
     [PreserveSig]
     int GetDevice([MarshalAs(UnmanagedType.LPWStr)] string pwstrId, out IMMDevice ppDevice);
+    [PreserveSig]
+    int RegisterEndpointNotificationCallback(IMMNotificationClient pClient);
+    [PreserveSig]
+    int UnregisterEndpointNotificationCallback(IMMNotificationClient pClient);
 }
 
 [ComImport, Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")]
 internal class MMDeviceEnumeratorComObject { }
+
+internal class AudioNotificationClient : IMMNotificationClient
+{
+    private readonly AudioService _service;
+
+    public AudioNotificationClient(AudioService service)
+    {
+        _service = service;
+    }
+
+    public int OnDeviceStateChanged(string pwstrDeviceId, uint dwNewState) => 0;
+    public int OnDeviceAdded(string pwstrDeviceId) => 0;
+    public int OnDeviceRemoved(string pwstrDeviceId) => 0;
+
+    public int OnDefaultDeviceChanged(int flow, int role, string? pwstrDefaultDeviceId)
+    {
+        // eRender = 0, eConsole = 0, eMultimedia = 1
+        if (flow == 0 && (role == 0 || role == 1))
+        {
+            _service.HandleDefaultDeviceChanged();
+        }
+        return 0;
+    }
+
+    public int OnPropertyValueChanged(string pwstrDeviceId, PROPERTYKEY key) => 0;
+}
 
 internal class AudioEndpointVolumeCallback : IAudioEndpointVolumeCallback
 {
@@ -119,6 +171,8 @@ public class AudioService : IDisposable
     private IMMDeviceEnumerator? _enumerator;
     private IAudioEndpointVolume? _cachedEndpoint;
     private readonly AudioEndpointVolumeCallback _volumeCallback;
+    private readonly AudioNotificationClient _notificationClient;
+    private bool _notificationRegistered;
     private System.Windows.Threading.DispatcherTimer? _pollTimer;
     private readonly object _lock = new();
     private bool _isDisposed;
@@ -128,6 +182,7 @@ public class AudioService : IDisposable
     public AudioService()
     {
         _volumeCallback = new AudioEndpointVolumeCallback(this);
+        _notificationClient = new AudioNotificationClient(this);
 
         GetVolume();
         GetMute();
@@ -141,7 +196,16 @@ public class AudioService : IDisposable
             if (_cachedEndpoint != null) return _cachedEndpoint;
             try
             {
-                _enumerator ??= (IMMDeviceEnumerator)new MMDeviceEnumeratorComObject();
+                if (_enumerator == null)
+                {
+                    _enumerator = (IMMDeviceEnumerator)new MMDeviceEnumeratorComObject();
+                    try
+                    {
+                        _enumerator.RegisterEndpointNotificationCallback(_notificationClient);
+                        _notificationRegistered = true;
+                    }
+                    catch { }
+                }
                 _enumerator.GetDefaultAudioEndpoint(0 /* eRender */, 1 /* eMultimedia */, out var dev);
                 if (dev == null) return null;
 
@@ -185,7 +249,7 @@ public class AudioService : IDisposable
         }
     }
 
-    internal void HandleDefaultDeviceChanged()
+    private void InvalidateEndpoint()
     {
         lock (_lock)
         {
@@ -195,6 +259,11 @@ public class AudioService : IDisposable
                 _cachedEndpoint = null;
             }
         }
+    }
+
+    internal void HandleDefaultDeviceChanged()
+    {
+        InvalidateEndpoint();
         GetVolume();
         GetMute();
         VolumeChanged?.Invoke(_cachedVolume, _cachedMute);
@@ -371,6 +440,11 @@ public class AudioService : IDisposable
             {
                 try { _cachedEndpoint.UnregisterControlChangeNotify(_volumeCallback); } catch { }
                 _cachedEndpoint = null;
+            }
+            if (_enumerator != null && _notificationRegistered)
+            {
+                try { _enumerator.UnregisterEndpointNotificationCallback(_notificationClient); } catch { }
+                _notificationRegistered = false;
             }
             _enumerator = null;
         }

@@ -193,6 +193,10 @@ public partial class AppLauncherFlyoutWindow : Window
                 ApplyCornerClipping();
                 ApplyTheme(_shellState?.Settings.Theme, _shellState?.Settings.AccentColor);
                 PushAppsData();
+                if (IsVisible)
+                {
+                    LauncherWebView.CoreWebView2?.PostWebMessageAsJson("{\"type\":\"focus_search\"}");
+                }
             };
 
             core.Navigate("https://app.winzenshell.local/app-launcher.html");
@@ -437,6 +441,68 @@ public partial class AppLauncherFlyoutWindow : Window
         return resizeMenu;
     }
 
+    private Forms.ToolStripMenuItem CreateMoveToGroupSubmenu(
+        string currentGroup,
+        Forms.Padding itemPadding,
+        Action<string> onSelectGroup,
+        Action onCreateNewGroup)
+    {
+        var groupMenu = new Forms.ToolStripMenuItem("Move to group")
+        {
+            ForeColor = Color.FromArgb(245, 245, 245),
+            Padding = itemPadding,
+            DropDown = new Forms.ToolStripDropDownMenu
+            {
+                ForeColor = Color.FromArgb(245, 245, 245),
+                BackColor = Color.FromArgb(44, 44, 44),
+                ShowImageMargin = false,
+                ShowCheckMargin = false,
+                Font = new Font("Segoe UI", 9.5f, System.Drawing.FontStyle.Regular),
+                Padding = new Forms.Padding(4, 4, 4, 4)
+            }
+        };
+
+        var groups = new List<string> { "" };
+        var pinned = _shellState?.Settings.AppLauncher?.PinnedApps;
+        if (pinned != null)
+        {
+            foreach (var p in pinned)
+            {
+                string g = (p.GroupName ?? "").Trim();
+                if (!string.IsNullOrEmpty(g) && !groups.Any(x => string.Equals(x, g, StringComparison.OrdinalIgnoreCase)))
+                {
+                    groups.Add(g);
+                }
+            }
+        }
+
+        string normCurrent = (currentGroup ?? "").Trim();
+        foreach (string g in groups)
+        {
+            bool isCurrent = string.Equals(g, normCurrent, StringComparison.OrdinalIgnoreCase);
+            string label = string.IsNullOrEmpty(g) ? "Pinned (Default)" : g;
+            var item = new Forms.ToolStripMenuItem(isCurrent ? $"✓  {label}" : $"    {label}")
+            {
+                ForeColor = isCurrent ? Color.FromArgb(96, 205, 255) : Color.FromArgb(245, 245, 245),
+                Padding = itemPadding
+            };
+            string captured = g;
+            item.Click += (_, _) => onSelectGroup(captured);
+            groupMenu.DropDownItems.Add(item);
+        }
+
+        groupMenu.DropDownItems.Add(new Forms.ToolStripSeparator());
+        var newGroupItem = new Forms.ToolStripMenuItem("+  New group...")
+        {
+            ForeColor = Color.FromArgb(96, 205, 255),
+            Padding = itemPadding
+        };
+        newGroupItem.Click += (_, _) => onCreateNewGroup();
+        groupMenu.DropDownItems.Add(newGroupItem);
+
+        return groupMenu;
+    }
+
     private void ShowAppContextMenu(
         string appName,
         string targetPath,
@@ -529,6 +595,14 @@ public partial class AppLauncherFlyoutWindow : Window
             {
                 PostWebMessage(new { type = "resize_folder", folderId = resolvedFolderId, size = capturedSize });
             }));
+
+            string currentFolderGroup = _shellState?.Settings.AppLauncher?.PinnedApps?
+                .FirstOrDefault(p => p.IsFolder && (string.Equals(p.Id, resolvedFolderId, StringComparison.OrdinalIgnoreCase) || string.Equals(p.TargetPath, resolvedFolderId, StringComparison.OrdinalIgnoreCase)))?.GroupName ?? "";
+            menu.Items.Add(CreateMoveToGroupSubmenu(
+                currentFolderGroup,
+                itemPadding,
+                groupName => PostWebMessage(new { type = "move_to_group", folderId = resolvedFolderId, isFolder = true, groupName }),
+                () => PostWebMessage(new { type = "create_new_group_for_item", folderId = resolvedFolderId, isFolder = true })));
 
             menu.Items.Add(new Forms.ToolStripSeparator());
 
@@ -702,6 +776,14 @@ public partial class AppLauncherFlyoutWindow : Window
                 {
                     PostWebMessage(new { type = "resize_pinned_app", target = targetPath, name = appName, size = capturedSize });
                 }));
+
+                string currentAppGroup = _shellState?.Settings.AppLauncher?.PinnedApps?
+                    .FirstOrDefault(p => !p.IsFolder && (string.Equals(p.TargetPath, targetPath, StringComparison.OrdinalIgnoreCase) || string.Equals(p.Name, appName, StringComparison.OrdinalIgnoreCase)))?.GroupName ?? "";
+                menu.Items.Add(CreateMoveToGroupSubmenu(
+                    currentAppGroup,
+                    itemPadding,
+                    groupName => PostWebMessage(new { type = "move_to_group", target = targetPath, name = appName, isFolder = false, groupName }),
+                    () => PostWebMessage(new { type = "create_new_group_for_item", target = targetPath, name = appName, isFolder = false })));
             }
         }
         else

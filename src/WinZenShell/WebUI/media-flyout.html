@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Media Flyout</title>
+  <link rel="stylesheet" href="universal-theme.css" />
+  <link rel="stylesheet" href="media-flyout.css" />
+</head>
+<body>
+  <div class="media-flyout-shell" id="flyoutShell">
+    <div class="art-backdrop" id="artBackdrop"></div>
+
+    <!-- Top Header: Source App & Lyrics Toggle -->
+    <header class="flyout-header">
+      <div class="source-badge" id="sourceBadge">
+        <span class="source-dot"></span>
+        <span class="source-name" id="sourceName">Media Player</span>
+      </div>
+      <div class="header-actions">
+        <button type="button" class="hdr-pill-btn" id="btnLyricsToggle" title="Toggle Synced Lyrics">
+          <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor" aria-hidden="true">
+            <path d="M9 13c0 1.105-1.12 2-2.5 2S4 14.105 4 13s1.12-2 2.5-2 2.5.895 2.5 2z"/>
+            <path fill-rule="evenodd" d="M9 3v10H8V3h1z"/>
+            <path d="M8 2.82a1 1 0 0 1 .804-.98l3-.6A1 1 0 0 1 13 2.22V4L8 5V2.82z"/>
+          </svg>
+          <span>Lyrics</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Multi-Session Switcher (shown when 2+ apps have active sessions) -->
+    <div class="session-tabs" id="sessionTabs" style="display: none;"></div>
+
+    <!-- Main Player Card -->
+    <div class="player-view" id="playerView">
+      <div class="cover-stage">
+        <div class="cover-frame" id="coverFrame">
+          <img class="cover-img" id="coverImg" alt="Album Cover" />
+          <div class="cover-placeholder" id="coverPlaceholder">
+            <svg viewBox="0 0 24 24" width="44" height="44" fill="currentColor">
+              <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="track-meta">
+        <div class="track-title" id="trackTitle">No Media is Playing</div>
+        <div class="track-artist" id="trackArtist"></div>
+        <div class="track-album" id="trackAlbum"></div>
+      </div>
+    </div>
+
+    <!-- Synced Lyrics View (toggled via Lyrics button) -->
+    <div class="lyrics-view" id="lyricsView" style="display: none;">
+      <div class="lyrics-mini-bar">
+        <img class="lyrics-mini-art" id="lyricsMiniArt" alt="" />
+        <div class="lyrics-mini-meta">
+          <div class="lyrics-mini-title" id="lyricsMiniTitle">No Media is Playing</div>
+          <div class="lyrics-mini-artist" id="lyricsMiniArtist"></div>
+        </div>
+        <span class="lyrics-mode-tag" id="lyricsModeTag">SYNCED</span>
+      </div>
+      <div class="lyrics-scroll" id="lyricsScroll">
+        <div class="lyrics-status" id="lyricsStatus">Tap Lyrics when a track is playing</div>
+      </div>
+    </div>
+
+    <!-- Seekbar + Transport Controls (always visible at bottom) -->
+    <footer class="player-footer">
+      <div class="seek-row">
+        <span class="time-label" id="timeElapsed">0:00</span>
+        <div class="seek-track-wrap" id="seekTrackWrap">
+          <div class="seek-track" id="seekTrack">
+            <div class="seek-fill" id="seekFill"></div>
+            <div class="seek-thumb" id="seekThumb"></div>
+          </div>
+        </div>
+        <span class="time-label" id="timeTotal">0:00</span>
+      </div>
+
+      <div class="transport-row">
+        <button type="button" class="ctrl-btn" id="btnPrev" aria-label="Previous" title="Previous" disabled>
+          <svg viewBox="0 0 16 16" width="18" height="18" fill="currentColor">
+            <path d="M4 4a.5.5 0 0 1 1 0v3.248l6.267-3.636c.54-.313 1.232.077 1.232.696v7.384c0 .619-.691 1.01-1.232.696L5 8.752V12a.5.5 0 0 1-1 0V4z"/>
+          </svg>
+        </button>
+
+        <button type="button" class="ctrl-btn ctrl-play" id="btnPlayPause" aria-label="Play / Pause" title="Play / Pause" disabled>
+          <svg id="iconPlay" viewBox="0 0 16 16" width="20" height="20" fill="currentColor">
+            <path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z"/>
+          </svg>
+          <svg id="iconPause" viewBox="0 0 16 16" width="20" height="20" fill="currentColor" style="display: none;">
+            <path d="M5.5 3.5A1.5 1.5 0 0 1 7 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5zm5 0A1.5 1.5 0 0 1 12 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5z"/>
+          </svg>
+        </button>
+
+        <button type="button" class="ctrl-btn" id="btnNext" aria-label="Next" title="Next" disabled>
+          <svg viewBox="0 0 16 16" width="18" height="18" fill="currentColor">
+            <path d="M12.5 4a.5.5 0 0 0-1 0v3.248L5.233 3.612C4.693 3.3 4 3.69 4 4.31v7.384c0 .619.692 1.01 1.233.697L11.5 8.752V12a.5.5 0 0 0 1 0V4z"/>
+          </svg>
+        </button>
+      </div>
+    </footer>
+  </div>
+
+  <script src="media-flyout.js"></script>
+</body>
+</html>

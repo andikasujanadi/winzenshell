@@ -25,6 +25,7 @@ public sealed class WinKeyHookService : IDisposable
     private readonly LowLevelKeyboardProc _proc;
     private IntPtr _hookId = IntPtr.Zero;
     private bool _winKeyDown;
+    private uint _winKeyVk = VK_LWIN;
     private bool _otherKeyPressed;
 
     public event Action? WinKeySoloPressed;
@@ -76,7 +77,13 @@ public sealed class WinKeyHookService : IDisposable
                     if (!_winKeyDown)
                     {
                         _winKeyDown = true;
+                        _winKeyVk = hookStruct.vkCode;
                         _otherKeyPressed = false;
+                    }
+                    // Swallow Win-down until we know whether another key is combined with it
+                    if (!_otherKeyPressed)
+                    {
+                        return (IntPtr)1;
                     }
                 }
                 else if (isKeyUp)
@@ -87,25 +94,29 @@ public sealed class WinKeyHookService : IDisposable
 
                     if (trigger)
                     {
-                        // Send a harmless unassigned keystroke so Windows Explorer suppresses the native Start Menu
-                        // while allowing the Windows key itself to release cleanly.
-                        InjectDummyKey();
+                        // Solo Win press: swallow Win-up completely so Explorer/Start never sees it
                         WinKeySoloPressed?.Invoke();
+                        return (IntPtr)1;
                     }
                 }
             }
             else if (_winKeyDown && isKeyDown)
             {
-                _otherKeyPressed = true;
+                if (!_otherKeyPressed)
+                {
+                    _otherKeyPressed = true;
+                    // Replay the withheld Win-down so Win+<key> shortcuts work natively
+                    InjectWinKeyDown((ushort)_winKeyVk);
+                }
             }
         }
 
         return CallNextHookEx(_hookId, nCode, wParam, lParam);
     }
 
-    private static void InjectDummyKey()
+    private static void InjectWinKeyDown(ushort vk)
     {
-        var inputs = new INPUT[2];
+        var inputs = new INPUT[1];
         inputs[0] = new INPUT
         {
             type = INPUT_KEYBOARD,
@@ -113,26 +124,13 @@ public sealed class WinKeyHookService : IDisposable
             {
                 ki = new KEYBDINPUT
                 {
-                    wVk = VK_DUMMY,
+                    wVk = vk,
                     dwFlags = 0,
                     dwExtraInfo = InjectedMarker
                 }
             }
         };
-        inputs[1] = new INPUT
-        {
-            type = INPUT_KEYBOARD,
-            u = new InputUnion
-            {
-                ki = new KEYBDINPUT
-                {
-                    wVk = VK_DUMMY,
-                    dwFlags = KEYEVENTF_KEYUP,
-                    dwExtraInfo = InjectedMarker
-                }
-            }
-        };
-        SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<INPUT>());
+        SendInput(1, inputs, Marshal.SizeOf<INPUT>());
     }
 
     public void Dispose()

@@ -37,6 +37,7 @@ public partial class TaskbarWebWindow : Window
     private BluetoothFlyoutWindow? _bluetoothFlyout;
     private BatteryFlyoutWindow? _batteryFlyout;
     private PowerFlyoutWindow? _powerFlyout;
+    private MediaFlyoutWindow? _mediaFlyout;
     private TrayOverflowFlyoutWindow? _trayOverflowFlyout;
     public DynamicIslandWindow? DynamicIslandOverlayWindow { get; set; }
     public MediaService MediaService => _mediaService;
@@ -1562,6 +1563,25 @@ public partial class TaskbarWebWindow : Window
                     });
                     break;
 
+                case "toggle_media_flyout":
+                    double medX = root.TryGetProperty("x", out var medXProp) && medXProp.TryGetDouble(out double medXd) ? medXd : 0;
+                    double medW = root.TryGetProperty("width", out var medWProp) && medWProp.TryGetDouble(out double medWd) ? medWd : 180;
+
+                    Dispatcher.Invoke(() =>
+                    {
+                        _mediaFlyout ??= new MediaFlyoutWindow(_shellState, _metricsService, _mediaService);
+                        bool wasJustOpen = _mediaFlyout.IsVisible ||
+                            (DateTime.UtcNow - _mediaFlyout.LastDeactivatedTime).TotalMilliseconds < 350;
+
+                        CloseAllFlyouts();
+
+                        if (!wasJustOpen)
+                        {
+                            _mediaFlyout.ShowAt(Left + medX, medW, Top, Height, _shellState.Settings.DockEdge, _shellState.Settings.Theme, _shellState.Settings.AccentColor);
+                        }
+                    });
+                    break;
+
                 case "toggle_tray_overflow":
                     double trX = root.TryGetProperty("x", out var trXProp) && trXProp.TryGetDouble(out double trXd) ? trXd : 0;
                     double trW = root.TryGetProperty("width", out var trWProp) && trWProp.TryGetDouble(out double trWd) ? trWd : 24;
@@ -2618,6 +2638,8 @@ public partial class TaskbarWebWindow : Window
             FlyoutAnimationHelper.AnimateHide(_batteryFlyout);
         if (_powerFlyout != null && _powerFlyout != except && _powerFlyout.IsVisible)
             FlyoutAnimationHelper.AnimateHide(_powerFlyout);
+        if (_mediaFlyout != null && _mediaFlyout != except && _mediaFlyout.IsVisible)
+            FlyoutAnimationHelper.AnimateHide(_mediaFlyout);
         if (_trayOverflowFlyout != null && _trayOverflowFlyout != except && _trayOverflowFlyout.IsVisible)
             FlyoutAnimationHelper.AnimateHide(_trayOverflowFlyout);
         if (_windowSelectorFlyout != null && _windowSelectorFlyout != except && _windowSelectorFlyout.IsVisible)

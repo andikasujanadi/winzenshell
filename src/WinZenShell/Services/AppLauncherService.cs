@@ -30,6 +30,7 @@ public class AppLauncherItem
     public bool IsFolder { get; set; }
     public string FolderSize { get; set; } = "1x1";
     public string TileSize { get; set; } = "1x1";
+    public string GroupName { get; set; } = "";
     public List<AppLauncherItem> FolderItems { get; set; } = new();
 }
 
@@ -1414,6 +1415,7 @@ public class AppLauncherService
                             Name = string.IsNullOrWhiteSpace(p.Name) ? "Folder" : p.Name,
                             IsFolder = true,
                             FolderSize = string.IsNullOrWhiteSpace(p.FolderSize) ? "1x1" : p.FolderSize,
+                            GroupName = p.GroupName ?? "",
                             FolderItems = new List<AppLauncherItem>()
                         };
 
@@ -1474,7 +1476,8 @@ public class AppLauncherService
                             NativeIconDataUrl = matched.NativeIconDataUrl,
                             IsRecent = matched.IsRecent,
                             LaunchCount = matched.LaunchCount,
-                            TileSize = tileSize
+                            TileSize = tileSize,
+                            GroupName = p.GroupName ?? ""
                         });
                     }
                     else
@@ -1486,7 +1489,8 @@ public class AppLauncherService
                             TargetPath = p.TargetPath,
                             IconDataUrl = !string.IsNullOrEmpty(p.IconDataUrl) ? p.IconDataUrl : "",
                             NativeIconDataUrl = !string.IsNullOrEmpty(p.IconDataUrl) ? p.IconDataUrl : "",
-                            TileSize = tileSize
+                            TileSize = tileSize,
+                            GroupName = p.GroupName ?? ""
                         });
                     }
                 }
