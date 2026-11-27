@@ -29,6 +29,7 @@ public partial class TrayOverflowFlyoutWindow : Window
     private SolidColorBrush _accentBrush = new(Color.FromRgb(0x36, 0x84, 0xE3));
     private bool _isLightTheme;
     private bool _isContextMenuOpen;
+    private System.Windows.Threading.DispatcherTimer? _nativeMenuWatchTimer;
     public DateTime LastDeactivatedTime { get; private set; } = DateTime.MinValue;
 
     public TrayOverflowFlyoutWindow(TrayIconService trayService, Action? onWinZenSelfClick = null, Action? onChanged = null)
@@ -155,10 +156,50 @@ public partial class TrayOverflowFlyoutWindow : Window
         btn.MouseRightButtonUp += (_, e) =>
         {
             e.Handled = true;
+            bool shiftHeld = (System.Windows.Input.Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Shift) != 0;
+            if (item.HasNativeCallback && !shiftHeld)
+            {
+                _isContextMenuOpen = true;
+                _trayService.ActivateTrayIcon(item.Id, rightClick: true, _onWinZenSelfClick);
+                StartNativeMenuWatch();
+                return;
+            }
             ShowTrayItemContextMenu(item);
         };
 
         return btn;
+    }
+
+    private void StartNativeMenuWatch()
+    {
+        _nativeMenuWatchTimer?.Stop();
+        DateTime startedUtc = DateTime.UtcNow;
+        bool sawMenu = false;
+        _nativeMenuWatchTimer = new System.Windows.Threading.DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(100)
+        };
+        _nativeMenuWatchTimer.Tick += (_, _) =>
+        {
+            double elapsedMs = (DateTime.UtcNow - startedUtc).TotalMilliseconds;
+            bool menuVisible = Win32Api.FindWindow("#32768", null) != IntPtr.Zero;
+            if (menuVisible) sawMenu = true;
+
+            // Keep flyout alive while menu is open (or during initial 600ms launch window)
+            if (menuVisible || (!sawMenu && elapsedMs < 600))
+            {
+                return;
+            }
+
+            _nativeMenuWatchTimer?.Stop();
+            _nativeMenuWatchTimer = null;
+            _isContextMenuOpen = false;
+            if (!IsActive)
+            {
+                FlyoutAnimationHelper.HandleDeactivated(this, () => LastDeactivatedTime = DateTime.UtcNow);
+            }
+        };
+        _nativeMenuWatchTimer.Start();
     }
 
     private void ShowTrayItemContextMenu(TrayIconItem item)
@@ -219,6 +260,56 @@ public partial class TrayOverflowFlyoutWindow : Window
             _trayService.ActivateTrayIcon(item.Id, false, _onWinZenSelfClick);
         };
         menu.Items.Add(openItem);
+
+        if (!string.IsNullOrWhiteSpace(item.ExecutablePath) && System.IO.File.Exists(item.ExecutablePath))
+        {
+            var locationItem = new Forms.ToolStripMenuItem("Open file location")
+            {
+                ForeColor = System.Drawing.Color.FromArgb(245, 245, 245),
+                Padding = itemPadding
+            };
+            locationItem.Click += (_, _) =>
+            {
+                Hide();
+                try
+                {
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = "explorer.exe",
+                        Arguments = $"/select,\"{item.ExecutablePath}\"",
+                        UseShellExecute = true
+                    });
+                }
+                catch { }
+            };
+            menu.Items.Add(locationItem);
+
+            var restartItem = new Forms.ToolStripMenuItem("Restart app")
+            {
+                ForeColor = System.Drawing.Color.FromArgb(245, 245, 245),
+                Padding = itemPadding
+            };
+            restartItem.Click += async (_, _) =>
+            {
+                string exePath = item.ExecutablePath;
+                Hide();
+                _trayService.EndTask(item);
+                _lastRenderSignature = "";
+                RefreshIcons(forceScan: false);
+                _onChanged?.Invoke();
+                await System.Threading.Tasks.Task.Delay(400);
+                try
+                {
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = exePath,
+                        UseShellExecute = true
+                    });
+                }
+                catch { }
+            };
+            menu.Items.Add(restartItem);
+        }
 
         string pinText = item.IsPromoted ? "Unpin from taskbar" : "Pin to taskbar";
         var pinItem = new Forms.ToolStripMenuItem(pinText)

@@ -5,7 +5,7 @@
 [![Platform: Windows 11](https://img.shields.io/badge/Platform-Windows%2011%20(64--bit)-0078D4?logo=windows11&logoColor=white)](https://microsoft.com/windows)
 [![Runtime: .NET 10](https://img.shields.io/badge/Runtime-.NET%2010%20(WPF)-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 [![Frontend: WebView2](https://img.shields.io/badge/Frontend-WebView2%20%7C%20Web%20Components-008080?logo=microsoftedge&logoColor=white)](https://developer.microsoft.com/microsoft-edge/webview2/)
-[![Release: v0.5.3](https://img.shields.io/badge/Release-v0.5.3-0078D4)](README.md#changelog)
+[![Release: v0.5.4](https://img.shields.io/badge/Release-v0.5.4-0078D4)](README.md#changelog)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 **WinZenShell** is a customizable, lightweight Windows 11 taskbar and widget studio.  
@@ -16,8 +16,8 @@ It pairs a modern web interface (HTML, CSS, and JavaScript) with a fast native W
 ---
 
 > [!IMPORTANT]
-> **Release Notice (`v0.5.3`)**:  
-> WinZenShell v0.5.3 adds a dedicated **Media Flyout with Synced Lyrics** for the taskbar Music Widget, **Named Tile Groups** across both **ChromeOS** and **Metro** launchers, automatic **Bluetooth/Default Audio Device Switching** for the Volume widget, and **Reliable Solo Windows Key Override** even when File Explorer is focused.
+> **Release Notice (`v0.5.4`)**:  
+> WinZenShell v0.5.4 introduces a native **Windows 11 `Shell_NotifyIcon` Tray Hook (`WinZenTrayHook.dll`)** so right-clicking system tray icons opens each app's real native context menu (while `Shift + Right-click` opens WinZenShell's enhanced menu with **Open file location** and **Restart app**).
 
 ---
 
@@ -204,6 +204,12 @@ window.winzen.shell.onMetricsUpdate((metrics) => {
 ---
 
 ## Changelog
+
+### v0.5.4 (2026-11-28)
+* **Native Windows 11 System Tray Right-Click Menus (`WinZenTrayHook.dll` + `TrayHookBridge`)**:
+  * Built and embedded a 64-bit static-CRT (`/MT`) C++ hook DLL (`WinZenTrayHook.dll`) that subclasses `Shell_TrayWnd` in `explorer.exe` to capture live `WM_COPYDATA` tray notifications (`hWnd`, `uID`, `uCallbackMessage`, `uVersion`) over `\\.\pipe\WinZenTrayHookPipe` and cleanly unhooks on exit.
+  * Right-clicking any hooked tray icon (e.g., Steam, PowerToys, Windhawk, AnyDesk) now opens the **app's real native context menu** while keeping the System Tray Overflow flyout open behind it.
+  * **Shift + Right-click** (or right-click on unhooked icons) opens WinZenShell's enhanced tray menu, now including **Open file location** and **Restart app** alongside **Open**, **Pin/Unpin**, and **End task**.
 
 ### v0.5.3 (2026-11-26)
 * **Media Flyout & Synced Lyrics (`MediaFlyoutWindow` + `zen-media-player`)**:

@@ -26,17 +26,20 @@ public class TrayIconItem
     public long TargetHwnd { get; set; }
     public uint CallbackMessage { get; set; }
     public uint Uid { get; set; }
+    public uint HookVersion { get; set; }
     public bool IsPromoted { get; set; }
     public bool IsClassicToolbarItem { get; set; }
+    public bool HasNativeCallback => TargetHwnd != 0 && CallbackMessage != 0;
     public string IconDataUrl { get; set; } = "";
 }
 
-public class TrayIconService
+public class TrayIconService : IDisposable
 {
     private readonly ConcurrentDictionary<string, string> _iconCache = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, DateTime> _suppressedTrayIds = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<int, DateTime> _suppressedPids = new();
     private readonly object _cacheLock = new();
+    private readonly TrayHookBridge _hookBridge = new();
     private List<TrayIconItem> _cachedItems = new();
     private DateTime _lastRefreshUtc = DateTime.MinValue;
     private volatile bool _isRefreshing;
@@ -45,8 +48,15 @@ public class TrayIconService
 
     public TrayIconService()
     {
+        _hookBridge.IconsUpdated += () => { _lastRefreshUtc = DateTime.MinValue; };
+        _hookBridge.Start();
         // Pre-warm cache off the UI thread at startup so the first flyout open is instantaneous
         _ = RefreshTrayIconsAsync();
+    }
+
+    public void Dispose()
+    {
+        _hookBridge.Dispose();
     }
 
     private static readonly Regex KnownFolderPrefixRegex = new(
@@ -544,6 +554,8 @@ public class TrayIconService
                 if (string.IsNullOrWhiteSpace(displayName))
                     displayName = baseName;
 
+                var hookMatch = _hookBridge.FindMatch((uint)Math.Max(0, pid), actualExePath, tooltip);
+
                 list.Add(new TrayIconItem
                 {
                     Id = $"reg:{subKeyName}",
@@ -552,6 +564,10 @@ public class TrayIconService
                     Tooltip = string.IsNullOrWhiteSpace(tooltip) ? displayName : tooltip,
                     ExecutablePath = actualExePath,
                     ProcessId = pid,
+                    TargetHwnd = hookMatch != null ? (long)hookMatch.HWnd : 0,
+                    CallbackMessage = hookMatch?.CallbackMessage ?? 0,
+                    Uid = hookMatch?.UId ?? 0,
+                    HookVersion = hookMatch?.Version ?? 0,
                     IsPromoted = isPromoted,
                     IsClassicToolbarItem = false,
                     IconDataUrl = iconDataUrl
@@ -739,10 +755,29 @@ public class TrayIconService
             return true;
         }
 
-        if (item.IsClassicToolbarItem && item.TargetHwnd != 0 && item.CallbackMessage != 0)
+        if (item.HasNativeCallback)
         {
             IntPtr target = (IntPtr)item.TargetHwnd;
             if (item.ProcessId > 0) AllowSetForegroundWindow(item.ProcessId);
+            SetForegroundWindow(target);
+
+            if (item.HookVersion >= 4)
+            {
+                var pt = System.Windows.Forms.Cursor.Position;
+                IntPtr xyParam = (IntPtr)(((pt.Y & 0xFFFF) << 16) | (pt.X & 0xFFFF));
+                if (rightClick)
+                {
+                    PostMessage(target, item.CallbackMessage, xyParam, (IntPtr)(((int)item.Uid << 16) | WM_RBUTTONDOWN));
+                    PostMessage(target, item.CallbackMessage, xyParam, (IntPtr)(((int)item.Uid << 16) | WM_RBUTTONUP));
+                    PostMessage(target, item.CallbackMessage, xyParam, (IntPtr)(((int)item.Uid << 16) | WM_CONTEXTMENU));
+                }
+                else
+                {
+                    PostMessage(target, item.CallbackMessage, xyParam, (IntPtr)(((int)item.Uid << 16) | WM_LBUTTONDOWN));
+                    PostMessage(target, item.CallbackMessage, xyParam, (IntPtr)(((int)item.Uid << 16) | WM_LBUTTONUP));
+                }
+                return true;
+            }
 
             IntPtr wParam = (IntPtr)item.Uid;
             PostMessage(target, item.CallbackMessage, wParam, (IntPtr)WM_MOUSEMOVE);
@@ -750,7 +785,6 @@ public class TrayIconService
             {
                 PostMessage(target, item.CallbackMessage, wParam, (IntPtr)WM_RBUTTONDOWN);
                 PostMessage(target, item.CallbackMessage, wParam, (IntPtr)WM_RBUTTONUP);
-                PostMessage(target, item.CallbackMessage, wParam, (IntPtr)WM_CONTEXTMENU);
             }
             else
             {

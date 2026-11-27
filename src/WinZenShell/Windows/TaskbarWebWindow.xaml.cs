@@ -89,6 +89,7 @@ public partial class TaskbarWebWindow : Window
         _bluetoothService = new BluetoothService();
         System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] TaskbarWebWindow: TrayIconService...\n");
         _trayIconService = new TrayIconService();
+        Closed += (_, _) => _trayIconService.Dispose();
         System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] TaskbarWebWindow: MediaService...\n");
         _mediaService = new MediaService();
         System.IO.File.AppendAllText(logPath, $"[{DateTime.Now}] TaskbarWebWindow: Wire up metrics...\n");
@@ -1608,7 +1609,16 @@ public partial class TaskbarWebWindow : Window
                     {
                         if (trayRight)
                         {
-                            ShowTrayIconContextMenu(trayId);
+                            bool shiftHeld = (System.Windows.Input.Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Shift) != 0;
+                            var trayItem = _trayIconService.GetActiveTrayIcons().Find(i => string.Equals(i.Id, trayId, StringComparison.Ordinal));
+                            if (trayItem != null && trayItem.HasNativeCallback && !shiftHeld)
+                            {
+                                _trayIconService.ActivateTrayIcon(trayId, rightClick: true, _openSettingsCallback);
+                            }
+                            else
+                            {
+                                ShowTrayIconContextMenu(trayId);
+                            }
                         }
                         else
                         {
@@ -2079,6 +2089,54 @@ public partial class TaskbarWebWindow : Window
             _trayIconService.ActivateTrayIcon(item.Id, false, _openSettingsCallback);
         };
         menu.Items.Add(openItem);
+
+        if (!string.IsNullOrWhiteSpace(item.ExecutablePath) && File.Exists(item.ExecutablePath))
+        {
+            var locationItem = new Forms.ToolStripMenuItem("Open file location")
+            {
+                ForeColor = Color.FromArgb(245, 245, 245),
+                Padding = itemPadding
+            };
+            locationItem.Click += (_, _) =>
+            {
+                try
+                {
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = "explorer.exe",
+                        Arguments = $"/select,\"{item.ExecutablePath}\"",
+                        UseShellExecute = true
+                    });
+                }
+                catch { }
+            };
+            menu.Items.Add(locationItem);
+
+            var restartItem = new Forms.ToolStripMenuItem("Restart app")
+            {
+                ForeColor = Color.FromArgb(245, 245, 245),
+                Padding = itemPadding
+            };
+            restartItem.Click += async (_, _) =>
+            {
+                string exePath = item.ExecutablePath;
+                _trayIconService.EndTask(item);
+                BroadcastMetrics();
+                if (_trayOverflowFlyout != null && _trayOverflowFlyout.IsVisible)
+                    _trayOverflowFlyout.RefreshIcons(forceScan: false);
+                await System.Threading.Tasks.Task.Delay(400);
+                try
+                {
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = exePath,
+                        UseShellExecute = true
+                    });
+                }
+                catch { }
+            };
+            menu.Items.Add(restartItem);
+        }
 
         string pinText = item.IsPromoted ? "Unpin from taskbar" : "Pin to taskbar";
         var pinItem = new Forms.ToolStripMenuItem(pinText)
